@@ -18,7 +18,7 @@
 package com.pagecrumb.joongo.common;
 
 @SuppressWarnings("serial")
-public class EntityNotFoundException extends PogoException {
+public class EntityNotFoundException extends JoongoException {
 	public EntityNotFoundException() {
 		super();
 	}

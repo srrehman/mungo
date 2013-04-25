@@ -18,7 +18,7 @@
 package com.pagecrumb.joongo.common;
 
 @SuppressWarnings("serial")
-public class EntityExistException extends PogoException {
+public class EntityExistException extends JoongoException {
 	public EntityExistException() {
 		super();
 	}

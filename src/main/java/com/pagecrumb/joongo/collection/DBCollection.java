@@ -199,6 +199,8 @@ public abstract class DBCollection implements ParameterNames {
 					e.setProperty((String)obj.get(key), ee);
 				} else if(obj.get(key) instanceof Map){
 					LOG.log(Level.INFO, "Processing Map value");
+					// FIXME Doing recursive call to this method
+					// throws StackOverflow exception
 //					Key pkey = createKey(e.getKey(), _kind, key);
 //					e.setProperty(key, pkey); 
 //					createEntity(pkey, (Map) obj.get(key)); 

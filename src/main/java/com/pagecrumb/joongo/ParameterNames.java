@@ -28,7 +28,7 @@ public interface ParameterNames {
 	 * The admin namespace contains all the Database entities
 	 * and Collection entities
 	 */
-	public static final String ADMIN_NAMESPACE = "admin";
+	public static final String ADMIN_NAMESPACE = "Admin";
 	public static final String DATABASE_KIND = "Database";
 	public static final String COLLECTION_KIND = "Collection";
 	
