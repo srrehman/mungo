@@ -7,7 +7,7 @@ It is designed to allow the storing of JSON-documents in the most native way pos
   - It's a work in progress where changes are rapid
   - It makes storing JSON objects easy
   - Easy to use
-
+Joong
 Joongo, does not try to create yet another "object mapping" framework or some sort. So it should not be compared to Objectify or Twig or anything like that. 
 It just provides the Datastore a wire-up to allow the easy storing of JSON objects or Maps in a way that it is not serialized in some form.  
 

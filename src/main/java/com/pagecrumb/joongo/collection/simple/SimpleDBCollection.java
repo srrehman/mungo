@@ -19,9 +19,16 @@ package com.pagecrumb.joongo.collection.simple;
 
 import com.pagecrumb.joongo.collection.DB;
 import com.pagecrumb.joongo.collection.DBCollection;
+import com.pagecrumb.joongo.collection.DBObject;
 
 public class SimpleDBCollection extends DBCollection {
 	public SimpleDBCollection(DB ds, String collection) {
 		super(ds, collection);
+	}
+
+	@Override
+	public void doapply(DBObject o) {
+		// TODO Auto-generated method stub
+		
 	}
 }
