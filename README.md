@@ -14,21 +14,14 @@ It just provides the Datastore a wire-up to allow the easy storing of JSON objec
 The goal is to be able to store JSON documents and its sub-documents as flat as possible. Allowing smooth queries to 
 deep stored embedded documents (Work in progress).
 
->    	Joongo go = new Joongo(); 
->
->    	DB msgDB = go.getDB("msgDB");
->		DBCollection messages = msgDB.createCollection("Message");
+>    	Joongo joongo = new Joongo(); 
+>    	DB testDB = joongo.getDB("testDB");
+>		DBCollection messages = testDB.createCollection("Message");
 >    	BasicDBObject obj = new BasicDBObject();
 >    	obj.put("hi", "there");
-> 		String id = messages.createObject(obj); // Done!
-
-Or with one line of code:
-
-> 		String docId = go.getDB("dbName").getCollection("Message").createObject(obj);
-
-Then another one line to get a DBObject:
- 
-> 		DBObject obj = go.getDB("dbName").getCollection("Message").getObject(docId);
+> 		obj.put("hello", "world");
+> 		WriteResult wr = messages.insert(obj); // Done!
+> 		DBObject result = messages.findOne(obj.getId()); // Get it
 
 It's that easy!
 Version
