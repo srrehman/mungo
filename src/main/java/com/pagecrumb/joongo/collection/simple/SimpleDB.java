@@ -17,11 +17,35 @@
  */
 package com.pagecrumb.joongo.collection.simple;
 
+import java.util.logging.Logger;
+
 import com.google.appengine.api.datastore.Key;
+import com.pagecrumb.joongo.collection.CommandResult;
 import com.pagecrumb.joongo.collection.DB;
+import com.pagecrumb.joongo.collection.DBCollection;
+import com.pagecrumb.joongo.collection.DBObject;
 
 public class SimpleDB extends DB {
+
+	private static final Logger LOG 
+		= Logger.getLogger(SimpleDB.class.getName());
+	
 	public SimpleDB(Key key, String namespace) {
 		super(key, namespace);
+	}
+
+	@Override
+	public DBObject command(DBObject cmd) {
+		LOG.info("Joongo got command: " + cmd);
+	    if (cmd.containsKey("getlasterror")) {
+	    	return okResult();
+	    } else if (cmd.containsKey("drop")) {
+	    	return okResult();
+	    } else if(cmd.containsKey("create")) {
+	        return okResult();
+	    }		
+	    CommandResult errorResult = new CommandResult();
+	    errorResult.put("err", "undefined command: " + cmd);
+	    return errorResult;
 	}
 }

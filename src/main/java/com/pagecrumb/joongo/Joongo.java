@@ -28,6 +28,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.google.appengine.api.NamespaceManager;
+import com.google.appengine.api.appidentity.AppIdentityService;
+import com.google.appengine.api.appidentity.AppIdentityServiceFactory;
 import com.google.appengine.api.datastore.DataTypeUtils;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
@@ -38,7 +40,10 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.PreparedQuery;
 import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.TransactionOptions;
+import com.google.appengine.api.utils.SystemProperty.Environment;
+import com.google.apphosting.api.ApiProxy;
 import com.google.inject.Singleton;
 import com.pagecrumb.joongo.collection.DB;
 import com.pagecrumb.joongo.collection.simple.SimpleDB;
@@ -56,7 +61,7 @@ public class Joongo implements ParameterNames {
 	private static final Logger logger 
 		= Logger.getLogger(Joongo.class.getName());
 	
-	protected static DatastoreService _ds;
+    protected AppIdentityService _appIdentity; protected static DatastoreService _ds;
 	protected static TransactionOptions options;
 	protected Calendar cal;
 	/**
@@ -66,6 +71,9 @@ public class Joongo implements ParameterNames {
 	        DataTypeUtils.getSupportedTypes();	
 	
 	public Joongo() {
+		if (_appIdentity == null){
+			_appIdentity = AppIdentityServiceFactory.getAppIdentityService();
+		}
 		if (_ds == null) {
 			_ds = DatastoreServiceFactory.getDatastoreService();
 			options = TransactionOptions.Builder.withXG(true);
@@ -103,12 +111,14 @@ public class Joongo implements ParameterNames {
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(ADMIN_NAMESPACE);	
 		Key key = createDatabaseKey(dbName);
+		Transaction tx = _ds.beginTransaction();
 		try {
 			Entity e = _ds.get(key);
 			e.getProperty(DATABASE_NAME);
 			e.getProperty(CREATED);
 			e.getProperty(UPDATED);			
 			db = new SimpleDB(e.getKey(), dbName);
+			tx.commit();
 		} catch(EntityNotFoundException ex) {
 			Entity e = new Entity(key);
 			e.setProperty(DATABASE_NAME, dbName);
@@ -116,9 +126,11 @@ public class Joongo implements ParameterNames {
 			e.setProperty(UPDATED, new Date().getTime());			
 			_ds.put(e);
 			db = new SimpleDB(e.getKey(), dbName);
+			tx.commit();
 		} catch (Exception e) {
 			// TODO: Rollback
 			e.printStackTrace();
+			tx.rollback();
 		} finally {
 			NamespaceManager.set(oldNamespace);
 		}	
@@ -192,4 +204,8 @@ public class Joongo implements ParameterNames {
 	protected Key createKey(Key parent, String kind, String key) {
 		return KeyFactory.createKey(parent, kind, key);
 	}	
+	
+	public String getServerIP() {
+		return "";
+	}
 }

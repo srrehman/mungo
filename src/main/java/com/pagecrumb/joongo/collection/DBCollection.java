@@ -17,6 +17,7 @@
  */
 package com.pagecrumb.joongo.collection;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
@@ -43,6 +44,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.TransactionOptions;
+import com.google.common.base.Preconditions;
 
 import com.pagecrumb.joongo.ParameterNames;
 import com.pagecrumb.joongo.entity.BasicDBObject;
@@ -57,9 +59,9 @@ public abstract class DBCollection implements ParameterNames {
 	private static final Logger LOG 
 		= Logger.getLogger(DBCollection.class.getName());
 	
-	private final String _namespace;
-	private final String _collection;
-	private final DB _store;
+	protected final String _namespace;
+	protected final String _collection;
+	protected final DB _store;
 	
 	protected static DatastoreService _ds;
 	protected static TransactionOptions options;
@@ -94,79 +96,7 @@ public abstract class DBCollection implements ParameterNames {
 		return _collection;
 	}
 	
-	public String createObject(DBObject obj){
-		String oldNamespace = NamespaceManager.get();
-		NamespaceManager.set(_namespace);
-		if (obj.get(OBJECT_ID) == null
-				|| !(obj.get(OBJECT_ID) instanceof String)){ 
-			obj.put(OBJECT_ID, new ObjectId().toStringMongod());
-		}
-		try {
-			String id = (String) obj.get(OBJECT_ID);
-			createEntity(null, obj);
-			return id;
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			NamespaceManager.set(oldNamespace);
-		}
-		return null; 
-	}
 
-	public DBObject getObject(String id){
-		DBObject result = null;
-		Map<String,Object> json;
-		if (id == null)
-			return null;
-		String oldNamespace = NamespaceManager.get();
-		NamespaceManager.set(_namespace);
-		try {
-			json = new LinkedHashMap<String, Object>();
-			Entity e = _ds.get(createKey(_collection, id));
-			Map<String,Object> props = e.getProperties();
-			Iterator<Map.Entry<String, Object>> it = props.entrySet().iterator();
-			result = new BasicDBObject();
-			// Preprocess - 
-			// Can't putAll directly since List and Map
-			// must be dynamically retrieved for 
-			// those are linked objects
-			while(it.hasNext()){
-				Map.Entry<String, Object> entry = it.next();
-				String key = entry.getKey();
-				Object val = entry.getValue();
-				if (val == null){
-					json.put(key, val);
-				} else if (val instanceof String
-						|| val instanceof Number
-						|| val instanceof Boolean) {
-					json.put(key, val);
-				} else if (val instanceof List) {
-					
-				} else if (val instanceof Map) { // For embedded Map, the key is stored instead
-					
-				}
-			}
-			json.put("_id", e.getKey().getName());
-			result.putAll(json);
-		} catch (EntityNotFoundException e) {
-			// Just return null
-		} finally {
-			NamespaceManager.set(oldNamespace);
-		}
-		return result;
-	}
-	
-	public boolean updateObject(DBObject obj){
-		return false;
-	}
-	
-	public boolean deleteObject(String id){
-		return false;
-	}
-
-	public List<String> getDocIds() {
-		return null;
-	}
 	
 	protected boolean checkReadOnly(){
 		return false;
@@ -396,8 +326,13 @@ public abstract class DBCollection implements ParameterNames {
 	 * @param o
 	 * @return
 	 */
-	public DBObject findOne(Object o){
-		throw new IllegalArgumentException("Not yet implemented");
+	public DBObject findOne(Object id){
+		if (getDB().containsKey(id, _collection)){
+			BasicDBObject obj = new BasicDBObject();
+			obj.put(OBJECT_ID, id);
+			return getDB().getObject(obj, _collection);
+		}
+		return null;
 	}
 	
 	/**
@@ -470,11 +405,17 @@ public abstract class DBCollection implements ParameterNames {
 	}
 	
 	public WriteResult insert(DBObject... arr){
-		throw new IllegalArgumentException("Not yet implemented");
+		return insert(arr, WriteConcern.NONE);
 	}
 	
 	public WriteResult insert(DBObject[] arr, WriteConcern concern){
-		throw new IllegalArgumentException("Not yet implemented");
+		Preconditions.checkNotNull(_collection, "Cannot insert when collection is null");
+		List<DBObject> objects = Arrays.asList(arr);
+		for (DBObject o : objects){
+			LOG.log(Level.INFO, "Creating object: " + o.get(OBJECT_ID) + " in collection: " + _collection);
+			ObjectId id = getDB().createObject(o, _collection); 
+		}
+		return null;
 	}	
 	
 	/**
@@ -506,9 +447,7 @@ public abstract class DBCollection implements ParameterNames {
 	 * @param concern
 	 * @return
 	 */
-	public WriteResult insert(List<DBObject> list, WriteConcern concern){
-		throw new IllegalArgumentException("Not yet implemented");
-	}
+	public abstract WriteResult insert(List<DBObject> list, WriteConcern concern);
 
 	public WriteResult insert(WriteConcern concern, DBObject... arr){
 		throw new IllegalArgumentException("Not yet implemented");
@@ -600,61 +539,8 @@ public abstract class DBCollection implements ParameterNames {
 		return update(q, o, false, true);
 	}	
 	
-	/**
-	 * Create an entity  
-	 * 
-	 * @param parent 
-	 * @param obj
-	 */
-	protected void createEntity(Key parent, Map obj){	
-		try {
-			Entity e = new Entity(
-					parent == null ? createKey(_collection, (String) obj.get(OBJECT_ID)) : parent);  
-			// Clean up the objectId (since the DS have ID field)
-			obj.remove(OBJECT_ID);
-			Iterator it = obj.keySet().iterator();
-			while (it.hasNext()){
-				String key = (String) it.next();
-				if (obj.get(key) == null){
-					e.setProperty(key, null);
-				} else if (obj.get(key) instanceof String) {
-					setProperty(e, key, obj.get(key));
-				} else if(obj.get(key) instanceof Number) {
-					setProperty(e, key, obj.get(key));
-				} else if(obj.get(key) instanceof Boolean) {
-					setProperty(e, key, obj.get(key));
-				} else if(obj.get(key) instanceof List) {
-					// Problem area, right way to store a list? 
-					// List may contain JSONObject too!
-					int index = 0;
-					EmbeddedEntity ee = new EmbeddedEntity();
-					ee.setKey(createKey(e.getKey(), _collection, (String) obj.get(key)));
-					for (Object o : (List) obj.get("key")){
-						ee.setProperty((String)obj.get(key) + "." + index, o);
-						index++;
-					}
-					e.setProperty((String)obj.get(key), ee);
-				} else if(obj.get(key) instanceof Map){
-					LOG.log(Level.INFO, "Processing Map value");
-					// FIXME Doing recursive call to this method
-					// throws StackOverflow exception
-//					Key pkey = createKey(e.getKey(), _kind, key);
-//					e.setProperty(key, pkey); 
-//					createEntity(pkey, (Map) obj.get(key)); 
-				}
-			}	
-			LOG.log(Level.INFO, "Persisting entity to the datastore");
-			_ds.put(e);
-		} catch (ConcurrentModificationException e){
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	protected void createListEntity(Key parentList, Object obj){
-		
-	}
+
+
 	
     protected void setProperty(Entity entity, String key, Object value){
 	    if (!GAE_SUPPORTED_TYPES.contains(value.getClass())
@@ -697,5 +583,82 @@ public abstract class DBCollection implements ParameterNames {
 	protected Key createKey(Key parent, String kind, String key) {
 		return KeyFactory.createKey(parent, kind, key);
 	}
+
+	
+//	public ObjectId createObject(DBObject obj){
+//		String oldNamespace = NamespaceManager.get();
+//		NamespaceManager.set(_namespace);
+//		if (obj.get(OBJECT_ID) == null
+//				|| !(obj.get(OBJECT_ID) instanceof String)){ 
+//			obj.put(OBJECT_ID, new ObjectId().toStringMongod());
+//		}
+//		try {
+//			String id = (String) obj.get(OBJECT_ID);
+//			Key key = createEntity(null, obj);
+//			if (key != null)
+//				return new ObjectId(id); 
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		} finally {
+//			NamespaceManager.set(oldNamespace);
+//		}
+//		return null; 
+//	}
+//
+//	public DBObject getObject(String id){
+//		DBObject result = null;
+//		Map<String,Object> json;
+//		if (id == null)
+//			return null;
+//		String oldNamespace = NamespaceManager.get();
+//		NamespaceManager.set(_namespace);
+//		try {
+//			json = new LinkedHashMap<String, Object>();
+//			Entity e = _ds.get(createKey(_collection, id));
+//			Map<String,Object> props = e.getProperties();
+//			Iterator<Map.Entry<String, Object>> it = props.entrySet().iterator();
+//			result = new BasicDBObject();
+//			// Preprocess - 
+//			// Can't putAll directly since List and Map
+//			// must be dynamically retrieved for 
+//			// those are linked objects
+//			while(it.hasNext()){
+//				Map.Entry<String, Object> entry = it.next();
+//				String key = entry.getKey();
+//				Object val = entry.getValue();
+//				if (val == null){
+//					json.put(key, val);
+//				} else if (val instanceof String
+//						|| val instanceof Number
+//						|| val instanceof Boolean) {
+//					json.put(key, val);
+//				} else if (val instanceof List) {
+//					
+//				} else if (val instanceof Map) { // For embedded Map, the key is stored instead
+//					
+//				}
+//			}
+//			json.put(OBJECT_ID, e.getKey().getName());
+//			result.putAll(json);
+//		} catch (EntityNotFoundException e) {
+//			// Just return null
+//		} finally {
+//			NamespaceManager.set(oldNamespace);
+//		}
+//		return result;
+//	}
+//	
+//	public boolean updateObject(DBObject obj){
+//		return false;
+//	}
+//	
+//	public boolean deleteObject(String id){
+//		return false;
+//	}
+//
+//	public List<String> getDocIds() {
+//		return null;
+//	}	
 	
 }
+

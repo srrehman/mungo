@@ -19,7 +19,10 @@ package com.pagecrumb.joongo.collection;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.ConcurrentModificationException;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -30,12 +33,15 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bson.types.ObjectId;
+
 
 import com.google.appengine.api.NamespaceManager;
 import com.google.appengine.api.datastore.Blob;
 import com.google.appengine.api.datastore.DataTypeUtils;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
+import com.google.appengine.api.datastore.EmbeddedEntity;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.EntityNotFoundException;
 import com.google.appengine.api.datastore.FetchOptions;
@@ -52,6 +58,7 @@ import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.common.base.Preconditions;
 import com.pagecrumb.joongo.ParameterNames;
 import com.pagecrumb.joongo.collection.simple.SimpleDBCollection;
+import com.pagecrumb.joongo.entity.BasicDBObject;
 
 /**
  * Datastore namespace'd interface. Usually this object should 
@@ -231,6 +238,9 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		return 0;
 	}
 	
+	
+	public abstract DBObject command(DBObject cmd);
+	
 	//
 	// internal stuff
 	//
@@ -288,222 +298,244 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		// return the number of entities of this kind
 		return pq.countEntities();
 	}
-
-	protected boolean deleteEntity(String kind, String key) {
-		Entity e = getEntity(kind, key);
-		if (e == null)
+	
+	/**
+	 * Persist a DBObject to this DB under the given collection
+	 * 
+	 * @param object
+	 * @param collection
+	 * @return
+	 */
+	public ObjectId createObject(DBObject object, String collection){
+		ObjectId id = null;
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		try {
+			String _id = null;
+			// Pre-process, the Datastore does not accept ObjectId as is
+			ObjectId oid = (ObjectId) object.get(OBJECT_ID);
+			if (oid == null){
+				logger.info("No id object found in the object, creating new");
+				_id = new ObjectId().toStringMongod();
+			} else {
+				logger.info("ObjectId found, getting string id");
+				_id = oid.toStringMongod();
+			}
+			object.put(OBJECT_ID, _id);
+			Key key = createEntity(null, collection, object);
+			if (key != null)
+				id = new ObjectId(key.getName());
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			NamespaceManager.set(oldNamespace);
+		}		
+		return id;
+	}
+	
+	/**
+	 * Get a DBObject from this DB and from the given collection
+	 * 
+	 * @param object
+	 * @param collection
+	 * @return
+	 */
+	public DBObject getObject(DBObject object, String collection){
+		DBObject obj = null;
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		try {
+			ObjectId id = (ObjectId) object.get(OBJECT_ID);
+			Map<String, Object> map = getEntity(createKey(collection, id.toStringMongod()));
+			obj = new BasicDBObject();
+			obj.putAll(map);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			NamespaceManager.set(oldNamespace);
+		}		
+		return obj;
+	}	
+	
+	public boolean contains(DBObject object, String collection){
+		return getObject(object, collection) == null ? false : true;
+	}
+	
+	public boolean containsKey(Object id, String collection){
+		if (id == null)
+			return false;
+		boolean contains = false;
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		try {
+			String _id;
+			if (id instanceof ObjectId){
+				_id = ((ObjectId) id).toStringMongod();
+			} else {
+				_id = id.toString();
+			}
+			contains = containsEntityKey(createKey(collection, _id)); // Safe?
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			NamespaceManager.set(oldNamespace);
+		}			
+		return contains;
+	}
+	
+	/**
+	 * Delete the object from this DB under the given collection
+	 * 
+	 * @param object
+	 * @param collection
+	 * @return
+	 */
+	public boolean deleteObject(DBObject object, String collection){
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		boolean result = false;
+		try {
+			ObjectId id = (ObjectId) object.get(OBJECT_ID);
+			result = deleteEntity(createKey(collection, id.toStringMongod()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			NamespaceManager.set(oldNamespace);
+		}		
+		return result;
+	}	
+	
+	
+	/**
+	 * Create an entity for a a <code>Map</code>
+	 * Note that this method does not enforce any rule in persisting an entity. 
+	 * It however may call subsequent datastore <code>put</code>s as necessary when
+	 * dealing with embedded documents. It also does not restrict the operation on 
+	 * a spefic Namespace, it is however should be managed by that method that calls this method.
+	 * 
+	 * This method expects the id of the Entity to be in the Map with key "_id"
+	 * 
+	 * @param parent when provided becomes the parent key of the created Entity, can be set to null
+	 * @param obj
+	 */
+	protected Key createEntity(Key parent, String kind, Map obj){	
+		Key entityKey = null;
+		try {
+			String id = (String) obj.get(OBJECT_ID);
+			Entity e = new Entity(
+					parent == null ? createKey(kind, id) : parent);  
+			// Clean up the objectId (since the DS have ID field)
+			// and since it is already 'copied' into the Entity
+			obj.remove(OBJECT_ID);
+			Iterator it = obj.keySet().iterator();
+			while (it.hasNext()){
+				String key = (String) it.next();
+				if (obj.get(key) == null){
+					e.setProperty(key, null);
+				} else if (obj.get(key) instanceof String) {
+					setProperty(e, key, obj.get(key));
+				} else if(obj.get(key) instanceof Number) {
+					setProperty(e, key, obj.get(key));
+				} else if(obj.get(key) instanceof Boolean) {
+					setProperty(e, key, obj.get(key));
+				} else if(obj.get(key) instanceof List) {
+					// Problem area, right way to store a list? 
+					// List may contain JSONObject too!
+					int index = 0;
+					EmbeddedEntity ee = new EmbeddedEntity();
+					ee.setKey(createKey(e.getKey(), kind, (String) obj.get(key)));
+					for (Object o : (List) obj.get("key")){
+						ee.setProperty((String)obj.get(key) + "." + index, o);
+						index++;
+					}
+					e.setProperty((String)obj.get(key), ee);
+				} else if(obj.get(key) instanceof Map){
+					logger.log(Level.INFO, "Processing Map value");
+					// FIXME Doing recursive call to this method
+					// throws StackOverflow exception
+//					Key pkey = createKey(e.getKey(), _kind, key);
+//					e.setProperty(key, pkey);  
+					createEntity(e.getKey(), kind, (Map) obj.get(key)); 
+				}
+			}	
+			logger.log(Level.INFO, "Persisting entity to the datastore");
+			entityKey = _ds.put(e);
+		} catch (ConcurrentModificationException e){
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return entityKey;
+	}
+	
+	protected Map<String,Object> getEntity(Key k){
+		Map<String,Object> json = null;
+		if (k == null)
+			return null;		
+		try {
+			json = new LinkedHashMap<String, Object>();
+			//Entity e = _ds.get(createKey(_collection, id));
+			Entity e = _ds.get(k);
+			Map<String,Object> props = e.getProperties();
+			Iterator<Map.Entry<String, Object>> it = props.entrySet().iterator();
+			// Preprocess - 
+			// Can't putAll directly since List and Map
+			// must be dynamically retrieved for 
+			// those are linked objects
+			while(it.hasNext()){
+				Map.Entry<String, Object> entry = it.next();
+				String key = entry.getKey();
+				Object val = entry.getValue();
+				if (val == null){
+					json.put(key, val);
+				} else if (val instanceof String
+						|| val instanceof Number
+						|| val instanceof Boolean) {
+					json.put(key, val);
+				} else if (val instanceof List) {
+					
+				} else if (val instanceof Map) { // For embedded Map, the key is stored instead
+					
+				}
+			}
+			json.put(OBJECT_ID, e.getKey().getName());
+		} catch (EntityNotFoundException e) {
+			// Just return null
+		} finally {
+			
+		}
+		return json;
+	}
+	
+	protected boolean containsEntityKey(Key key){
+		if (key == null)
 			return false;
 		Transaction tx = _ds.beginTransaction();
 		try {
-			_ds.delete(e.getKey());
+			Entity e = _ds.get(key);
+			if (e != null)
+				return true;
 			tx.commit();
-		} catch (Exception e2) {
+		} catch (Exception e) {
+			tx.rollback();
+			return false;
+		}		
+		return false;
+	}
+	
+	
+	protected boolean deleteEntity(Key key){
+		if (key == null)
+			return false;
+		Transaction tx = _ds.beginTransaction();
+		try {
+			_ds.delete(key);
+			tx.commit();
+		} catch (Exception e) {
 			tx.rollback();
 			return false;
 		}
 		return true;
-	}	
-	
-
-	public Properties create(String collection, String id, Map json){
-		// Check if collection exist
-		if (getCollectionEntity(collection) == null)
-			createCollectionEntity(collection);
-		return createEntity(collection, id, json);
-	}
-	
-	public boolean delete(String collection, String id)  {
-		return deleteEntity(collection, id);
-	}	
-	
-	public Properties get(String kind, String key)  {
-		Entity e = getEntity(kind, key);
-		if (e == null)
-			return null;
-
-		// extract the data from the datastore entity
-		Properties props = new Properties();
-		props.putAll(e.getProperties());
-		props.put(COLLECTION_NAME, kind);
-
-		return props;
-	}	
-	
-	public Properties put(String kind, String key, Map data)
-			 {
-		return updateEntity(kind, key, data);
-	}
-	
-	
-
-	protected Entity getEntity(String kind, String key) {
-		try {
-			return _ds.get(createKey(kind, key));
-		} catch (EntityNotFoundException ex) {
-			return null;
-		}
-	}
-
-	public Properties createMultiple(String kind, List<Map> json)
-			 {
-		if (getCollectionEntity(kind) == null)
-			createCollectionEntity(kind);
-		List<Entity> entities = new LinkedList<Entity>();
-		// Add first in the list
-		for (Map j : json){
-			// TODO Check what is the change of collision
-			Long uuid = UUID.randomUUID().getLeastSignificantBits();
-			Entity e = new Entity(createKey(kind, String.valueOf(uuid)));
-			//String rev = getRevision(j);
-			long now = cal.getTime().getTime();
-			
-			Set keys = dataCleansing(j).keySet();
-			for (Object jsonMapKey : keys){
-				String entityKey = String.valueOf(jsonMapKey);
-				Object entityValue = j.get(jsonMapKey);
-				setProperty(e, entityKey, entityValue);
-			} 
-			// add some stuff
-			e.setProperty(COLLECTION_NAME, kind);
-			e.setProperty(ID, String.valueOf(uuid));
-			e.setProperty(UPDATES, new Integer(0));
-			//e.setProperty(REVISION, rev);
-			e.setProperty(CREATED, now);
-			e.setProperty(UPDATED, now);
-			entities.add(e);
- 		}
-		List<String> ids = new ArrayList<String>();
-		Transaction tx = _ds.beginTransaction(options);
-		boolean success = false;
-		try {
-			for (Entity e : entities){
-				_ds.put(e);
-				ids.add((String)e.getProperty(ID));
-			}
-			tx.commit();
-			success = true;
-		} catch (Exception e2) {
-			tx.rollback();
-		}
-		// prepare the response
-		Properties props = new Properties();
-		props.put(TOTAL_ROWS, new Integer(ids.size()));
-		props.put(ROWS, ids);
-		
-		return success == true ? props : null;
-	}
-	
-	/**
-	 * 
-	 * 
-	 * @param kind
-	 * @param key
-	 * @param json
-	 * @return 
-	 */
-	protected Properties createEntity(String kind, String key, Map json) {
-		if (get(kind, key) != null)
-			return null; // the entity already exists, busted !
-		try {
-			Entity e = new Entity(createKey(kind, key));
-			//String rev = getRevision(json);
-			long now = cal.getTime().getTime();
-
-			Set keys = dataCleansing(json).keySet();
-			for (Object jsonMapKey : keys){
-				String entityKey = String.valueOf(jsonMapKey);
-				Object entityValue = json.get(jsonMapKey);
-				//logger.log(Level.INFO, "Setting entity property name:" + entityKey + " value: " + entityValue);
-				setProperty(e, entityKey, entityValue);
-			} 
-			// add some stuff
-			e.setProperty(ID, key);
-			e.setProperty(UPDATES, new Integer(0));
-			//e.setProperty(REVISION, rev);
-			e.setProperty(CREATED, now);
-			e.setProperty(UPDATED, now);
-
-			// persist the entity
-			//_ds.put(e);
-			Transaction tx = _ds.beginTransaction();
-			boolean success = false;
-			try {
-				_ds.put(e);
-				tx.commit();
-				success = true;
-			} catch (Exception e2) {
-				tx.rollback();
-			}
-			// prepare the response
-			Properties props = new Properties();
-			props.put(COLLECTION_NAME, kind);
-			props.put(ID, key);
-			//props.put(REVISION, rev);
-
-			return success == true ? props : null;
-			
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	protected Properties updateEntity(String kind, String key, Map data) {
-		Entity e = getEntity(kind, key);
-		if (e == null)
-			return null; // the entity must already exists, busted !
-
-		try {
-			Long _updates = (Long) e.getProperty(UPDATES);
-			int updates = _updates.intValue() + 1;
-			//String rev = getRevision(data);
-
-			// add the new or updated data to the entity
-			Set keys = dataCleansing(data).keySet();
-			for (Object jsonMapKey : keys){
-				setProperty(e, String.valueOf(jsonMapKey), data.get(jsonMapKey));
-			} 
-			
-			// add some admin stuff
-			e.setProperty(UPDATES, new Integer(updates));
-			//e.setProperty(REVISION, rev);
-			e.setProperty(UPDATED, cal.getTime().getTime());
-
-			// persist the entity
-			//_ds.put(e);
-			
-			Transaction tx = _ds.beginTransaction();
-			boolean success = true;
-			
-			try {
-				_ds.put(e);
-				tx.commit();
-			} catch (Exception e2) {
-				tx.rollback();
-				success = false;
-			}
-			
-
-			// prepare the response
-			Properties props = new Properties();
-			props.put(COLLECTION_NAME, kind);
-			props.put(ID, key);
-			//props.put(REVISION, "" + updates + "-" + rev);
-
-			return success == true ? props : null;
-		} catch (Exception ex) {
-			return null;
-		}
-	}	
-	
-	protected Map dataCleansing(Map data) {
-
-		// remove managed attributes...
-		data.remove(ID);
-		data.remove(COLLECTION_NAME);
-		data.remove(REVISION);
-		data.remove(UPDATES);
-
-		return data;
 	}	
 
     protected void setProperty(Entity entity, String key, Object value){
@@ -539,6 +571,13 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	protected Key createCollectionKey(String name) {
 		return KeyFactory.createKey(_dbkey, COLLECTION_KIND, name);
 	}
+	
+	public CommandResult okResult() {
+		CommandResult result = new CommandResult();
+		result.put("ok", true);
+		return result;
+	}
+	
 	
 	
 }

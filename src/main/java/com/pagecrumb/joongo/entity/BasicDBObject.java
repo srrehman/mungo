@@ -17,6 +17,9 @@
  */
 package com.pagecrumb.joongo.entity;
 
+import org.bson.types.ObjectId;
+
+import com.pagecrumb.joongo.ParameterNames;
 import com.pagecrumb.joongo.collection.DBObject;
 /**
  * 
@@ -26,9 +29,13 @@ import com.pagecrumb.joongo.collection.DBObject;
  * @since 0.0.1
  * @version 0.0.1
  */
-public class BasicDBObject extends DBObject {
+public class BasicDBObject extends DBObject implements ParameterNames {
 	private static final long serialVersionUID = 1L;
-	public String getId(){
-		return (String) get("_id");
+	public BasicDBObject() {
+		super();
+		put(OBJECT_ID, new ObjectId());
+	}
+	public Object getId(){
+		return get(OBJECT_ID); 
 	}
 }

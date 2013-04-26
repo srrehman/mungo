@@ -49,5 +49,5 @@ public interface ParameterNames {
 	public static final String ROWS = "rows";
 	
 	
-	public static final String OBJECT_ID = "_objectId";
+	public static final String OBJECT_ID = "_id";
 }

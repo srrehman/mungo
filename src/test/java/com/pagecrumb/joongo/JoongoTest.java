@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +19,7 @@ import com.pagecrumb.joongo.Joongo;
 import com.pagecrumb.joongo.collection.DB;
 import com.pagecrumb.joongo.collection.DBCollection;
 import com.pagecrumb.joongo.collection.DBObject;
+import com.pagecrumb.joongo.collection.WriteResult;
 import com.pagecrumb.joongo.entity.BasicDBObject;
 
 public class JoongoTest {
@@ -42,7 +44,6 @@ public class JoongoTest {
     @Test
     public void test() {
     	doTest();
-    	doTest();
     }
     
     public void doTest() {
@@ -63,16 +64,43 @@ public class JoongoTest {
     	assertEquals("users",users.getName());
     
     	BasicDBObject obj = new BasicDBObject();
-    	obj.put("hi", "there");
     	BasicDBObject embedded = new BasicDBObject();
+    	
+    	obj.put("hi", "there");
     	embedded.put("hello", embedded);
     	obj.put("embedded", embedded);
     	
     	assertTrue(obj.get("hi") instanceof String);
     	assertTrue(obj.get("embedded") instanceof DBObject);
     	
-    	String id = messages.createObject(obj);   	
-    	l(id);
+    	ObjectId id = new ObjectId();
+    	obj.put("_id", id);
+    	
+//    	WriteResult result = messages.insert(obj);
+//    	DBObject msg = messages.findOne(id);
+    	
+//    	assertNotNull(msg);
+    	
+//    	l(msg.toJSONString());
+    	
+    	BasicDBObject obj2 = new BasicDBObject();
+    	ObjectId id2 = new ObjectId();
+    	obj2.put("_id", id2);
+    	obj2.put("hi", "there");
+    	obj2.put("say", "cheeze");
+    	
+    	messages.insert(obj);
+    	messages.insert(obj2);
+    	
+    	DBObject result = messages.findOne(id);
+    	DBObject result2 = messages.findOne(id2);
+    	
+    	assertNotNull(result);
+    	//assertNotNull(result2);
+    	
+    	l(result.toJSONString());
+    	l(result2.toJSONString());
+    	
     }
 
 	private void l(Object log){
