@@ -70,6 +70,9 @@ public class Joongo implements ParameterNames {
 	private static final Set<Class<?>> GAE_SUPPORTED_TYPES =
 	        DataTypeUtils.getSupportedTypes();	
 	
+	/**
+	 * Creates a new object that access 'local' datastore
+	 */
 	public Joongo() {
 		if (_appIdentity == null){
 			_appIdentity = AppIdentityServiceFactory.getAppIdentityService();
@@ -80,6 +83,18 @@ public class Joongo implements ParameterNames {
 			logger.log(Level.INFO, "Create a new DatastoreService instance");
 		}
 		cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));				
+	}
+	
+	/**
+	 * Creates new instance to access remote datastore through
+	 * Joongo-style rest API
+	 * <code>
+	 * 		Joongo joongo = new Joongo("app-id.appspot.com/api");
+	 * </code> 
+	 * @param serverName
+	 */
+	public Joongo(String serverName){
+		throw new IllegalArgumentException("Not yet implemented");
 	}
 	
 	public DB createDB(String dbName) {
@@ -95,7 +110,7 @@ public class Joongo implements ParameterNames {
 			e.setProperty(CREATED, new Date().getTime());
 			e.setProperty(UPDATED, new Date().getTime());
 			_ds.put(e);
-			db = new SimpleDB(e.getKey(), dbName);
+			db = new SimpleDB(this, e.getKey(), dbName);
 		} catch (Exception e) {
 			// TODO: Rollback
 		} finally {
@@ -117,7 +132,7 @@ public class Joongo implements ParameterNames {
 			e.getProperty(DATABASE_NAME);
 			e.getProperty(CREATED);
 			e.getProperty(UPDATED);			
-			db = new SimpleDB(e.getKey(), dbName);
+			db = new SimpleDB(this, e.getKey(), dbName);
 			tx.commit();
 		} catch(EntityNotFoundException ex) {
 			Entity e = new Entity(key);
@@ -125,7 +140,7 @@ public class Joongo implements ParameterNames {
 			e.setProperty(CREATED, new Date().getTime());
 			e.setProperty(UPDATED, new Date().getTime());			
 			_ds.put(e);
-			db = new SimpleDB(e.getKey(), dbName);
+			db = new SimpleDB(this, e.getKey(), dbName);
 			tx.commit();
 		} catch (Exception e) {
 			// TODO: Rollback
@@ -146,7 +161,7 @@ public class Joongo implements ParameterNames {
 			PreparedQuery pq = _ds.prepare(q);
 			List<Entity> result = pq.asList(FetchOptions.Builder.withDefaults());
 			for (Entity e : result) {
-				cols.add(new SimpleDB(e.getKey(), (String) e.getProperty(DATABASE_NAME)));
+				cols.add(new SimpleDB(this, e.getKey(), (String) e.getProperty(DATABASE_NAME)));
 			}			
 		} catch (Exception e) {
 			// TODO: handle exception

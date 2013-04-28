@@ -20,6 +20,7 @@ package com.pagecrumb.joongo.collection.simple;
 import java.util.logging.Logger;
 
 import com.google.appengine.api.datastore.Key;
+import com.pagecrumb.joongo.Joongo;
 import com.pagecrumb.joongo.collection.CommandResult;
 import com.pagecrumb.joongo.collection.DB;
 import com.pagecrumb.joongo.collection.DBCollection;
@@ -29,9 +30,10 @@ public class SimpleDB extends DB {
 
 	private static final Logger LOG 
 		= Logger.getLogger(SimpleDB.class.getName());
-	
-	public SimpleDB(Key key, String namespace) {
+	private final Joongo joongo;
+	public SimpleDB(Joongo joongo, Key key, String namespace) {
 		super(key, namespace);
+		this.joongo = joongo;
 	}
 
 	@Override
@@ -42,6 +44,7 @@ public class SimpleDB extends DB {
 	    } else if (cmd.containsKey("drop")) {
 	    	return okResult();
 	    } else if(cmd.containsKey("create")) {
+	    	String collectionName = (String) cmd.get("create");
 	        return okResult();
 	    }		
 	    CommandResult errorResult = new CommandResult();

@@ -17,9 +17,8 @@ deep stored embedded documents (Work in progress).
 >    	Joongo joongo = new Joongo(); 
 >    	DB testDB = joongo.getDB("testDB");
 >		DBCollection messages = testDB.createCollection("Message");
->    	BasicDBObject obj = new BasicDBObject();
+>    	BasicDBObject obj = new BasicDBObject("{\"hello\" : \"world\"}");
 >    	obj.put("hi", "there");
-> 		obj.put("hello", "world");
 > 		WriteResult wr = messages.insert(obj); // Done!
 > 		DBObject result = messages.findOne(obj.getId()); // Get it
 

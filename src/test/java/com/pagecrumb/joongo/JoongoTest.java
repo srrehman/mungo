@@ -28,12 +28,12 @@ public class JoongoTest {
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
                 .setDefaultHighRepJobPolicyUnappliedJobPercentage(0)); 	   
 
-    private Joongo go;
+    private Joongo joongo;
     
     @Before
     public void setUp() {
         helper.setUp(); 
-        go = new Joongo();
+        joongo = new Joongo();
     }
 
     @After
@@ -47,8 +47,8 @@ public class JoongoTest {
     }
     
     public void doTest() {
-    	DB db1 = go.getDB("db1");
-    	DB db2 = go.getDB("db2");
+    	DB db1 = joongo.getDB("db1");
+    	DB db2 = joongo.getDB("db2");
     	
     	assertNotNull(db1);
     	assertNotNull(db2);
@@ -61,13 +61,13 @@ public class JoongoTest {
     	assertEquals(0, db2.countCollections());
     	
     	assertNotNull(users);
-    	assertEquals("users",users.getName());
-    
-    	BasicDBObject obj = new BasicDBObject();
-    	BasicDBObject embedded = new BasicDBObject();
     	
-    	obj.put("hi", "there");
-    	embedded.put("hello", embedded);
+    	assertEquals("users",users.getName());
+    	assertEquals("pages",pages.getName());
+    	assertEquals("messages",messages.getName());
+    	
+    	BasicDBObject obj = new BasicDBObject("hi", "there");
+    	BasicDBObject embedded = new BasicDBObject("yes", "i'm here");
     	obj.put("embedded", embedded);
     	
     	assertTrue(obj.get("hi") instanceof String);
@@ -75,13 +75,6 @@ public class JoongoTest {
     	
     	ObjectId id = new ObjectId();
     	obj.put("_id", id);
-    	
-//    	WriteResult result = messages.insert(obj);
-//    	DBObject msg = messages.findOne(id);
-    	
-//    	assertNotNull(msg);
-    	
-//    	l(msg.toJSONString());
     	
     	BasicDBObject obj2 = new BasicDBObject();
     	ObjectId id2 = new ObjectId();
@@ -96,11 +89,19 @@ public class JoongoTest {
     	DBObject result2 = messages.findOne(id2);
     	
     	assertNotNull(result);
-    	//assertNotNull(result2);
+    	assertNotNull(result2);
     	
     	l(result.toJSONString());
     	l(result2.toJSONString());
     	
+    }
+    
+    @Test
+    public void testCreateFromJSONString(){
+    	BasicDBObject fromString = new BasicDBObject("{\"hello\" : \"world\"}");
+    	assertNotNull(fromString);
+    	assertEquals("world", (String) fromString.get("hello"));
+    	l(fromString);
     }
 
 	private void l(Object log){

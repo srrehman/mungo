@@ -17,7 +17,13 @@
  */
 package com.pagecrumb.joongo.entity;
 
+import java.util.Map;
+
 import org.bson.types.ObjectId;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+import org.json.simple.parser.JSONParser;
 
 import com.pagecrumb.joongo.ParameterNames;
 import com.pagecrumb.joongo.collection.DBObject;
@@ -34,6 +40,22 @@ public class BasicDBObject extends DBObject implements ParameterNames {
 	public BasicDBObject() {
 		super();
 		put(OBJECT_ID, new ObjectId());
+	}
+	public BasicDBObject(String key, Object value){
+		this();
+		put(key, value);
+	}
+	public BasicDBObject(String json){
+		Object obj = JSONValue.parse(json);
+		if (obj instanceof JSONObject){
+			putAll((Map) obj);
+		} else if(obj instanceof JSONArray){
+			for (Object o : (JSONArray) obj){
+				
+			}
+		} else if(obj instanceof JSONValue){
+
+		}
 	}
 	public Object getId(){
 		return get(OBJECT_ID); 
