@@ -93,7 +93,7 @@ public class JoongoTest {
     	
     	l(result.toJSONString());
     	l(result2.toJSONString());
-    	
+    
     }
     
     @Test
@@ -103,6 +103,65 @@ public class JoongoTest {
     	assertEquals("world", (String) fromString.get("hello"));
     	l(fromString);
     }
+    
+    public class Greeting {
+    	private String greeting;
+
+		public String getGreeting() {
+			return greeting;
+		}
+
+		public void setGreeting(String greeting) {
+			this.greeting = greeting;
+		}
+    }
+    
+    public class GreetingWithId {
+    	private Long id;
+    	private String greeting;
+
+		public String getGreeting() {
+			return greeting;
+		}
+
+		public void setGreeting(String greeting) {
+			this.greeting = greeting;
+		}
+
+		public Long getId() {
+			return id;
+		}
+
+		public void setId(Long id) {
+			this.id = id;
+		}
+    }
+    
+    @Test
+    public void testAsObject() {
+    	DB db = joongo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection greetings = db.createCollection("Greetings");
+    	BasicDBObject fromString = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    		.append("_id", id); 
+    	greetings.insert(fromString);
+    	Greeting greeting = greetings.findOne(id).as(Greeting.class);
+    	assertNotNull(greeting);
+    	l("Greeting greeting=" + greeting.getGreeting());
+    }
+    
+    @Test
+    public void testAsObjectWithObjectId() {
+    	DB db = joongo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection greetings = db.createCollection("Greetings");
+    	BasicDBObject fromString = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    		.append("_id", id); 
+    	greetings.insert(fromString);
+    	GreetingWithId greeting = greetings.findOne(id).as(GreetingWithId.class);
+    	assertNotNull(greeting);
+    	l("Greeting id=" + greeting.getId() + " greeting=" + greeting.getGreeting());
+    }    
 
 	private void l(Object log){
 		System.out.print(String.valueOf(log) + "\n"); 

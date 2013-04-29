@@ -415,8 +415,8 @@ public abstract class DBCollection implements ParameterNames {
 			LOG.log(Level.INFO, "Creating object: " + o.get(OBJECT_ID) + " in collection: " + _collection);
 			ObjectId id = getDB().createObject(o, _collection); 
 		}
-		return null;
-	}	
+		return new WriteResult(getDB(), null, concern); // Is this correct?
+	}	 
 	
 	/**
 	 * Inserts a document into the database
@@ -482,7 +482,7 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public WriteResult save(DBObject jo){
-		throw new IllegalArgumentException("Not yet implemented");
+		return insert(jo, WriteConcern.NONE);
 	}
 	
 	/**

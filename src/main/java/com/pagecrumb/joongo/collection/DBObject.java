@@ -20,9 +20,15 @@ package com.pagecrumb.joongo.collection;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import org.json.simple.parser.JSONParser;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 /**
  * Datastore object, a Map-based JSON document
  * TODO: Not yet implemented
@@ -32,4 +38,19 @@ import org.json.simple.parser.JSONParser;
  */
 public abstract class DBObject extends JSONObject {
 	private static final long serialVersionUID = 1L;
+	private static final Logger LOG 
+		= Logger.getLogger(DBObject.class.getName());	
+	public <T> T as(Class<T> clazz){
+		// For use as in:
+		// Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
+		// Friend one = friends.findOne("{name: 'Joe'}").as(Friend.class);
+		T obj = null;
+		Gson gson = new Gson();
+		try {
+			obj = gson.fromJson(this.toJSONString(), clazz);
+		} catch (JsonSyntaxException e) {
+			LOG.log(Level.SEVERE, "Cannot create object because JSON string is malformed");
+		}
+		return obj;
+	}
 }

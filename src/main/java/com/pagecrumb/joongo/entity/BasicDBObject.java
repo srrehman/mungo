@@ -57,6 +57,10 @@ public class BasicDBObject extends DBObject implements ParameterNames {
 
 		}
 	}
+	public BasicDBObject append(String key, Object value){
+		put(key, value);
+		return this;
+	}
 	public Object getId(){
 		return get(OBJECT_ID); 
 	}

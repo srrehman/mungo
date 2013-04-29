@@ -282,6 +282,10 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception ex) {
 			tx.rollback();
 			success = false;
+		} finally {
+		    if (tx.isActive()) {
+		        tx.rollback();
+		    }
 		}
 
 		return success;
@@ -450,12 +454,16 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 					}
 					e.setProperty((String)obj.get(key), ee);
 				} else if(obj.get(key) instanceof Map){
+					// TODO: Need to deal with sub-documents
+					// Object id
 					logger.log(Level.INFO, "Processing Map value");
-					// FIXME Doing recursive call to this method
-					// throws StackOverflow exception
-//					Key pkey = createKey(e.getKey(), _kind, key);
-//					e.setProperty(key, pkey);  
-					createEntity(e.getKey(), kind, (Map) obj.get(key)); 
+					Map map = (Map) obj.get("key");
+//					if (map.get(OBJECT_ID) instanceof String){
+//						
+//					} else {
+//						logger.log(Level.SEVERE, "Non-String object id should not propaged down to this level");
+//					}
+//					createEntity(e.getKey(), kind, map); 
 				}
 			}	
 			logger.log(Level.INFO, "Persisting entity to the datastore");
@@ -519,6 +527,10 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			tx.rollback();
 			return false;
+		} finally {
+		    if (tx.isActive()) {
+		        tx.rollback();
+		    }
 		}		
 		return false;
 	}
@@ -534,6 +546,10 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			tx.rollback();
 			return false;
+		} finally {
+		    if (tx.isActive()) {
+		        tx.rollback();
+		    }
 		}
 		return true;
 	}	

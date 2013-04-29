@@ -148,6 +148,9 @@ public class Joongo implements ParameterNames {
 			tx.rollback();
 		} finally {
 			NamespaceManager.set(oldNamespace);
+		    if (tx.isActive()) {
+		        tx.rollback();
+		    }
 		}	
 		return db;
 	}
