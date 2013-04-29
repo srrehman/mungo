@@ -46,7 +46,7 @@ import com.google.appengine.api.utils.SystemProperty.Environment;
 import com.google.apphosting.api.ApiProxy;
 import com.google.inject.Singleton;
 import com.pagecrumb.joongo.collection.DB;
-import com.pagecrumb.joongo.collection.simple.SimpleDB;
+import com.pagecrumb.joongo.collection.simple.BasicDB;
 /**
  * 
  * The "Joongo" class, pronounced as 'jungo.' Provides the
@@ -110,7 +110,7 @@ public class Joongo implements ParameterNames {
 			e.setProperty(CREATED, new Date().getTime());
 			e.setProperty(UPDATED, new Date().getTime());
 			_ds.put(e);
-			db = new SimpleDB(this, e.getKey(), dbName);
+			db = new BasicDB(this, e.getKey(), dbName);
 		} catch (Exception e) {
 			// TODO: Rollback
 		} finally {
@@ -119,6 +119,13 @@ public class Joongo implements ParameterNames {
 		return db;		
 	}
 	
+	/**
+	 * Get a DB by its name. It's ok to get a DB that does not exist. 
+	 * 
+	 * @see com.pagecrumb.joongo.collection.DB
+	 * @param dbName
+	 * @return
+	 */
 	public DB getDB(String dbName){
 		DB db = null;
 		if (dbName.equalsIgnoreCase(ADMIN_NAMESPACE))
@@ -132,7 +139,7 @@ public class Joongo implements ParameterNames {
 			e.getProperty(DATABASE_NAME);
 			e.getProperty(CREATED);
 			e.getProperty(UPDATED);			
-			db = new SimpleDB(this, e.getKey(), dbName);
+			db = new BasicDB(this, e.getKey(), dbName);
 			tx.commit();
 		} catch(EntityNotFoundException ex) {
 			Entity e = new Entity(key);
@@ -140,7 +147,7 @@ public class Joongo implements ParameterNames {
 			e.setProperty(CREATED, new Date().getTime());
 			e.setProperty(UPDATED, new Date().getTime());			
 			_ds.put(e);
-			db = new SimpleDB(this, e.getKey(), dbName);
+			db = new BasicDB(this, e.getKey(), dbName);
 			tx.commit();
 		} catch (Exception e) {
 			// TODO: Rollback
@@ -164,7 +171,7 @@ public class Joongo implements ParameterNames {
 			PreparedQuery pq = _ds.prepare(q);
 			List<Entity> result = pq.asList(FetchOptions.Builder.withDefaults());
 			for (Entity e : result) {
-				cols.add(new SimpleDB(this, e.getKey(), (String) e.getProperty(DATABASE_NAME)));
+				cols.add(new BasicDB(this, e.getKey(), (String) e.getProperty(DATABASE_NAME)));
 			}			
 		} catch (Exception e) {
 			// TODO: handle exception

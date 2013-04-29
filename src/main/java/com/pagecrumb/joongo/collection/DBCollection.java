@@ -329,7 +329,7 @@ public abstract class DBCollection implements ParameterNames {
 	public DBObject findOne(Object id){
 		if (getDB().containsKey(id, _collection)){
 			BasicDBObject obj = new BasicDBObject();
-			obj.put(OBJECT_ID, id);
+			obj.put(ID, id);
 			return getDB().getObject(obj, _collection);
 		}
 		return null;
@@ -412,7 +412,7 @@ public abstract class DBCollection implements ParameterNames {
 		Preconditions.checkNotNull(_collection, "Cannot insert when collection is null");
 		List<DBObject> objects = Arrays.asList(arr);
 		for (DBObject o : objects){
-			LOG.log(Level.INFO, "Creating object: " + o.get(OBJECT_ID) + " in collection: " + _collection);
+			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
 			ObjectId id = getDB().createObject(o, _collection); 
 		}
 		return new WriteResult(getDB(), null, concern); // Is this correct?
@@ -588,12 +588,12 @@ public abstract class DBCollection implements ParameterNames {
 //	public ObjectId createObject(DBObject obj){
 //		String oldNamespace = NamespaceManager.get();
 //		NamespaceManager.set(_namespace);
-//		if (obj.get(OBJECT_ID) == null
-//				|| !(obj.get(OBJECT_ID) instanceof String)){ 
-//			obj.put(OBJECT_ID, new ObjectId().toStringMongod());
+//		if (obj.get(ID) == null
+//				|| !(obj.get(ID) instanceof String)){ 
+//			obj.put(ID, new ObjectId().toStringMongod());
 //		}
 //		try {
-//			String id = (String) obj.get(OBJECT_ID);
+//			String id = (String) obj.get(ID);
 //			Key key = createEntity(null, obj);
 //			if (key != null)
 //				return new ObjectId(id); 
@@ -638,7 +638,7 @@ public abstract class DBCollection implements ParameterNames {
 //					
 //				}
 //			}
-//			json.put(OBJECT_ID, e.getKey().getName());
+//			json.put(ID, e.getKey().getName());
 //			result.putAll(json);
 //		} catch (EntityNotFoundException e) {
 //			// Just return null

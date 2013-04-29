@@ -39,7 +39,7 @@ public class BasicDBObject extends DBObject implements ParameterNames {
 	private static final long serialVersionUID = 1L;
 	public BasicDBObject() {
 		super();
-		put(OBJECT_ID, new ObjectId());
+		put(ID, new ObjectId());
 	}
 	public BasicDBObject(String key, Object value){
 		this();
@@ -62,6 +62,6 @@ public class BasicDBObject extends DBObject implements ParameterNames {
 		return this;
 	}
 	public Object getId(){
-		return get(OBJECT_ID); 
+		return get(ID); 
 	}
 }

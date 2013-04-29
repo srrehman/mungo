@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -57,13 +58,14 @@ import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.common.base.Preconditions;
 import com.pagecrumb.joongo.ParameterNames;
-import com.pagecrumb.joongo.collection.simple.SimpleDBCollection;
+import com.pagecrumb.joongo.collection.simple.BasicDBCollection;
 import com.pagecrumb.joongo.entity.BasicDBObject;
 
 /**
- * Datastore namespace'd interface. Usually this object should 
- * be retrieved from the singleton <code>Joongo</code> object and should 
- * not be instantiated directly or through <code>SimpleDB</code>.
+ * Datastore interface that provides namespacing. 
+ * Usually this object should be retrieved from the singleton 
+ * <code>Joongo</code> object and should not be instantiated directly 
+ * or through <code>SimpleDB</code>.
  * 
  * @author Kerby Martino<kerbymart@gmail.com> 
  *
@@ -124,14 +126,14 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			if (e == null) {
 				e = new Entity(createCollectionKey(collection));
 				e.getKey(); // where to inject this to?
-				col = new SimpleDBCollection(this, collection);
+				col = new BasicDBCollection(this, collection);
 			} else {
 				e = getCollectionEntity(collection);
 				e.getProperty(DATABASE_NAME); // Sets where this collection belongs
 				e.getProperty(COLLECTION_NAME);
 				e.getProperty(CREATED);
 				e.getProperty(UPDATED);
-				col = new SimpleDBCollection(this, collection);
+				col = new BasicDBCollection(this, collection);
 			}
 			_ds.put(e);
 		} catch (Exception e) {
@@ -158,7 +160,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			if (e == null) {
 				col = createCollection(collection);
 			} else {
-				col = new SimpleDBCollection(this, collection);
+				col = new BasicDBCollection(this, collection);
 			}
 			// extract the data from the datastore entity
 			// unused right now
@@ -209,7 +211,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			PreparedQuery pq = _ds.prepare(q);
 			List<Entity> result = pq.asList(FetchOptions.Builder.withDefaults());
 			for (Entity e : result) {
-				cols.add(new SimpleDBCollection(this, (String) e.getProperty(COLLECTION_NAME)));
+				cols.add(new BasicDBCollection(this, (String) e.getProperty(COLLECTION_NAME)));
 			}			
 		} catch (Exception e) {
 			// TODO: handle exception
@@ -317,7 +319,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		try {
 			String _id = null;
 			// Pre-process, the Datastore does not accept ObjectId as is
-			ObjectId oid = (ObjectId) object.get(OBJECT_ID);
+			ObjectId oid = (ObjectId) object.get(ID);
 			if (oid == null){
 				logger.info("No id object found in the object, creating new");
 				_id = new ObjectId().toStringMongod();
@@ -325,7 +327,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				logger.info("ObjectId found, getting string id");
 				_id = oid.toStringMongod();
 			}
-			object.put(OBJECT_ID, _id);
+			object.put(ID, _id);
 			Key key = createEntity(null, collection, object);
 			if (key != null)
 				id = new ObjectId(key.getName());
@@ -349,7 +351,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			ObjectId id = (ObjectId) object.get(OBJECT_ID);
+			ObjectId id = (ObjectId) object.get(ID);
 			Map<String, Object> map = getEntity(createKey(collection, id.toStringMongod()));
 			obj = new BasicDBObject();
 			obj.putAll(map);
@@ -399,7 +401,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		NamespaceManager.set(_dbName);
 		boolean result = false;
 		try {
-			ObjectId id = (ObjectId) object.get(OBJECT_ID);
+			ObjectId id = (ObjectId) object.get(ID);
 			result = deleteEntity(createKey(collection, id.toStringMongod()));
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -419,51 +421,42 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * 
 	 * This method expects the id of the Entity to be in the Map with key "_id"
 	 * 
+	 * This method also expects that the <code>Map</code> entries are already pre-processed to 
+	 * GAE types, otherwise those properties will get thrown out. 
+	 * 
 	 * @param parent when provided becomes the parent key of the created Entity, can be set to null
 	 * @param obj
 	 */
 	protected Key createEntity(Key parent, String kind, Map obj){	
 		Key entityKey = null;
 		try {
-			String id = (String) obj.get(OBJECT_ID);
+			String id = (String) obj.get(ID);
 			Entity e = new Entity(
 					parent == null ? createKey(kind, id) : parent);  
 			// Clean up the objectId (since the DS have ID field)
 			// and since it is already 'copied' into the Entity
-			obj.remove(OBJECT_ID);
+			obj.remove(ID);
 			Iterator it = obj.keySet().iterator();
 			while (it.hasNext()){
 				String key = (String) it.next();
-				if (obj.get(key) == null){
+				Object value = obj.get(key);
+				if (value == null){
 					e.setProperty(key, null);
-				} else if (obj.get(key) instanceof String) {
+				} else if (value instanceof String) {
 					setProperty(e, key, obj.get(key));
-				} else if(obj.get(key) instanceof Number) {
+				} else if(value instanceof Number) {
 					setProperty(e, key, obj.get(key));
-				} else if(obj.get(key) instanceof Boolean) {
+				} else if(value instanceof Boolean) {
 					setProperty(e, key, obj.get(key));
-				} else if(obj.get(key) instanceof List) {
+				} else if(value instanceof List) {
 					// Problem area, right way to store a list? 
 					// List may contain JSONObject too!
-					int index = 0;
-					EmbeddedEntity ee = new EmbeddedEntity();
-					ee.setKey(createKey(e.getKey(), kind, (String) obj.get(key)));
-					for (Object o : (List) obj.get("key")){
-						ee.setProperty((String)obj.get(key) + "." + index, o);
-						index++;
-					}
-					e.setProperty((String)obj.get(key), ee);
-				} else if(obj.get(key) instanceof Map){
-					// TODO: Need to deal with sub-documents
-					// Object id
+					logger.log(Level.INFO, "Processing List value");
+					setProperty(e, key, createEmbeddedEntity(parent, key, (List) obj.get(key)));
+				} else if(value instanceof Map){
+					// TODO: Need to deal with sub-documents Object id
 					logger.log(Level.INFO, "Processing Map value");
-					Map map = (Map) obj.get("key");
-//					if (map.get(OBJECT_ID) instanceof String){
-//						
-//					} else {
-//						logger.log(Level.SEVERE, "Non-String object id should not propaged down to this level");
-//					}
-//					createEntity(e.getKey(), kind, map); 
+					setProperty(e, key, createEmbeddedEntity(parent, key, (Map) obj.get(key)));
 				}
 			}	
 			logger.log(Level.INFO, "Persisting entity to the datastore");
@@ -474,6 +467,110 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			e.printStackTrace();
 		}
 		return entityKey;
+	}
+	
+	/**
+	 * Process <code>EmbeddedEntity</code> and inner <code>EmbeddedEntity</code>
+	 * of this entity. 
+	 * 
+	 * @param ee
+	 * @return
+	 */
+	public Map<String,Object> getMapFromEmbeddedEntity(final EmbeddedEntity ee){
+		Map<String,Object> map = null;
+		try {
+			map = new HashMap<String, Object>();
+			map.putAll(ee.getProperties());
+			
+			Map<String,Object> newMap = new HashMap<String, Object>(); 
+			Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
+			while(it.hasNext()){
+				Map.Entry<String, Object> entry = it.next();
+				if (entry.getValue() instanceof EmbeddedEntity){
+					logger.log(Level.INFO, "Inner embedded entity found with key=" + entry.getKey());
+					newMap.put(entry.getKey(), getMapFromEmbeddedEntity( (EmbeddedEntity) entry.getValue()));
+					it.remove();
+				}
+			}
+			map.putAll(newMap);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.log(Level.SEVERE, "Error when processing EmbeddedEntity to Map");
+		}
+		return map;
+	}
+	
+	/**
+	 * Create <code>EmbeddedEntity</code> from List
+	 * 
+	 * TODO: This method is quite the most problematic part, since
+	 * there is no list implementation in the datastore, unlike with 
+	 * a <code>Map</code>.
+	 * 
+	 * @param parent
+	 * @param jsonKey
+	 * @param entity
+	 * @return
+	 */
+	private EmbeddedEntity createEmbeddedEntity(Key parent, String jsonKey, List entity){
+		EmbeddedEntity ee = null;
+		try {
+			Preconditions.checkNotNull(parent, "Parent key cannot be null");
+			Preconditions.checkNotNull(jsonKey, "JSON key cannot be null");
+			Preconditions.checkNotNull(entity, "List entity cannot be null");
+			int index = 0;
+			ee = new EmbeddedEntity();
+			ee.setKey(parent);
+			for (Object o : entity){
+				ee.setProperty(jsonKey + "." + index, o);
+				index++;
+			}
+		} catch (Exception e) {
+
+		}
+		return ee;
+	}
+	
+	/**
+	 * Creates a <code>EmbeddedEntity</code> from a <code>Map</code>
+	 * Which may include inner <code>EmbeddedEntity</code>.
+	 * 
+	 * @param parent
+	 * @param jsonKey
+	 * @param entity
+	 * @return
+	 */
+	private EmbeddedEntity createEmbeddedEntity(Key parent, String jsonKey, 
+			Map<String,Object> entity){		
+		
+		EmbeddedEntity ee = null;
+		
+		Iterator<Map.Entry<String, Object>> it 
+			= entity.entrySet().iterator();
+		while (it.hasNext()){
+			if (ee == null) {
+				ee = new EmbeddedEntity();
+				ee.setKey(parent);
+			}
+			Map.Entry<String, Object> entry = it.next();
+			String key = entry.getKey();
+			Object value = entry.getValue();
+			if (value == null){
+				ee.setProperty(key, null);
+			} else if (value instanceof String) {
+				ee.setProperty(key, value);
+			} else if(value instanceof Number) {
+				ee.setProperty(key, value);
+			} else if(value instanceof Boolean) {
+				ee.setProperty(key, value);
+			} else if(value instanceof List) {
+				throw new IllegalArgumentException("List not yet supported");
+			} else if(value instanceof Map){
+				Map<String, Object> map = (Map<String, Object>) value;
+				ee.setProperty(key, createEmbeddedEntity(ee.getKey(), key, map));
+			}			
+		}
+		return ee;
 	}
 	
 	protected Map<String,Object> getEntity(Key k){
@@ -489,7 +586,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			// Preprocess - 
 			// Can't putAll directly since List and Map
 			// must be dynamically retrieved for 
-			// those are linked objects
+			// those that are linked objects
 			while(it.hasNext()){
 				Map.Entry<String, Object> entry = it.next();
 				String key = entry.getKey();
@@ -500,13 +597,13 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 						|| val instanceof Number
 						|| val instanceof Boolean) {
 					json.put(key, val);
-				} else if (val instanceof List) {
-					
-				} else if (val instanceof Map) { // For embedded Map, the key is stored instead
-					
-				}
+				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
+					logger.log(Level.INFO, "Embedded entity found.");
+					Map<String,Object> ee = getMapFromEmbeddedEntity((EmbeddedEntity) val);
+					json.put(key, ee);
+				} 
 			}
-			json.put(OBJECT_ID, e.getKey().getName());
+			json.put(ID, e.getKey().getName());
 		} catch (EntityNotFoundException e) {
 			// Just return null
 		} finally {
@@ -556,7 +653,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 
     protected void setProperty(Entity entity, String key, Object value){
 	    if (!GAE_SUPPORTED_TYPES.contains(value.getClass())
-        && !(value instanceof Blob)) {
+        && !(value instanceof Blob) && !(value instanceof EmbeddedEntity)) {
         throw new RuntimeException("Unsupported type[class=" + value.
                 getClass().getName() + "] in Latke GAE repository");
 	    }
@@ -575,6 +672,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	               || value instanceof Boolean
 	               || GAE_SUPPORTED_TYPES.contains(value.getClass())) {
 	        entity.setProperty(key, value);
+	    } else if (value instanceof EmbeddedEntity) {
+	    	entity.setProperty(key, value);
 	    } else if (value instanceof Blob) {
 	        final Blob blob = (Blob) value;
 	        entity.setProperty(key,

@@ -67,11 +67,14 @@ public class JoongoTest {
     	assertEquals("messages",messages.getName());
     	
     	BasicDBObject obj = new BasicDBObject("hi", "there");
-    	BasicDBObject embedded = new BasicDBObject("yes", "i'm here");
-    	obj.put("embedded", embedded);
+    	BasicDBObject level1 = new BasicDBObject("yes", "i'm here");
+    	obj.put("level1", level1);
+    	BasicDBObject level2 = new BasicDBObject("where", "am i");
+    	level1.put("level2", level2);
+    	
     	
     	assertTrue(obj.get("hi") instanceof String);
-    	assertTrue(obj.get("embedded") instanceof DBObject);
+    	assertTrue(obj.get("level1") instanceof DBObject);
     	
     	ObjectId id = new ObjectId();
     	obj.put("_id", id);
