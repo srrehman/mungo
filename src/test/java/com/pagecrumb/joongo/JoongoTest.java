@@ -168,7 +168,8 @@ public class JoongoTest {
     }    
     
     @Test
-    public void testDBCustor() {
+    public void testDBCursor() {
+    	
     	DB db = joongo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection greetings = db.createCollection("Greetings");
@@ -186,10 +187,62 @@ public class JoongoTest {
     	
     	BasicDBObject ref = new BasicDBObject("greeting", "good morning");
     	DBCursor objects = greetings.find(ref);
+
     	for (DBObject obj : objects){
-    		l("Fetched DBOBject=" + obj.toJSONString());
+    		l("First Fetched DBOBject=" + obj.toJSONString());
     	}
     	
+    	BasicDBObject fromString4 = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    		.append("hello", "world");  
+    	greetings.insert(fromString4);
+    	
+    	BasicDBObject ref2 = new BasicDBObject("greeting", "good morning")
+    		.append("hello", "world");
+    	
+    	DBCursor objects2 = greetings.find(ref2);
+    	
+    	for (DBObject obj : objects2){
+    		l("Second Fetched DBOBject=" + obj.toJSONString());
+    	}
+    	
+
+    	BasicDBObject ref3 = new BasicDBObject("non", "existent");
+    	objects2 = greetings.find(ref3);
+    	assertNull(objects2);
+    	
+    	BasicDBObject ref4 = new BasicDBObject("non", "existent")
+    		.append("hello", "world"); 
+    	//assertNull(greetings.find(ref4)); 	
+    	
+    	DBCollection mixedCollection = db.createCollection("Mixed");
+    	BasicDBObject numberValue1 = new BasicDBObject("count", 123);
+    	BasicDBObject numberValue2 = new BasicDBObject("count", 123);
+    	BasicDBObject numberValue3 = new BasicDBObject("count", 456);
+    	BasicDBObject booleanValue = new BasicDBObject("active", false);
+    	
+    	mixedCollection.insert(numberValue1);
+    	mixedCollection.insert(numberValue2);
+    	mixedCollection.insert(numberValue3);
+    	mixedCollection.insert(booleanValue);
+    	
+    	BasicDBObject ref5 = new BasicDBObject("count", 123);
+
+    	assertTrue(mixedCollection.find(ref5).hasNext());
+    	
+    	for (DBObject o : mixedCollection.find(ref5)){
+    		l("From mixedCollection query for 'count'=123 fetch=" + o.toJSONString());
+    	}
+    }
+    
+    @Test
+    public void testParseBasicDBObjectType(){
+    	DB db = joongo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection coll = db.createCollection("Collection");    	
+    	Person person = new Person("Some", "One");
+    	coll.insert(person);
+    	BasicDBObject foundPerson = (BasicDBObject) coll.findOne(person); 
+    	assertNotNull(foundPerson);
     }
 
 	private void l(Object log){
