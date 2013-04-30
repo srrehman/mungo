@@ -44,6 +44,7 @@ import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.appengine.api.utils.SystemProperty.Environment;
 import com.google.apphosting.api.ApiProxy;
+import com.google.common.base.Preconditions;
 import com.google.inject.Singleton;
 import com.pagecrumb.joongo.collection.DB;
 import com.pagecrumb.joongo.collection.simple.BasicDB;
@@ -61,7 +62,8 @@ public class Joongo implements ParameterNames {
 	private static final Logger logger 
 		= Logger.getLogger(Joongo.class.getName());
 	
-    protected AppIdentityService _appIdentity; protected static DatastoreService _ds;
+    protected AppIdentityService _appIdentity; 
+    protected static DatastoreService _ds;
 	protected static TransactionOptions options;
 	protected Calendar cal;
 	/**
@@ -114,7 +116,8 @@ public class Joongo implements ParameterNames {
 		} catch (Exception e) {
 			// TODO: Rollback
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}	
 		return db;		
 	}
@@ -154,7 +157,8 @@ public class Joongo implements ParameterNames {
 			e.printStackTrace();
 			tx.rollback();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		    if (tx.isActive()) {
 		        tx.rollback();
 		    }
@@ -176,7 +180,8 @@ public class Joongo implements ParameterNames {
 		} catch (Exception e) {
 			// TODO: handle exception
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}	
 		return cols;
 	}
@@ -195,7 +200,8 @@ public class Joongo implements ParameterNames {
 		} catch (Exception e) {
 			// TODO: handle exception
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}	
 		return cols;
 	}
@@ -210,7 +216,8 @@ public class Joongo implements ParameterNames {
 		} catch (Exception e) {
 			// TODO: handle exception
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}			
 	}
 	@Override

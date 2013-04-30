@@ -107,7 +107,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			// TODO: handle exception
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}		
 		return null;
 	}
@@ -141,7 +142,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			// TODO: rollback
 			e.printStackTrace();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}
 		return col;
 	}
@@ -172,7 +174,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			// TODO: handle exception
 			e.printStackTrace();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}
 		return col;
 	}
@@ -192,7 +195,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			// TODO: handle exception
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}		
 		return result;
 	}	
@@ -218,7 +222,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			// TODO: handle exception
 			e.printStackTrace();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}	
 		return cols;
  	}
@@ -236,7 +241,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}	
 		return 0;
 	}
@@ -335,7 +341,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}		
 		return id;
 	}
@@ -359,7 +366,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}		
 		return obj;
 	}	
@@ -385,7 +393,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}			
 		return contains;
 	}
@@ -465,9 +474,10 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				}
 			};	
 		} catch (Exception e) {
-			e.printStackTrace();
+			it = null;
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}		
 		return it;
 	}
@@ -489,7 +499,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			NamespaceManager.set(oldNamespace);
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}		
 		return result;
 	}	
@@ -665,6 +676,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	protected Iterator<Entity> getEntitiesLike(Entity entity, String kind){
+		logger.info("Fetching entities like: " + entity);
 		Map<String,Object> m = entity.getProperties();
 		Iterator<String> it = m.keySet().iterator();
 		Query q = new Query(kind);
@@ -672,7 +684,9 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			String propName = it.next();
 			Filter filter = new FilterPredicate(propName, 
 				FilterOperator.EQUAL, m.get(propName));
-			q.setFilter(filter);
+			Filter prevFilter = q.getFilter();
+			// Note that the Query object is immutable
+			q = new Query(kind).setFilter(prevFilter).setFilter(filter); 
 		}
 		PreparedQuery pq = _ds.prepare(q);
 		return pq.asIterator();
@@ -733,7 +747,10 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		return json;
 	}
 	
+	@SuppressWarnings("unchecked")
 	protected DBObject createDBObjectFromEntity(Entity e){
+		if (e == null)
+			return null;
 		Map<String,Object> map = createMapFromEntity(e);
 		BasicDBObject obj = new BasicDBObject();
 		obj.putAll(map);
