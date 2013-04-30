@@ -47,6 +47,8 @@ public abstract class DBObject extends JSONObject {
 	private static final Logger LOG 
 		= Logger.getLogger(DBObject.class.getName());	
 	
+	public DBObject(){}
+	
 	@Override
 	public Object put(Object key, Object value) {	
 		if (key instanceof String) {
@@ -65,10 +67,31 @@ public abstract class DBObject extends JSONObject {
 		}
 	}
 	
+	/**
+	 * Fetch this DBObject as a type <code>T</code> specified.
+	 * Class types should have a no-args constructor
+	 * 
+	 * @param clazz
+	 * @return
+	 */
 	public <T> T as(Class<T> clazz){
 		// For use as in:
 		// Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
 		// Friend one = friends.findOne("{name: 'Joe'}").as(Friend.class);
+		try {
+//			if (clazz.newInstance() instanceof DBObject){
+//				return (T) this;
+//			} else {
+//				return createTObject(clazz);
+//			}
+			return createTObject(clazz);
+		} catch (Exception e) {
+			LOG.log(Level.SEVERE, "Exception in getting DBObject as type: " + clazz.getName());
+		}
+		return null;
+	}
+	
+	private <T> T createTObject(Class<T> clazz){
 		T obj = null;
 		Gson gson = new Gson();
 		try {
@@ -76,6 +99,6 @@ public abstract class DBObject extends JSONObject {
 		} catch (JsonSyntaxException e) {
 			LOG.log(Level.SEVERE, "Cannot create object because JSON string is malformed");
 		}
-		return obj;
+		return obj;		
 	}
 }

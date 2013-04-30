@@ -232,8 +232,13 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public DBCursor find(DBObject ref){
+		if (ref == null)
+			return null;
 		Iterator<DBObject> it = getDB().getObjectsLike(ref, _collection);
-		return new DBCursor(it);
+		if (it.hasNext()){
+			return new DBCursor(it);
+		}
+		return null;
 	}
 	
 	/**
@@ -296,7 +301,11 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public DBObject findOne(DBObject o){
-		throw new IllegalArgumentException("Not yet implemented");
+		Iterator<DBObject> it = find(o).iterator();
+		while (it.hasNext()){
+			return it.next(); // right?
+		}
+		return null;
 	}
 	
 	/**
