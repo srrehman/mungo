@@ -775,6 +775,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 						|| val instanceof Number
 						|| val instanceof Boolean) {
 					map.put(key, val);
+				} else if (val instanceof Text) {
+					map.put(key, ((Text) val).getValue());
 				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
 					// TODO Must identify if the EmbeddedEntity is a List or Map
 					logger.log(Level.INFO, "Embedded entity found.");
