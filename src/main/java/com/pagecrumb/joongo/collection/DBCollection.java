@@ -232,7 +232,8 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public DBCursor find(DBObject ref){
-		throw new IllegalArgumentException("Not yet implemented");
+		Iterator<DBObject> it = getDB().getObjectsLike(ref, _collection);
+		return new DBCursor(it);
 	}
 	
 	/**
@@ -583,82 +584,6 @@ public abstract class DBCollection implements ParameterNames {
 	protected Key createKey(Key parent, String kind, String key) {
 		return KeyFactory.createKey(parent, kind, key);
 	}
-
-	
-//	public ObjectId createObject(DBObject obj){
-//		String oldNamespace = NamespaceManager.get();
-//		NamespaceManager.set(_namespace);
-//		if (obj.get(ID) == null
-//				|| !(obj.get(ID) instanceof String)){ 
-//			obj.put(ID, new ObjectId().toStringMongod());
-//		}
-//		try {
-//			String id = (String) obj.get(ID);
-//			Key key = createEntity(null, obj);
-//			if (key != null)
-//				return new ObjectId(id); 
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		} finally {
-//			NamespaceManager.set(oldNamespace);
-//		}
-//		return null; 
-//	}
-//
-//	public DBObject getObject(String id){
-//		DBObject result = null;
-//		Map<String,Object> json;
-//		if (id == null)
-//			return null;
-//		String oldNamespace = NamespaceManager.get();
-//		NamespaceManager.set(_namespace);
-//		try {
-//			json = new LinkedHashMap<String, Object>();
-//			Entity e = _ds.get(createKey(_collection, id));
-//			Map<String,Object> props = e.getProperties();
-//			Iterator<Map.Entry<String, Object>> it = props.entrySet().iterator();
-//			result = new BasicDBObject();
-//			// Preprocess - 
-//			// Can't putAll directly since List and Map
-//			// must be dynamically retrieved for 
-//			// those are linked objects
-//			while(it.hasNext()){
-//				Map.Entry<String, Object> entry = it.next();
-//				String key = entry.getKey();
-//				Object val = entry.getValue();
-//				if (val == null){
-//					json.put(key, val);
-//				} else if (val instanceof String
-//						|| val instanceof Number
-//						|| val instanceof Boolean) {
-//					json.put(key, val);
-//				} else if (val instanceof List) {
-//					
-//				} else if (val instanceof Map) { // For embedded Map, the key is stored instead
-//					
-//				}
-//			}
-//			json.put(ID, e.getKey().getName());
-//			result.putAll(json);
-//		} catch (EntityNotFoundException e) {
-//			// Just return null
-//		} finally {
-//			NamespaceManager.set(oldNamespace);
-//		}
-//		return result;
-//	}
-//	
-//	public boolean updateObject(DBObject obj){
-//		return false;
-//	}
-//	
-//	public boolean deleteObject(String id){
-//		return false;
-//	}
-//
-//	public List<String> getDocIds() {
-//		return null;
-//	}	
 	
 }
 

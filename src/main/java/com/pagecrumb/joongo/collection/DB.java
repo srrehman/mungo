@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -389,6 +390,88 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		return contains;
 	}
 	
+	private Entity createEntityFromDBObject(DBObject object, String kind){
+		Preconditions.checkNotNull(object, "DBObject cannot be null");
+		Preconditions.checkNotNull(kind, "Entity kind cannot be null");
+		Entity e = null;
+		// Pre-process object id
+		if (object.get(ID) != null){
+			Object oid = object.get(ID);
+			if (oid instanceof ObjectId){
+				e = new Entity(createKey(((ObjectId) oid).toStringMongod(), kind));
+			} else if (oid instanceof String){
+				e = new Entity(createKey((String)oid, kind));
+			} else {
+				// FIXME This could be really unsafe
+				e = new Entity(createKey(oid.toString(), kind));
+			}
+		}
+		Iterator it = object.entrySet().iterator();
+		while (it.hasNext()){
+			if (e == null) {
+				e = new Entity(createKey(new ObjectId().toStringMongod(), kind));
+			}
+			Object entry = it.next();
+			try {
+				Map.Entry<Object, Object> mapEntry
+					= (Entry<Object, Object>) entry;
+				// Key at this point is still raw
+				Object key = mapEntry.getKey();
+				Object value = mapEntry.getValue();
+				if (key instanceof String
+						&& !((String) key).equals(ID)){ // skip the object id
+					if (value instanceof Map){
+						e.setProperty((String)key, createEmbeddedEntityFromMap(null, (Map)value));
+					} else if (value instanceof List){
+						throw new RuntimeException("List values are not yet supported");
+					} else if (value instanceof String 
+							|| value instanceof Number
+							|| value instanceof Boolean) {
+						e.setProperty((String)key, value);
+					} else {
+						throw new RuntimeException("Unsupported DBObject property type");
+					}
+				}
+			} catch (ClassCastException ex) {
+				// Something is wrong here
+			}
+		}	
+		return e;
+	}
+	
+	/**
+	 * 
+	 * @param object
+	 * @param collection
+	 * @return
+	 */
+	public Iterator<DBObject> getObjectsLike(DBObject object, String collection){
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		Iterator<DBObject> it = null;
+		try {
+			final Iterator<Entity> eit  
+				= getEntitiesLike(createEntityFromDBObject(object, collection), collection); 
+			it = new Iterator<DBObject>() {
+				public void remove() {
+					eit.remove();
+				}
+				public DBObject next() {
+					Entity e = eit.next();
+					return createDBObjectFromEntity(e);
+				}
+				public boolean hasNext() {
+					return eit.hasNext();
+				}
+			};	
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			NamespaceManager.set(oldNamespace);
+		}		
+		return it;
+	}
+	
 	/**
 	 * Delete the object from this DB under the given collection
 	 * 
@@ -452,11 +535,11 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 					// Problem area, right way to store a list? 
 					// List may contain JSONObject too!
 					logger.log(Level.INFO, "Processing List value");
-					setProperty(e, key, createEmbeddedEntity(parent, key, (List) obj.get(key)));
+					setProperty(e, key, createEmbeddedEntityFromList(parent, key, (List) obj.get(key)));
 				} else if(value instanceof Map){
 					// TODO: Need to deal with sub-documents Object id
 					logger.log(Level.INFO, "Processing Map value");
-					setProperty(e, key, createEmbeddedEntity(parent, key, (Map) obj.get(key)));
+					setProperty(e, key, createEmbeddedEntityFromMap(parent, (Map) obj.get(key)));
 				}
 			}	
 			logger.log(Level.INFO, "Persisting entity to the datastore");
@@ -476,7 +559,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @param ee
 	 * @return
 	 */
-	public Map<String,Object> getMapFromEmbeddedEntity(final EmbeddedEntity ee){
+	private Map<String,Object> getMapFromEmbeddedEntity(final EmbeddedEntity ee){
 		Map<String,Object> map = null;
 		try {
 			map = new HashMap<String, Object>();
@@ -512,7 +595,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @param entity
 	 * @return
 	 */
-	private EmbeddedEntity createEmbeddedEntity(Key parent, String jsonKey, List entity){
+	private EmbeddedEntity createEmbeddedEntityFromList(Key parent, String jsonKey, List entity){
 		EmbeddedEntity ee = null;
 		try {
 			Preconditions.checkNotNull(parent, "Parent key cannot be null");
@@ -540,8 +623,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @param entity
 	 * @return
 	 */
-	private EmbeddedEntity createEmbeddedEntity(Key parent, String jsonKey, 
-			Map<String,Object> entity){		
+	private EmbeddedEntity createEmbeddedEntityFromMap(Key parent,	Map<String,Object> entity){		
 		
 		EmbeddedEntity ee = null;
 		
@@ -550,7 +632,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		while (it.hasNext()){
 			if (ee == null) {
 				ee = new EmbeddedEntity();
-				ee.setKey(parent);
+				if (parent != null)
+					ee.setKey(parent);
 			}
 			Map.Entry<String, Object> entry = it.next();
 			String key = entry.getKey();
@@ -567,10 +650,48 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				throw new IllegalArgumentException("List not yet supported");
 			} else if(value instanceof Map){
 				Map<String, Object> map = (Map<String, Object>) value;
-				ee.setProperty(key, createEmbeddedEntity(ee.getKey(), key, map));
+				ee.setProperty(key, createEmbeddedEntityFromMap(ee.getKey(), map));
 			}			
 		}
 		return ee;
+	}
+	
+	/**
+	 * Get a list of entities that matches the properties of a given <code>Entity</code>.
+	 * This does not include the id
+	 * 
+	 * @param entity
+	 * @param kind
+	 * @return
+	 */
+	protected Iterator<Entity> getEntitiesLike(Entity entity, String kind){
+		Map<String,Object> m = entity.getProperties();
+		Iterator<String> it = m.keySet().iterator();
+		Query q = new Query(kind);
+		while (it.hasNext()){ // build the query
+			String propName = it.next();
+			Filter filter = new FilterPredicate(propName, 
+				FilterOperator.EQUAL, m.get(propName));
+			q.setFilter(filter);
+		}
+		PreparedQuery pq = _ds.prepare(q);
+		return pq.asIterator();
+	}
+	
+	/**
+	 * Helper method to convert a list of <code>Entity</code> to
+	 * list of <code>Map</code>.
+	 * 
+	 * @param entities
+	 * @return
+	 */
+	private static List<Map<String,Object>> entitiesToMap(List<Entity> entities){
+		List<Map<String,Object>> list = new ArrayList<Map<String,Object>>();
+		for (Entity e : entities){
+			Map<String,Object> m = e.getProperties();
+			list.add(m);
+		}
+		return list;
 	}
 	
 	protected Map<String,Object> getEntity(Key k){
@@ -611,6 +732,47 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		}
 		return json;
 	}
+	
+	protected DBObject createDBObjectFromEntity(Entity e){
+		Map<String,Object> map = createMapFromEntity(e);
+		BasicDBObject obj = new BasicDBObject();
+		obj.putAll(map);
+		return obj;
+	}
+	
+	protected Map<String,Object> createMapFromEntity(Entity e){
+		Map<String,Object> map = null;
+		if (e == null)
+			return null;		
+		try {
+			map = new LinkedHashMap<String, Object>();
+			Map<String,Object> props = e.getProperties();
+			Iterator<Map.Entry<String, Object>> it = props.entrySet().iterator();
+			while(it.hasNext()){
+				Map.Entry<String, Object> entry = it.next();
+				String key = entry.getKey();
+				Object val = entry.getValue();
+				if (val == null){
+					map.put(key, val);
+				} else if (val instanceof String
+						|| val instanceof Number
+						|| val instanceof Boolean) {
+					map.put(key, val);
+				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
+					// TODO Must identify if the EmbeddedEntity is a List or Map
+					logger.log(Level.INFO, "Embedded entity found.");
+					Map<String,Object> ee = getMapFromEmbeddedEntity((EmbeddedEntity) val);
+					map.put(key, ee);
+				} 
+			}
+			map.put(ID, e.getKey().getName());
+		} catch (Exception ex) {
+			// Just return null
+		} finally {
+			
+		}
+		return map;
+	}	
 	
 	protected boolean containsEntityKey(Key key){
 		if (key == null)

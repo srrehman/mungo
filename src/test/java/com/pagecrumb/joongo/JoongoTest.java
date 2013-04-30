@@ -18,6 +18,7 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.pagecrumb.joongo.Joongo;
 import com.pagecrumb.joongo.collection.DB;
 import com.pagecrumb.joongo.collection.DBCollection;
+import com.pagecrumb.joongo.collection.DBCursor;
 import com.pagecrumb.joongo.collection.DBObject;
 import com.pagecrumb.joongo.collection.WriteResult;
 import com.pagecrumb.joongo.entity.BasicDBObject;
@@ -104,7 +105,7 @@ public class JoongoTest {
     	BasicDBObject fromString = new BasicDBObject("{\"hello\" : \"world\"}");
     	assertNotNull(fromString);
     	assertEquals("world", (String) fromString.get("hello"));
-    	l(fromString);
+    	l("Test create from JSON String=" + fromString);
     }
     
     public class Greeting {
@@ -165,6 +166,31 @@ public class JoongoTest {
     	assertNotNull(greeting);
     	l("Greeting id=" + greeting.getId() + " greeting=" + greeting.getGreeting());
     }    
+    
+    @Test
+    public void testDBCustor() {
+    	DB db = joongo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection greetings = db.createCollection("Greetings");
+    	
+    	BasicDBObject fromString = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    		.append("_id", id);  
+    	BasicDBObject fromString2 = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+			.append("_id", new ObjectId());  
+    	BasicDBObject fromString3 = new BasicDBObject("{\"moshimoshi\" : \"hello\"}")
+			.append("_id", new ObjectId());      	
+    	
+    	greetings.insert(fromString);
+    	greetings.insert(fromString2);
+    	greetings.insert(fromString3);
+    	
+    	BasicDBObject ref = new BasicDBObject("greeting", "good morning");
+    	DBCursor objects = greetings.find(ref);
+    	for (DBObject obj : objects){
+    		l("Fetched DBOBject=" + obj.toJSONString());
+    	}
+    	
+    }
 
 	private void l(Object log){
 		System.out.print(String.valueOf(log) + "\n"); 
