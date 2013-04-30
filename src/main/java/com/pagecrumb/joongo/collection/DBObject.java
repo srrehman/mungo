@@ -17,29 +17,54 @@
  */
 package com.pagecrumb.joongo.collection;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bson.types.ObjectId;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
-import org.json.simple.parser.JSONParser;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 /**
- * Datastore object, a Map-based JSON document
- * TODO: Not yet implemented
+ * Datastore object, a Map-based JSON document.
+ * For type safety, you can only put <code>String</code>
+ * keys and a set of value types:
+ * <code>ObjectId</code>,
+ * <code>String</code>,
+ * <code>Number</code>,
+ * <code>Boolean</code>,
+ * <code>List</code>,
+ * <code>Map</code> and its subclasses.
  * 
  * @author Kerby Martino<kerbymart@gmail.com>
  *
  */
 public abstract class DBObject extends JSONObject {
 	private static final long serialVersionUID = 1L;
+	
 	private static final Logger LOG 
 		= Logger.getLogger(DBObject.class.getName());	
+	
+	@Override
+	public Object put(Object key, Object value) {	
+		if (key instanceof String) {
+			if (value instanceof ObjectId
+					|| value instanceof String
+					|| value instanceof Number
+					|| value instanceof Boolean
+					|| value instanceof List
+					|| value instanceof Map) {
+				return super.put(key, value);
+			} else {
+				throw new RuntimeException("Unsupported JSON value type: " + value.getClass().getName());
+			}
+		}  else {
+			throw new RuntimeException("Unsupported JSON key type: " + value.getClass().getName());
+		}
+	}
+	
 	public <T> T as(Class<T> clazz){
 		// For use as in:
 		// Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
