@@ -18,6 +18,7 @@
 package com.pagecrumb.joongo.collection;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
@@ -34,7 +35,10 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.bson.types.ObjectId;
 
 
@@ -354,6 +358,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @param collection
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	public DBObject getObject(DBObject object, String collection){
 		DBObject obj = null;
 		String oldNamespace = NamespaceManager.get();
@@ -546,7 +551,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 					// Problem area, right way to store a list? 
 					// List may contain JSONObject too!
 					logger.log(Level.INFO, "Processing List value");
-					setProperty(e, key, createEmbeddedEntityFromList(parent, key, (List) obj.get(key)));
+					setProperty(e, key, createEmbeddedEntityFromList(parent, (List) obj.get(key)));
 				} else if(value instanceof Map){
 					// TODO: Need to deal with sub-documents Object id
 					logger.log(Level.INFO, "Processing Map value");
@@ -582,7 +587,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				Map.Entry<String, Object> entry = it.next();
 				if (entry.getValue() instanceof EmbeddedEntity){
 					logger.log(Level.INFO, "Inner embedded entity found with key=" + entry.getKey());
-					newMap.put(entry.getKey(), getMapFromEmbeddedEntity( (EmbeddedEntity) entry.getValue()));
+//					newMap.put(entry.getKey(), getMapFromEmbeddedEntity( (EmbeddedEntity) entry.getValue()));
+					newMap.put(entry.getKey(), getMapOrList( (EmbeddedEntity) entry.getValue()));
 					it.remove();
 				}
 			}
@@ -592,6 +598,74 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			logger.log(Level.SEVERE, "Error when processing EmbeddedEntity to Map");
 		}
 		return map;
+	}
+	
+	/**
+	 * Get the <code>List</code> out of the Embedded entity. 
+	 * The <code>List</code> is expected to be stored following a dot (.) notation.
+	 * E.g. A JSON array with a key of "numbers" will be stored as a <code>EmbeddedEntity</code>
+	 * with property names:
+	 * 
+	 * <code>
+	 * numbers.0
+	 * numbers.1
+	 * numbers.2
+	 * </code>
+	 * 
+	 * And so on. And since it is stored a a  <code>EmbeddedEntity</code> then it is ambiguous to a
+	 * <code>Map</code> that is also stored in the same Datastore type. 
+	 * 
+	 * @param ee
+	 * @return
+	 */
+	private List<Object> getListFromEmbeddedEntity(final EmbeddedEntity ee){
+		List<Object> list = null;
+		Iterator<Map.Entry<String, Object>> it = ee.getProperties().entrySet().iterator();
+		Object[] arr = new Object[1024];
+		List<Integer> indexToRemove = new ArrayList<Integer>();
+		for (int i=0;i<arr.length;i++){
+			indexToRemove.add(i);
+		}
+		while (it.hasNext()){
+			Map.Entry<String, Object> entry = it.next();
+			try {
+				if (list == null){
+					list = new LinkedList<Object>(); 
+				}
+				Object value = entry.getValue();
+				Integer i = Integer.valueOf(entry.getKey());
+				logger.info("Value="+entry.getValue());
+				if (value instanceof String
+						|| value instanceof Boolean
+						|| value instanceof Number){
+					arr[i] = value;
+					indexToRemove.remove(i);
+				} else if (value instanceof EmbeddedEntity){
+					arr[i] = getMapOrList((EmbeddedEntity)value);
+					indexToRemove.remove(i);
+				} else {
+					throw new RuntimeException("Invalid JSON field type in embedded list entity");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		int[] intArray = ArrayUtils.toPrimitive(indexToRemove.toArray(new Integer[indexToRemove.size()]));
+		arr = copyArrayRemove(arr, intArray);
+		return Arrays.asList(arr);  
+	}
+	
+	private Object[] copyArrayRemove(Object[] objects, int[] elemToRemove){
+		logger.info("Removing elements from array="+elemToRemove);
+		Object[] nobjs = Arrays.copyOf(objects, objects.length - elemToRemove.length);
+		for (int i = 0, j = 0, k = 0; i < objects.length; i ++) {
+		    if (j < elemToRemove.length && i == elemToRemove[j]) {
+		        j ++;
+		    } else {
+		        nobjs[k ++] = objects[i];
+		    }
+		}	
+		return nobjs;
 	}
 	
 	/**
@@ -606,21 +680,33 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @param entity
 	 * @return
 	 */
-	private EmbeddedEntity createEmbeddedEntityFromList(Key parent, String jsonKey, List entity){
+	private EmbeddedEntity createEmbeddedEntityFromList(Key parent, /*String jsonKey,*/ List entity){
 		EmbeddedEntity ee = null;
 		try {
-			Preconditions.checkNotNull(parent, "Parent key cannot be null");
-			Preconditions.checkNotNull(jsonKey, "JSON key cannot be null");
 			Preconditions.checkNotNull(entity, "List entity cannot be null");
 			int index = 0;
 			ee = new EmbeddedEntity();
-			ee.setKey(parent);
+			if (parent != null)
+				ee.setKey(parent);
 			for (Object o : entity){
-				ee.setProperty(jsonKey + "." + index, o);
+				if (o instanceof String
+						|| o instanceof Boolean
+						|| o instanceof Number){
+					ee.setProperty(String.valueOf(index), o); 
+				} else if (o instanceof List){
+					ee.setProperty(String.valueOf(index), 
+							createEmbeddedEntityFromList(null, (List)o));
+				} else if (o instanceof Map){
+					ee.setProperty(String.valueOf(index), 
+							createEmbeddedEntityFromMap(null, (Map)o));					
+				}
+				if (o == null){
+					ee.setProperty(String.valueOf(index), null);
+				}
 				index++;
 			}
 		} catch (Exception e) {
-
+			e.printStackTrace();
 		}
 		return ee;
 	}
@@ -734,8 +820,14 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 					json.put(key, val);
 				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
 					logger.log(Level.INFO, "Embedded entity found.");
-					Map<String,Object> ee = getMapFromEmbeddedEntity((EmbeddedEntity) val);
-					json.put(key, ee);
+					//Map<String,Object> ee = getMapFromEmbeddedEntity((EmbeddedEntity) val);
+					Object mapOrList = getMapOrList((EmbeddedEntity) val);
+					if (mapOrList instanceof List){
+						logger.log(Level.INFO, "Embedded List="+mapOrList);
+					} else if (mapOrList instanceof Map){
+						logger.log(Level.INFO, "Embedded Map="+mapOrList);
+					}
+					json.put(key, mapOrList);	
 				} 
 			}
 			json.put(ID, e.getKey().getName());
@@ -745,6 +837,36 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			
 		}
 		return json;
+	}
+	
+	/**
+	 * Since a JSON List or Map is stored in the same type as a <code>EmbeddedEntity</code> 
+	 * it is needed to analyze the property names of the specified embedded entity to decide whether its 
+	 * a <code>List</code> or a <code>Map</code> instance. 
+	 * 
+	 * An <code>EmbeddedEntity</code> was chosen approach than directly mapping the list into the 
+	 * parent Entity because JSON array can contain arbitrary values and even objects too. 
+	 * 
+	 * This method will read all the property names of the entity and if all of its properties have 
+	 * a dot-number prefix then it will be transformed into a List, otherwise a Map
+	 * 
+	 * @param ee
+	 * @return
+	 */
+	public Object getMapOrList(final EmbeddedEntity ee){
+		boolean isList = true;
+		Iterator<String> it = ee.getProperties().keySet().iterator();
+		while (it.hasNext()){
+			String propName = it.next();
+			if (!propName.matches("[0-9]{1,9}")){
+				isList = false;
+			}
+		}
+		if (isList){
+			return getListFromEmbeddedEntity(ee);
+		} else {
+			return getMapFromEmbeddedEntity(ee);
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
