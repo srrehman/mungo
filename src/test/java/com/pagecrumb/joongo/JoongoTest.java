@@ -244,6 +244,46 @@ public class JoongoTest {
     	BasicDBObject foundPerson = (BasicDBObject) coll.findOne(person); 
     	assertNotNull(foundPerson);
     }
+    
+    @Test
+    public void testPersistJSONArrayList(){
+    	DB db = joongo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection coll = db.createCollection("Collection");      
+    	BasicDBObject numbers = new BasicDBObject("{\"numbers\" : [1,2,3,4,5]}");
+    	numbers.put("_id", id);
+    	coll.insert(numbers);
+    	DBObject result = coll.findOne(id);
+    	assertNotNull(result);
+    	l("JSON array =" + numbers.toJSONString());
+    } 
+    
+    @Test
+    public void testPersistJSONArrayListWithAnyObject(){
+    	DB db = joongo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection coll = db.createCollection("Collection");      
+    	BasicDBObject numbers = new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\"]}");
+    	numbers.put("_id", id);
+    	coll.insert(numbers);
+    	DBObject result = coll.findOne(id);
+    	assertNotNull(result);
+    	l("JSON array =" + result.toJSONString());
+    }   
+    
+    @Test
+    public void testPersistJSONArrayListWithEmbeddedObject(){
+    	DB db = joongo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection coll = db.createCollection("Collection");      
+    	BasicDBObject complexObject 
+    		= new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\", { \"inner\": \"text\" }]}");
+    	complexObject.put("_id", id);
+    	coll.insert(complexObject);
+    	DBObject result = coll.findOne(id);
+    	assertNotNull(result);
+    	l("Complex JSON array =" + result.toJSONString());
+    }    
 
 	private void l(Object log){
 		System.out.print(String.valueOf(log) + "\n"); 
