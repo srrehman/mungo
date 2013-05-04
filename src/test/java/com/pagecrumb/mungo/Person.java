@@ -1,6 +1,6 @@
-package com.pagecrumb.joongo;
+package com.pagecrumb.mungo;
 
-import com.pagecrumb.joongo.entity.BasicDBObject;
+import com.pagecrumb.mungo.entity.BasicDBObject;
 /**
  * Test entity
  * 

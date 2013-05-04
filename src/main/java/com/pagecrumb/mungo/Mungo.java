@@ -15,7 +15,7 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo;
+package com.pagecrumb.mungo;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -46,21 +46,20 @@ import com.google.appengine.api.utils.SystemProperty.Environment;
 import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Preconditions;
 import com.google.inject.Singleton;
-import com.pagecrumb.joongo.collection.DB;
-import com.pagecrumb.joongo.collection.simple.BasicDB;
+import com.pagecrumb.mungo.collection.DB;
+import com.pagecrumb.mungo.collection.simple.BasicDB;
 /**
  * 
- * The "Joongo" class, pronounced as 'jungo.' Provides the
- * interface to do <code>DB</code> operations.
+ * The "Mungo" class. Provides the interface to do <code>DB</code> operations.
  * 
  * @author Kerby Martino<kerbymart@gmail.com>
  * @since 0.0.1
  * @version 0.0.1
  */
 @Singleton
-public class Joongo implements ParameterNames {
+public class Mungo implements ParameterNames {
 	private static final Logger logger 
-		= Logger.getLogger(Joongo.class.getName());
+		= Logger.getLogger(Mungo.class.getName());
 	
     protected AppIdentityService _appIdentity; 
     protected static DatastoreService _ds;
@@ -75,7 +74,7 @@ public class Joongo implements ParameterNames {
 	/**
 	 * Creates a new object that access 'local' datastore
 	 */
-	public Joongo() {
+	public Mungo() {
 		if (_appIdentity == null){
 			_appIdentity = AppIdentityServiceFactory.getAppIdentityService();
 		}
@@ -89,13 +88,13 @@ public class Joongo implements ParameterNames {
 	
 	/**
 	 * Creates new instance to access remote datastore through
-	 * Joongo-style rest API
+	 * Mungo-style rest API
 	 * <code>
-	 * 		Joongo joongo = new Joongo("app-id.appspot.com/api");
+	 * 		Mungo joongo = new Mungo("app-id.appspot.com/api");
 	 * </code> 
 	 * @param serverName
 	 */
-	public Joongo(String serverName){
+	public Mungo(String serverName){
 		throw new IllegalArgumentException("Not yet implemented");
 	}
 	
@@ -125,7 +124,7 @@ public class Joongo implements ParameterNames {
 	/**
 	 * Get a DB by its name. It's ok to get a DB that does not exist. 
 	 * 
-	 * @see com.pagecrumb.joongo.collection.DB
+	 * @see com.pagecrumb.mungo.collection.DB
 	 * @param dbName
 	 * @return
 	 */
@@ -222,7 +221,7 @@ public class Joongo implements ParameterNames {
 	}
 	@Override
 	public String toString(){
-		return "Joongo";
+		return "Mungo";
 	}
 	
 	protected Key createKey(String kind, String key) {

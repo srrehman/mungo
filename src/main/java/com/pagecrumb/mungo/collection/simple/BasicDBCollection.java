@@ -15,7 +15,7 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo.collection.simple;
+package com.pagecrumb.mungo.collection.simple;
 
 import java.util.List;
 import java.util.logging.Level;
@@ -25,13 +25,13 @@ import org.bson.types.ObjectId;
 
 import com.google.appengine.api.NamespaceManager;
 import com.google.appengine.api.datastore.Entity;
-import com.pagecrumb.joongo.collection.CommandResult;
-import com.pagecrumb.joongo.collection.DB;
-import com.pagecrumb.joongo.collection.DBCollection;
-import com.pagecrumb.joongo.collection.DBObject;
-import com.pagecrumb.joongo.collection.WriteConcern;
-import com.pagecrumb.joongo.collection.WriteResult;
-import com.pagecrumb.joongo.common.JoongoException;
+import com.pagecrumb.mungo.collection.CommandResult;
+import com.pagecrumb.mungo.collection.DB;
+import com.pagecrumb.mungo.collection.DBCollection;
+import com.pagecrumb.mungo.collection.DBObject;
+import com.pagecrumb.mungo.collection.WriteConcern;
+import com.pagecrumb.mungo.collection.WriteResult;
+import com.pagecrumb.mungo.common.MungoException;
 
 public class BasicDBCollection extends DBCollection {
 	
@@ -58,7 +58,7 @@ public class BasicDBCollection extends DBCollection {
 	        Object id = putIdIfNotPresent(obj);
 	        if (getDB().containsKey(id, _collection)) {
 	          if (enforceDuplicates(concern)) {
-	            //throw new JoongoException().DuplicateKey(0, "Attempting to insert duplicate _id: " + id);          
+	            //throw new MungoException().DuplicateKey(0, "Attempting to insert duplicate _id: " + id);          
 	          } else {
 	            // TODO(jon) log          
 	          }

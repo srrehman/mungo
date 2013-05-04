@@ -15,7 +15,7 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo.collection;
+package com.pagecrumb.mungo.collection;
 
 import java.util.Arrays;
 import java.util.Calendar;
@@ -46,8 +46,8 @@ import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.common.base.Preconditions;
 
-import com.pagecrumb.joongo.ParameterNames;
-import com.pagecrumb.joongo.entity.BasicDBObject;
+import com.pagecrumb.mungo.ParameterNames;
+import com.pagecrumb.mungo.entity.BasicDBObject;
 /**
  * Collections class for GAE stored JSON objects
  * 

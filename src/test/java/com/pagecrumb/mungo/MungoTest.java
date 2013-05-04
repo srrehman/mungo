@@ -1,4 +1,4 @@
-package com.pagecrumb.joongo;
+package com.pagecrumb.mungo;
 
 import static org.junit.Assert.*;
 
@@ -15,26 +15,26 @@ import org.junit.runner.RunWith;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
-import com.pagecrumb.joongo.Joongo;
-import com.pagecrumb.joongo.collection.DB;
-import com.pagecrumb.joongo.collection.DBCollection;
-import com.pagecrumb.joongo.collection.DBCursor;
-import com.pagecrumb.joongo.collection.DBObject;
-import com.pagecrumb.joongo.collection.WriteResult;
-import com.pagecrumb.joongo.entity.BasicDBObject;
+import com.pagecrumb.mungo.Mungo;
+import com.pagecrumb.mungo.collection.DB;
+import com.pagecrumb.mungo.collection.DBCollection;
+import com.pagecrumb.mungo.collection.DBCursor;
+import com.pagecrumb.mungo.collection.DBObject;
+import com.pagecrumb.mungo.collection.WriteResult;
+import com.pagecrumb.mungo.entity.BasicDBObject;
 
-public class JoongoTest {
+public class MungoTest {
 	
     private final LocalServiceTestHelper helper =
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
                 .setDefaultHighRepJobPolicyUnappliedJobPercentage(0)); 	   
 
-    private Joongo joongo;
+    private Mungo joongo;
     
     @Before
     public void setUp() {
         helper.setUp(); 
-        joongo = new Joongo();
+        joongo = new Mungo();
     }
 
     @After

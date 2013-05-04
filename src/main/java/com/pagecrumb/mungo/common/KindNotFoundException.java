@@ -15,14 +15,14 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo.common;
+package com.pagecrumb.mungo.common;
 
 @SuppressWarnings("serial")
-public class KindExistException extends JoongoException {
-	public KindExistException() {
+public class KindNotFoundException extends MungoException {
+	public KindNotFoundException() {
 		super();
 	}
-	public KindExistException(String kind) {
-		super("Kind " + kind + " already exist"); 
+	public KindNotFoundException(String kind) {
+		super("Kind " + kind + " not exist"); 
 	}
 }

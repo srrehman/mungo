@@ -1,4 +1,4 @@
-package com.pagecrumb.joongo.collection;
+package com.pagecrumb.mungo.collection;
 
 public class WriteResult {
 	

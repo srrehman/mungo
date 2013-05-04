@@ -1,13 +1,13 @@
-package com.pagecrumb.joongo.collection;
+package com.pagecrumb.mungo.collection;
 
-import com.pagecrumb.joongo.common.JoongoException;
-import com.pagecrumb.joongo.entity.BasicDBObject;
+import com.pagecrumb.mungo.common.MungoException;
+import com.pagecrumb.mungo.entity.BasicDBObject;
 
 public class CommandResult extends BasicDBObject {
     private final DBObject _cmd;
     private static final long serialVersionUID = 1L;
 
-    static class CommandFailure extends JoongoException {
+    static class CommandFailure extends MungoException {
         private static final long serialVersionUID = 1L;
 
         /**

@@ -15,7 +15,7 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo.collection;
+package com.pagecrumb.mungo.collection;
 
 import java.util.Calendar;
 import java.util.Set;

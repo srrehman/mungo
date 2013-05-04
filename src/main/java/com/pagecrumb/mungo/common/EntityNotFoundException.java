@@ -15,10 +15,10 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo.common;
+package com.pagecrumb.mungo.common;
 
 @SuppressWarnings("serial")
-public class EntityNotFoundException extends JoongoException {
+public class EntityNotFoundException extends MungoException {
 	public EntityNotFoundException() {
 		super();
 	}

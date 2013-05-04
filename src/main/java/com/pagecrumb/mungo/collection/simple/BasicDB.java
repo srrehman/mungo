@@ -15,31 +15,31 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo.collection.simple;
+package com.pagecrumb.mungo.collection.simple;
 
 import java.util.logging.Logger;
 
 import com.google.appengine.api.datastore.Key;
-import com.pagecrumb.joongo.Joongo;
-import com.pagecrumb.joongo.collection.CommandResult;
-import com.pagecrumb.joongo.collection.DB;
-import com.pagecrumb.joongo.collection.DBCollection;
-import com.pagecrumb.joongo.collection.DBObject;
+import com.pagecrumb.mungo.Mungo;
+import com.pagecrumb.mungo.collection.CommandResult;
+import com.pagecrumb.mungo.collection.DB;
+import com.pagecrumb.mungo.collection.DBCollection;
+import com.pagecrumb.mungo.collection.DBObject;
 
 public class BasicDB extends DB {
 
 	private static final Logger LOG 
 		= Logger.getLogger(BasicDB.class.getName());
-	private final Joongo joongo;
+	private final Mungo joongo;
 	
-	public BasicDB(Joongo joongo, Key key, String namespace) {
+	public BasicDB(Mungo joongo, Key key, String namespace) {
 		super(key, namespace);
 		this.joongo = joongo;
 	}
 
 	@Override
 	public DBObject command(DBObject cmd) {
-		LOG.info("Joongo got command: " + cmd);
+		LOG.info("Mungo got command: " + cmd);
 	    if (cmd.containsKey("getlasterror")) {
 	    	return okResult();
 	    } else if (cmd.containsKey("drop")) {

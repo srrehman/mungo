@@ -15,7 +15,7 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo.collection;
+package com.pagecrumb.mungo.collection;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,14 +62,14 @@ import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.common.base.Preconditions;
-import com.pagecrumb.joongo.ParameterNames;
-import com.pagecrumb.joongo.collection.simple.BasicDBCollection;
-import com.pagecrumb.joongo.entity.BasicDBObject;
+import com.pagecrumb.mungo.ParameterNames;
+import com.pagecrumb.mungo.collection.simple.BasicDBCollection;
+import com.pagecrumb.mungo.entity.BasicDBObject;
 
 /**
  * Datastore interface that provides namespacing. 
  * Usually this object should be retrieved from the singleton 
- * <code>Joongo</code> object and should not be instantiated directly 
+ * <code>Mungo</code> object and should not be instantiated directly 
  * or through <code>SimpleDB</code>.
  * 
  * @author Kerby Martino<kerbymart@gmail.com> 

@@ -15,7 +15,7 @@
  * limitations under the License.
  *  
  */
-package com.pagecrumb.joongo;
+package com.pagecrumb.mungo;
 /**
  * Common keys
  * 
