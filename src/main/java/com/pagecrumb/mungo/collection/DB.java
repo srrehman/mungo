@@ -854,7 +854,15 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				} 
 			}
 			//json.put(ID, e.getKey().getName());
-			json.put(ID, createIdObjectFromString(e.getKey().getName())); 
+			Object _id = createIdObjectFromString(e.getKey().getName());
+			if (_id instanceof ObjectId){
+				json.put(ID, ((ObjectId)_id).toStringMongod()); 
+			} else if (_id instanceof Long) {
+				json.put(ID, (Long)_id);
+			} else {
+				json.put(ID, _id); 
+			}
+			
 		} catch (EntityNotFoundException e) {
 			// Just return null
 		} finally {
@@ -1022,17 +1030,17 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	/**
 	 * Get <code>String</code> id from a <code>Object</code>
 	 * 
-	 * @param id
+	 * @param docId
 	 * @return
 	 */
-	private String createStringIdFromObject(Object id){
-		if (id instanceof ObjectId){
+	private String createStringIdFromObject(Object docId){
+		if (docId instanceof ObjectId){
 			logger.info("Create ID String from ObjectID");
-			return ((ObjectId) id).toStringMongod();
+			return ((ObjectId) docId).toStringMongod();
 		} else {
-			if (id instanceof String
-					|| id instanceof Long){
-				return String.valueOf(id);
+			if (docId instanceof String
+					|| docId instanceof Long){
+				return String.valueOf(docId);
 			}
 //			try {
 //				logger.info("Create ID String from arbitrary Object");
@@ -1051,19 +1059,21 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * there is only two type of String id that is stored using Mungo
 	 * which is a ObjectId string and a XStream serialized Object.
 	 * 
-	 * @param uniqueId
+	 * @param docId
 	 * @return
 	 */
-	private Object createIdObjectFromString(String uniqueId){
-		Object id = null;
+	private Object createIdObjectFromString(String docId){
+		Object id = docId;
 		try {
 			//id = serializer.deserialize(uniqueId);
-			Long.valueOf(uniqueId);
+			id = Long.valueOf(docId);
 		} catch (NumberFormatException e) {
-			id = new ObjectId(uniqueId);
-		} catch (IllegalArgumentException e) { // thrown if cannot create ObjectId
-			id = String.valueOf(uniqueId);
-		}
+			try {
+				id = new ObjectId(docId);
+			} catch (IllegalArgumentException e2) {
+				id = String.valueOf(docId);
+			}
+		} 
 		return id;
 	}
 
