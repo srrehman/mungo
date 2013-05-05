@@ -52,6 +52,10 @@ public abstract class DBObject extends JSONObject {
 	@Override
 	public Object put(Object key, Object value) {	
 		if (key instanceof String) {
+			LOG.info("Put entry with key="+key+" value=" + value);
+			if (value == null){
+				return super.put(key, null);
+			}
 			if (value instanceof ObjectId
 					|| value instanceof String
 					|| value instanceof Number

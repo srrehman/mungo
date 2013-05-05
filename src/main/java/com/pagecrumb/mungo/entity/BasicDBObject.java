@@ -39,7 +39,12 @@ public class BasicDBObject extends DBObject implements ParameterNames {
 	private static final long serialVersionUID = 1L;
 	public BasicDBObject() {
 		super();
-		put(ID, new ObjectId());
+		put(ID, new ObjectId()); // FIXME This is faulty, whenever used it doesn't seem to fit the ID that is stored in the datastore
+	}
+	@SuppressWarnings("unchecked")
+	public BasicDBObject(Map<String,Object> json){
+		this();
+		putAll(json);
 	}
 	public BasicDBObject(String key, Object value){
 		this();

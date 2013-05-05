@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.bson.types.ObjectId;
+import org.json.simple.JSONValue;
 
 
 import com.google.appengine.api.NamespaceManager;
@@ -64,7 +65,11 @@ import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.common.base.Preconditions;
 import com.pagecrumb.mungo.ParameterNames;
 import com.pagecrumb.mungo.collection.simple.BasicDBCollection;
+import com.pagecrumb.mungo.common.SerializationException;
 import com.pagecrumb.mungo.entity.BasicDBObject;
+import com.pagecrumb.mungo.serializer.ObjectSerializer;
+import com.pagecrumb.mungo.serializer.XStreamGae;
+import com.pagecrumb.mungo.serializer.XStreamSerializer;
 
 /**
  * Datastore interface that provides namespacing. 
@@ -81,6 +86,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		= Logger.getLogger(DB.class.getName());
 
 	protected final String _dbName;
+	protected final ObjectSerializer serializer; 
 	
 	protected Key _dbkey;
 	/**
@@ -93,6 +99,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		super(namespace);
 		this._dbName = namespace;
 		this._dbkey = key;
+		this.serializer = new XStreamSerializer();
 	}
 	
 	public String getName(){
@@ -131,7 +138,9 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			Entity e = getCollectionEntity(collection);
 			if (e == null) {
 				e = new Entity(createCollectionKey(collection));
-				e.getKey(); // where to inject this to?
+				e.setProperty(DATABASE_NAME, this.getName());
+				e.setProperty(CREATED, new Date().getTime());
+				e.setProperty(UPDATED, new Date().getTime());
 				col = new BasicDBCollection(this, collection);
 			} else {
 				e = getCollectionEntity(collection);
@@ -143,8 +152,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			}
 			_ds.put(e);
 		} catch (Exception e) {
-			// TODO: rollback
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "Error creating collection");
 		} finally {
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);
@@ -258,11 +266,21 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	// internal stuff
 	//
 	protected void createCollectionEntity(String collection) {
-		Entity e = new Entity(createCollectionKey(collection));
-		e.setProperty(DATABASE_NAME, _dbName);
-		e.setProperty(CREATED, cal.getTime().getTime());
-		// persist the entity
-		_ds.put(e);
+		Transaction tx = _ds.beginTransaction();
+		boolean success = true;
+		try {
+			Entity e = new Entity(createCollectionKey(collection));
+			e.setProperty(DATABASE_NAME, _dbName);
+			e.setProperty(CREATED, cal.getTime().getTime());
+			// persist the entity
+			_ds.put(e);			
+		} catch (Exception e) {
+			tx.rollback();
+			success = false;
+		} finally {
+			if (tx.isActive())
+				tx.rollback();
+		}
 	}	
 	
 	protected Entity getCollectionEntity(String collection) {
@@ -300,7 +318,6 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		        tx.rollback();
 		    }
 		}
-
 		return success;
 	}		
 	
@@ -323,25 +340,34 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @param collection
 	 * @return
 	 */
-	public ObjectId createObject(DBObject object, String collection){
-		ObjectId id = null;
+	public Object createObject(DBObject object, String collection){
+		Object id = null;
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
 			String _id = null;
 			// Pre-process, the Datastore does not accept ObjectId as is
-			ObjectId oid = (ObjectId) object.get(ID);
+			//ObjectId oid = (ObjectId) object.get(ID);
+			Object oid = object.get(ID);
 			if (oid == null){
 				logger.info("No id object found in the object, creating new");
 				_id = new ObjectId().toStringMongod();
 			} else {
 				logger.info("ObjectId found, getting string id");
-				_id = oid.toStringMongod();
+//				if (oid instanceof ObjectId){
+//					_id = ((ObjectId)oid).toStringMongod();
+//				} else {
+//					_id = serializer.serialize(oid);
+//				}	
+				_id = createStringIdFromObject(oid);
 			}
 			object.put(ID, _id);
+			// Persist to datastore, get back the Key
 			Key key = createEntity(null, collection, object);
-			if (key != null)
-				id = new ObjectId(key.getName());
+			if (key != null){
+				//id = new ObjectId(key.getName());
+				id = createIdObjectFromString(key.getName());
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -364,8 +390,9 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			ObjectId id = (ObjectId) object.get(ID);
-			Map<String, Object> map = getEntity(createKey(collection, id.toStringMongod()));
+			//ObjectId id = (ObjectId) object.get(ID);
+			String id = createStringIdFromObject(object.get(ID));
+			Map<String, Object> map = getEntity(createKey(collection, id));
 			obj = new BasicDBObject();
 			obj.putAll(map);
 		} catch (Exception e) {
@@ -388,12 +415,12 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			String _id;
-			if (id instanceof ObjectId){
-				_id = ((ObjectId) id).toStringMongod();
-			} else {
-				_id = id.toString();
-			}
+			String _id = createStringIdFromObject(id); 
+//			if (id instanceof ObjectId){
+//				_id = ((ObjectId) id).toStringMongod();
+//			} else {
+//				_id = id.toString();
+//			}
 			contains = containsEntityKey(createKey(collection, _id)); // Safe?
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -800,14 +827,11 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			return null;		
 		try {
 			json = new LinkedHashMap<String, Object>();
-			//Entity e = _ds.get(createKey(_collection, id));
 			Entity e = _ds.get(k);
 			Map<String,Object> props = e.getProperties();
 			Iterator<Map.Entry<String, Object>> it = props.entrySet().iterator();
 			// Preprocess - 
 			// Can't putAll directly since List and Map
-			// must be dynamically retrieved for 
-			// those that are linked objects
 			while(it.hasNext()){
 				Map.Entry<String, Object> entry = it.next();
 				String key = entry.getKey();
@@ -820,7 +844,6 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 					json.put(key, val);
 				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
 					logger.log(Level.INFO, "Embedded entity found.");
-					//Map<String,Object> ee = getMapFromEmbeddedEntity((EmbeddedEntity) val);
 					Object mapOrList = getMapOrList((EmbeddedEntity) val);
 					if (mapOrList instanceof List){
 						logger.log(Level.INFO, "Embedded List="+mapOrList);
@@ -830,7 +853,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 					json.put(key, mapOrList);	
 				} 
 			}
-			json.put(ID, e.getKey().getName());
+			//json.put(ID, e.getKey().getName());
+			json.put(ID, createIdObjectFromString(e.getKey().getName())); 
 		} catch (EntityNotFoundException e) {
 			// Just return null
 		} finally {
@@ -985,7 +1009,6 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	    }  
     }
     
-    
 	protected Key createCollectionKey(String name) {
 		return KeyFactory.createKey(_dbkey, COLLECTION_KIND, name);
 	}
@@ -996,6 +1019,52 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		return result;
 	}
 	
+	/**
+	 * Get <code>String</code> id from a <code>Object</code>
+	 * 
+	 * @param id
+	 * @return
+	 */
+	private String createStringIdFromObject(Object id){
+		if (id instanceof ObjectId){
+			logger.info("Create ID String from ObjectID");
+			return ((ObjectId) id).toStringMongod();
+		} else {
+			if (id instanceof String
+					|| id instanceof Long){
+				return String.valueOf(id);
+			}
+//			try {
+//				logger.info("Create ID String from arbitrary Object");
+//				return serializer.serialize(id);
+//			} catch (SerializationException e) {
+//				e.printStackTrace();
+//			}
+		}
+		return null;
+	}
 	
-	
+	/**
+	 * Create a <clas>Object</code> id from a given string. 
+	 * It first try to deserialize the String with XStream if it
+	 * fails it creates a new ObjectId with the given String. Since
+	 * there is only two type of String id that is stored using Mungo
+	 * which is a ObjectId string and a XStream serialized Object.
+	 * 
+	 * @param uniqueId
+	 * @return
+	 */
+	private Object createIdObjectFromString(String uniqueId){
+		Object id = null;
+		try {
+			//id = serializer.deserialize(uniqueId);
+			Long.valueOf(uniqueId);
+		} catch (NumberFormatException e) {
+			id = new ObjectId(uniqueId);
+		} catch (IllegalArgumentException e) { // thrown if cannot create ObjectId
+			id = String.valueOf(uniqueId);
+		}
+		return id;
+	}
+
 }

@@ -399,7 +399,7 @@ public abstract class DBCollection implements ParameterNames {
 	}
 	
 	/**
-	 * Gets the defual class for object in the collection
+	 * Gets the default class for object in the collection
 	 * @return
 	 */
 	public Class getObjectClass() {
@@ -423,7 +423,7 @@ public abstract class DBCollection implements ParameterNames {
 		List<DBObject> objects = Arrays.asList(arr);
 		for (DBObject o : objects){
 			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
-			ObjectId id = getDB().createObject(o, _collection); 
+			Object id = getDB().createObject(o, _collection); 
 		}
 		return new WriteResult(getDB(), null, concern); // Is this correct?
 	}	 
@@ -548,36 +548,6 @@ public abstract class DBCollection implements ParameterNames {
 	public WriteResult updateMulti(DBObject q, DBObject o){
 		return update(q, o, false, true);
 	}	
-	
-
-
-	
-    protected void setProperty(Entity entity, String key, Object value){
-	    if (!GAE_SUPPORTED_TYPES.contains(value.getClass())
-        && !(value instanceof Blob)) {
-        throw new RuntimeException("Unsupported type[class=" + value.
-                getClass().getName() + "] in Latke GAE repository");
-	    }
-	    if (value instanceof String) {
-	        final String valueString = (String) value;
-	        if (valueString.length()
-	            > DataTypeUtils.MAX_STRING_PROPERTY_LENGTH) {
-	            final Text text = new Text(valueString);
-	
-	            entity.setProperty(key, text);
-	        } else {
-	            entity.setProperty(key, value);
-	        }
-	    } else if (value instanceof Number
-	               || value instanceof Date
-	               || value instanceof Boolean
-	               || GAE_SUPPORTED_TYPES.contains(value.getClass())) {
-	        entity.setProperty(key, value);
-	    } else if (value instanceof Blob) {
-	        final Blob blob = (Blob) value;
-	        entity.setProperty(key, new com.google.appengine.api.datastore.Blob(blob.getBytes()));
-	    }  
-    }
     
 	/**
 	 * Internal stuff
