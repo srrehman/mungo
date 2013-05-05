@@ -44,6 +44,20 @@ Installation
 mvn clean install
 ```
 
+or add this to your POM:
+
+    <repositories>
+	    <repository>
+	        <id>mungo-mvn-repo</id>
+	        <url>https://raw.github.com/pagecrumb/mungo/mvn-repo/</url>
+	        <snapshots>
+	            <enabled>true</enabled>
+	            <updatePolicy>always</updatePolicy>
+	        </snapshots>
+	    </repository>
+    </repositories>
+  
+
 Dependency
 --------------
 
