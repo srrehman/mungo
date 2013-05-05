@@ -744,7 +744,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			} else if(value instanceof Boolean) {
 				ee.setProperty(key, value);
 			} else if(value instanceof List) {
-				throw new IllegalArgumentException("List not yet supported");
+				ee.setProperty(key, createEmbeddedEntityFromList(ee.getKey(), (List)value));
 			} else if(value instanceof Map){
 				Map<String, Object> map = (Map<String, Object>) value;
 				ee.setProperty(key, createEmbeddedEntityFromMap(ee.getKey(), map));
