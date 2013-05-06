@@ -468,7 +468,13 @@ public abstract class DBCollection implements ParameterNames {
 	}
 	
 	public WriteResult remove(DBObject o){
-		throw new IllegalArgumentException("Not yet implemented");
+		if (getDB().deleteObject(o, _collection)){
+			return new WriteResult(getDB().okResult(), WriteConcern.NONE);
+		};
+		CommandResult result = new CommandResult();
+		result.put("ok", false);	
+		result.put("code", 1000); // TODO create a error list!
+		return new WriteResult(result, WriteConcern.NONE);
 	}
 	
 	/**

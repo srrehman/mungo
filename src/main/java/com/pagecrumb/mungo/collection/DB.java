@@ -526,8 +526,9 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		NamespaceManager.set(_dbName);
 		boolean result = false;
 		try {
-			ObjectId id = (ObjectId) object.get(ID);
-			result = deleteEntity(createKey(collection, id.toStringMongod()));
+			//ObjectId id = (ObjectId) object.get(ID);
+			String id = createStringIdFromObject(object.get(ID));
+			result = deleteEntity(createKey(collection, id));
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
