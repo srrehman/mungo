@@ -300,6 +300,25 @@ public class MungoTest {
     	l("Complex JSON array with Long id =" + result.toJSONString());    	
     }
     
+    @Test
+    public void testDeleteObjectLondId(){
+    	DB db = joongo.getDB("db1");
+    	Long id = new Long(1L);
+    	DBCollection coll = db.createCollection("Collection");      
+    	BasicDBObject complexObject 
+    		= new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\", { \"inner\": \"text\" }]}");
+    	l("Put id to json="+id);
+    	complexObject.put("_id", id);
+    	coll.insert(complexObject);
+    	DBObject result = coll.findOne(id);
+    	assertNotNull(result); 	
+    	
+    	// delete
+    	WriteResult wr = coll.remove(result);
+    	assertTrue((Boolean)wr.getField("ok"));
+    	assertNull(coll.findOne(id));
+    }
+    
 	private void l(Object log){
 		System.out.print(String.valueOf(log) + "\n"); 
 	}
