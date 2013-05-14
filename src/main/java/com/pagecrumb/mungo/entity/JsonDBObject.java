@@ -17,6 +17,9 @@
  */
 package com.pagecrumb.mungo.entity;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.JSONParser;
@@ -30,7 +33,7 @@ import com.pagecrumb.mungo.collection.DBObject;
  * @since 0.0.1
  * @version 0.0.1
  */
-public class JsonDBObject extends DBObject {
+public class JsonDBObject implements DBObject {
 	private static final long serialVersionUID = 1L;
 	/**
 	 * Create this class from a JSON string
@@ -41,5 +44,53 @@ public class JsonDBObject extends DBObject {
 		if (obj instanceof JSONObject){
 			putAll((JSONObject) obj);
 		}
+	}
+	public boolean containsField(String s) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	public boolean containsKey(String s) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	public Object get(String key) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	public boolean isPartialObject() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	public Set<String> keySet() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	public void markAsPartialObject() {
+		// TODO Auto-generated method stub
+		
+	}
+	public Object put(String key, Object v) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	public void putAll(DBObject o) {
+		// TODO Auto-generated method stub
+		
+	}
+	public void putAll(Map m) {
+		// TODO Auto-generated method stub
+		
+	}
+	public Object removeField(String key) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	public Map toMap() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	public <T> T as(Class<T> clazz) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

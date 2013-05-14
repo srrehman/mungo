@@ -18,7 +18,7 @@
 package com.pagecrumb.mungo.common;
 
 @SuppressWarnings("serial")
-public class MungoException extends Exception {
+public class MungoException extends RuntimeException {
 	public MungoException() {
 		super();
 	}

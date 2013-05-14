@@ -363,7 +363,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			}
 			object.put(ID, _id);
 			// Persist to datastore, get back the Key
-			Key key = createEntity(null, collection, object);
+			Key key = createEntity(null, collection, convertToMap(object)); 
 			if (key != null){
 				//id = new ObjectId(key.getName());
 				id = createIdObjectFromString(key.getName());
@@ -390,7 +390,6 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			//ObjectId id = (ObjectId) object.get(ID);
 			String id = createStringIdFromObject(object.get(ID));
 			Map<String, Object> map = getEntity(createKey(collection, id));
 			obj = new BasicDBObject();
@@ -447,7 +446,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				e = new Entity(createKey(oid.toString(), kind));
 			}
 		}
-		Iterator it = object.entrySet().iterator();
+		Map map = convertToMap(object);
+		Iterator it = map.entrySet().iterator();
 		while (it.hasNext()){
 			if (e == null) {
 				e = new Entity(createKey(new ObjectId().toStringMongod(), kind));
@@ -570,20 +570,18 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				if (value == null){
 					e.setProperty(key, null);
 				} else if (value instanceof String) {
-					setProperty(e, key, obj.get(key));
+					setProperty(e, key, value);
 				} else if(value instanceof Number) {
-					setProperty(e, key, obj.get(key));
+					setProperty(e, key, value);
 				} else if(value instanceof Boolean) {
-					setProperty(e, key, obj.get(key));
+					setProperty(e, key, value);
 				} else if(value instanceof List) {
-					// Problem area, right way to store a list? 
-					// List may contain JSONObject too!
 					logger.log(Level.INFO, "Processing List value");
-					setProperty(e, key, createEmbeddedEntityFromList(parent, (List) obj.get(key)));
+					setProperty(e, key, createEmbeddedEntityFromList(parent, (List) value));
 				} else if(value instanceof Map){
 					// TODO: Need to deal with sub-documents Object id
 					logger.log(Level.INFO, "Processing Map value");
-					setProperty(e, key, createEmbeddedEntityFromMap(parent, (Map) obj.get(key)));
+					setProperty(e, key, createEmbeddedEntityFromMap(parent, (Map) value));
 				}
 			}	
 			logger.log(Level.INFO, "Persisting entity to the datastore");
@@ -708,7 +706,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @param entity
 	 * @return
 	 */
-	private EmbeddedEntity createEmbeddedEntityFromList(Key parent, /*String jsonKey,*/ List entity){
+	private EmbeddedEntity createEmbeddedEntityFromList(Key parent, List entity){
 		EmbeddedEntity ee = null;
 		try {
 			Preconditions.checkNotNull(entity, "List entity cannot be null");
@@ -750,6 +748,16 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 */
 	private EmbeddedEntity createEmbeddedEntityFromMap(Key parent,	Map<String,Object> entity){		
 		
+		Preconditions.checkNotNull(entity, "Map entity cannot be null");
+		
+		// Deal with empty map
+		if (entity.size() == 0){
+			EmbeddedEntity ee = new EmbeddedEntity();
+			if (parent != null)
+				ee.setKey(parent);
+			return ee;
+		}
+
 		EmbeddedEntity ee = null;
 		
 		Iterator<Map.Entry<String, Object>> it 
@@ -778,6 +786,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				ee.setProperty(key, createEmbeddedEntityFromMap(ee.getKey(), map));
 			}			
 		}
+		logger.info("Warning method is returning null value");
 		return ee;
 	}
 	
@@ -988,6 +997,9 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	}	
 
     protected void setProperty(Entity entity, String key, Object value){
+    	Preconditions.checkNotNull(entity, "Entity can't be null");
+    	Preconditions.checkNotNull(key, "String key can't be null");
+    	Preconditions.checkNotNull(value, "Value can't be null");
 	    if (!GAE_SUPPORTED_TYPES.contains(value.getClass())
         && !(value instanceof Blob) && !(value instanceof EmbeddedEntity)) {
         throw new RuntimeException("Unsupported type[class=" + value.
@@ -1076,6 +1088,10 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			}
 		} 
 		return id;
+	}
+	
+	private Map convertToMap(DBObject o){
+		return o.toMap();
 	}
 
 }

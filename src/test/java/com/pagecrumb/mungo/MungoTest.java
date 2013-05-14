@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.bson.types.ObjectId;
+import org.json.simple.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,8 +96,8 @@ public class MungoTest {
     	assertNotNull(result);
     	assertNotNull(result2);
     	
-    	l(result.toJSONString());
-    	l(result2.toJSONString());
+    	l(toJSONString(result));
+    	l(toJSONString(result));
     
     }
     
@@ -189,7 +190,7 @@ public class MungoTest {
     	DBCursor objects = greetings.find(ref);
 
     	for (DBObject obj : objects){
-    		l("First Fetched DBOBject=" + obj.toJSONString());
+    		l("First Fetched DBOBject=" + toJSONString(obj));
     	}
     	
     	BasicDBObject fromString4 = new BasicDBObject("{\"greeting\" : \"good morning\"}")
@@ -202,7 +203,7 @@ public class MungoTest {
     	DBCursor objects2 = greetings.find(ref2);
     	
     	for (DBObject obj : objects2){
-    		l("Second Fetched DBOBject=" + obj.toJSONString());
+    		l("Second Fetched DBOBject=" + toJSONString(obj));
     	}
     	
 
@@ -230,7 +231,7 @@ public class MungoTest {
     	assertTrue(mixedCollection.find(ref5).hasNext());
     	
     	for (DBObject o : mixedCollection.find(ref5)){
-    		l("From mixedCollection query for 'count'=123 fetch=" + o.toJSONString());
+    		l("From mixedCollection query for 'count'=123 fetch=" + toJSONString(o));
     	}
     }
     
@@ -268,7 +269,7 @@ public class MungoTest {
     	coll.insert(numbers);
     	DBObject result = coll.findOne(id);
     	assertNotNull(result);
-    	l("JSON array =" + result.toJSONString());
+    	l("JSON array =" + toJSONString(result));
     }   
     
     @Test
@@ -282,7 +283,7 @@ public class MungoTest {
     	coll.insert(complexObject);
     	DBObject result = coll.findOne(id);
     	assertNotNull(result);
-    	l("Complex JSON array =" + result.toJSONString());
+    	l("Complex JSON array =" + toJSONString(result));
     }    
     
     @Test
@@ -297,8 +298,27 @@ public class MungoTest {
     	coll.insert(complexObject);
     	DBObject result = coll.findOne(id);
     	assertNotNull(result);
-    	l("Complex JSON array with Long id =" + result.toJSONString());    	
+    	l("Complex JSON array with Long id =" + toJSONString(result));    	
     }
+    
+    @Test
+    public void testPersistComplexObjectQueryByProperty(){
+    	DB db = joongo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection coll = db.createCollection("Collection");      
+    	BasicDBObject complexObject 
+    		= new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\", { \"inner\": \"text\" }]}")
+    			.append("name", "test123"); 
+    	complexObject.put("_id", id);
+    	coll.insert(complexObject);
+    	DBObject result = coll.findOne(new BasicDBObject("name", "test123")); 
+    	DBObject result1 = coll.findOne(id); 
+    	DBObject result2 = coll.findOne(new BasicDBObject("_id", id)); 
+    	assertNotNull(result);
+    	l("Complex JSON array and query result =" + toJSONString(result));
+    	l("Complex JSON array and query result1 =" + toJSONString(result1));
+    	l("Complex JSON array and query result2 =" + toJSONString(result2));
+    }     
     
     @Test
     public void testDeleteObjectLondId(){
@@ -321,6 +341,12 @@ public class MungoTest {
     
 	private void l(Object log){
 		System.out.print(String.valueOf(log) + "\n"); 
+	}
+	
+	private String toJSONString(DBObject o){
+		JSONObject jso = new JSONObject();
+		jso.putAll(o.toMap());
+		return jso.toJSONString();
 	}
 	
 }

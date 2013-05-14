@@ -10,7 +10,7 @@ public class DatastoreError {
         _code = getCode( o );
     }
     
-    static String getMsg( JSONObject o , String def ){
+    static String getMsg( DBObject o , String def ){
         Object e = o.get( "$err" );
         if ( e == null )
             e = o.get( "err" );
@@ -21,7 +21,7 @@ public class DatastoreError {
         return e.toString();
     }
 
-    static int getCode( JSONObject o ){
+    static int getCode( DBObject o ){
         Object c = o.get( "code" );
         if ( c == null )
             c = o.get( "$code" );

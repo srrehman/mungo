@@ -66,6 +66,9 @@ public abstract class DBCollection implements ParameterNames {
 	protected static DatastoreService _ds;
 	protected static TransactionOptions options;
 	protected Calendar cal;
+	
+	protected Class _objectClass = null;
+	
 	/**
 	 * GAE datastore supported types.
 	 */
@@ -303,7 +306,11 @@ public abstract class DBCollection implements ParameterNames {
 	public DBObject findOne(DBObject o){
 		Iterator<DBObject> it = find(o).iterator();
 		while (it.hasNext()){
-			return it.next(); // right?
+			DBObject temp = it.next(); 
+			// Is this the right approach?
+			Object id = new ObjectId((String)temp.get("_id"));
+			LOG.info("Finding object with ID="+id);
+			return findOne(id);
 		}
 		return null;
 	}
@@ -397,14 +404,7 @@ public abstract class DBCollection implements ParameterNames {
 	public List<DBObject> getIndexInfo() {
 		throw new IllegalArgumentException("Not yet implemented");
 	}
-	
-	/**
-	 * Gets the default class for object in the collection
-	 * @return
-	 */
-	public Class getObjectClass() {
-		throw new IllegalArgumentException("Not yet implemented");
-	}
+
 	
 	public int getOptions() {
 		throw new IllegalArgumentException("Not yet implemented");
@@ -554,6 +554,27 @@ public abstract class DBCollection implements ParameterNames {
 	public WriteResult updateMulti(DBObject q, DBObject o){
 		return update(q, o, false, true);
 	}	
+    
+	
+	/** Set a default class for objects in this collection
+	 * 
+     * @param c the class
+     * @throws IllegalArgumentException if <code>c</code> is not a DBObject
+     */
+    public void setObjectClass( Class c ){
+    	if (!DBObject.class.isAssignableFrom(c)){
+    		throw new IllegalArgumentException( c.getName() + " is not a DBObject" );
+    	}
+    	_objectClass = c;
+    }	
+    
+	/**
+	 * Gets the default class for object in the collection
+	 * @return
+	 */
+	public Class getObjectClass() {
+		return _objectClass;
+	}    
     
 	/**
 	 * Internal stuff
