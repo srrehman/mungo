@@ -133,7 +133,7 @@ public class ObjectId implements Comparable<ObjectId>{
     }
     
     
-    ObjectId( int time , int machine , int inc ){
+    public ObjectId( int time , int machine , int inc ){
         _time = time;
         _machine = machine;
         _inc = inc;
