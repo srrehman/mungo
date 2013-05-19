@@ -235,6 +235,10 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public DBCursor find(DBObject ref){
+		// TODO - Right now the underlying find implementation
+		// builds a query based on all of the fields of 'ref'
+		// which more likely is a '$all' query.
+		// Need to add a way to deal with other query operators
 		if (ref == null)
 			return null;
 		Iterator<DBObject> it = getDB().getObjectsLike(ref, _collection);
@@ -262,6 +266,12 @@ public abstract class DBCollection implements ParameterNames {
 	public DBCursor find(DBObject quer, DBObject fields, 
 			int numToSkip, int batchSize, int options){
 		throw new IllegalArgumentException("Not yet implemented");
+	}	
+	
+	public DBObject findAndModify(DBObject query, DBObject fields,
+			DBObject sort, boolean remove, DBObject modifier,
+			boolean returnNew, boolean upsert) {
+		throw new IllegalArgumentException("Not yet implemented");	
 	}	
 	
 	public DBObject findAndModify(DBObject query, DBObject fields, DBObject sort,
@@ -590,6 +600,11 @@ public abstract class DBCollection implements ParameterNames {
 	protected Key createKey(Key parent, String kind, String key) {
 		return KeyFactory.createKey(parent, kind, key);
 	}
-	
+
+//	public DBObject findOne(DBObject dbObject, DBObject fieldsAsDBObject,
+//			ReadPreference readPreference) {
+//		throw new IllegalArgumentException("Not yet implemented");	
+//	}
+
 }
 

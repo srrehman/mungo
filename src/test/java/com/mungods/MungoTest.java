@@ -42,12 +42,12 @@ public class MungoTest {
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
                 .setDefaultHighRepJobPolicyUnappliedJobPercentage(0)); 	   
 
-    private Mungo joongo;
+    private Mungo mungo;
     
     @Before
     public void setUp() {
         helper.setUp(); 
-        joongo = new Mungo();
+        mungo = new Mungo();
     }
 
     @After
@@ -61,8 +61,8 @@ public class MungoTest {
     }
     
     public void doTest() {
-    	DB db1 = joongo.getDB("db1");
-    	DB db2 = joongo.getDB("db2");
+    	DB db1 = mungo.getDB("db1");
+    	DB db2 = mungo.getDB("db2");
     	
     	assertNotNull(db1);
     	assertNotNull(db2);
@@ -156,7 +156,7 @@ public class MungoTest {
     
     @Test
     public void testAsObject() {
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection greetings = db.createCollection("Greetings");
     	BasicDBObject fromString = new BasicDBObject("{\"greeting\" : \"good morning\"}")
@@ -169,7 +169,7 @@ public class MungoTest {
     
     @Test
     public void testAsObjectWithObjectId() {
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection greetings = db.createCollection("Greetings");
     	BasicDBObject fromString = new BasicDBObject("{\"greeting\" : \"good morning\"}")
@@ -183,7 +183,7 @@ public class MungoTest {
     @Test
     public void testDBCursor() {
     	
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection greetings = db.createCollection("Greetings");
     	
@@ -249,7 +249,7 @@ public class MungoTest {
     
     @Test
     public void testParseBasicDBObjectType(){
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");    	
     	Person person = new Person("Some", "One");
@@ -260,7 +260,7 @@ public class MungoTest {
     
     @Test
     public void testPersistJSONArrayList(){
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject numbers = new BasicDBObject("{\"numbers\" : [1,2,3,4,5]}");
@@ -268,12 +268,12 @@ public class MungoTest {
     	coll.insert(numbers);
     	DBObject result = coll.findOne(id);
     	assertNotNull(result);
-    	l("JSON array =" + numbers.toJSONString());
+    	l("JSON array =" + toJSONString(numbers));
     } 
     
     @Test
     public void testPersistJSONArrayListWithAnyObject(){
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject numbers = new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\"]}");
@@ -286,7 +286,7 @@ public class MungoTest {
     
     @Test
     public void testPersistJSONArrayListWithEmbeddedObject(){
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 
@@ -300,7 +300,7 @@ public class MungoTest {
     
     @Test
     public void testPersistAndGetWithLongId(){
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	Long id = new Long(1L);
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 
@@ -315,7 +315,7 @@ public class MungoTest {
     
     @Test
     public void testPersistComplexObjectQueryByProperty(){
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 
@@ -334,7 +334,7 @@ public class MungoTest {
     
     @Test
     public void testDeleteObjectLondId(){
-    	DB db = joongo.getDB("db1");
+    	DB db = mungo.getDB("db1");
     	Long id = new Long(1L);
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 

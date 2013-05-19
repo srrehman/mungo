@@ -17,11 +17,9 @@
  */
 package com.mungods;
 
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,14 +27,15 @@ import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.json.simple.parser.JSONParser;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
 import com.mungods.serializer.XStreamGae;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
+
+import org.bson.*;
+
 /**
  * 
  * Basic implementation of DBObject
@@ -46,7 +45,7 @@ import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
  * @since 0.0.1
  * @version 0.0.1
  */
-public class BasicDBObject extends JSONObject implements DBObject, ParameterNames {
+public class BasicDBObject extends BasicBSONObject implements DBObject, ParameterNames {
 	
 	private static final long serialVersionUID = 1L;
 	private boolean isPartial = false;
@@ -55,7 +54,8 @@ public class BasicDBObject extends JSONObject implements DBObject, ParameterName
 	
 	public BasicDBObject() {
 		super();
-		put(ID, new ObjectId()); // FIXME This is faulty, whenever used it doesn't seem to fit the ID that is stored in the datastore
+		// FIXME - This is faulty, whenever used it doesn't seem to fit the ID that is stored in the datastore
+		put(ID, new ObjectId()); 
 	}
 	@SuppressWarnings("unchecked")
 	public BasicDBObject(Map<String,Object> json){
@@ -135,9 +135,9 @@ public class BasicDBObject extends JSONObject implements DBObject, ParameterName
 		// Friend one = friends.findOne("{name: 'Joe'}").as(Friend.class);
 		try {
 			T obj = createTObject(clazz);
-			if (obj == null){ // Try with XStream
-				obj = createTObjectWithXStream(clazz);
-			}
+			//if (obj == null){ // Try with XStream
+			//	obj = createTObjectWithXStream(clazz);
+			//}
 			return obj;
 		} catch (Exception e) {
 			LOG.log(Level.SEVERE, "Exception in getting DBObject as type=" + clazz.getName() + " : " + e.getMessage());
@@ -149,7 +149,7 @@ public class BasicDBObject extends JSONObject implements DBObject, ParameterName
 		T obj = null;
 		Gson gson = new Gson();
 		try {
-			obj = gson.fromJson(this.toJSONString(), clazz);
+			obj = gson.fromJson(gson.toJson(this), clazz);
 		} catch (JsonSyntaxException e) {
 			LOG.log(Level.SEVERE, "Cannot create object because JSON string is malformed");
 		} catch(Exception e) {
@@ -161,12 +161,12 @@ public class BasicDBObject extends JSONObject implements DBObject, ParameterName
 	private <T> T createTObjectWithXStream(Class<T> clazz){
 		XStream xstream = new XStreamGae(new JettisonMappedXmlDriver());
 		T obj = null;
-		try {
-			String json = this.toJSONString();
-			obj = (T) xstream.fromXML(json);
-		} catch (Exception e) {
-			LOG.log(Level.SEVERE, "XStraem cannot deserialize this object: " + e.getMessage());
-		}
+//		try {
+//			String json = this.toJSONString();
+//			obj = (T) xstream.fromXML(json);
+//		} catch (Exception e) {
+//			LOG.log(Level.SEVERE, "XStraem cannot deserialize this object: " + e.getMessage());
+//		}
 		return obj;
 	}
 }

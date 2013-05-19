@@ -3,8 +3,10 @@ package com.mungods;
 import com.mungods.common.MungoException;
 
 public class CommandResult extends BasicDBObject {
-    private final DBObject _cmd;
+	
     private static final long serialVersionUID = 1L;
+    private final DBObject _cmd;
+    private boolean _throwOnError = false;
 
     static class CommandFailure extends MungoException {
         private static final long serialVersionUID = 1L;
@@ -56,6 +58,6 @@ public class CommandResult extends BasicDBObject {
     }    
     
     public void throwOnError(){
-    	
+    	_throwOnError = true;
     }
 }

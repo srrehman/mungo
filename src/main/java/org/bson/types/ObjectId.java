@@ -1,12 +1,12 @@
 /**
  *      Copyright (C) 2008 10gen Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,12 +15,11 @@
  */
 package org.bson.types;
 
-import java.net.NetworkInterface;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
+import java.net.*;
+import java.nio.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
+import java.util.logging.*;
 
 /**
  * A globally unique identifier for objects.
@@ -33,29 +32,34 @@ import java.util.Set;
  *     <td colspan="2">pid</td><td colspan="3">inc</td></tr>
  * </table>
  * </pre></blockquote>
+ *
+ * @dochub objectids
  */
-public class ObjectId implements Comparable<ObjectId>{
+public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
 
-    static final boolean D = false;
-    
+    private static final long serialVersionUID = -4415279469780082174L;
+
+    static final Logger LOGGER = Logger.getLogger( "org.bson.ObjectId" );
+
     /** Gets a new object id.
      * @return the new id
      */
     public static ObjectId get(){
         return new ObjectId();
     }
-    
+
     /** Checks if a string could be an <code>ObjectId</code>.
      * @return whether the string could be an object id
      */
     public static boolean isValid( String s ){
         if ( s == null )
             return false;
-        
-        if ( s.length() < 18 )
+
+        final int len = s.length();
+        if ( len != 24 )
             return false;
 
-        for ( int i=0; i<s.length(); i++ ){
+        for ( int i=0; i<len; i++ ){
             char c = s.charAt( i );
             if ( c >= '0' && c <= '9' )
                 continue;
@@ -65,21 +69,21 @@ public class ObjectId implements Comparable<ObjectId>{
                 continue;
 
             return false;
-        }        
+        }
 
         return true;
     }
-    
+
     /** Turn an object into an <code>ObjectId</code>, if possible.
      * Strings will be converted into <code>ObjectId</code>s, if possible, and <code>ObjectId</code>s will
      * be cast and returned.  Passing in <code>null</code> returns <code>null</code>.
-     * @param o the object to convert 
-     * @return an <code>ObjectId</code> if it can be massaged, null otherwise 
+     * @param o the object to convert
+     * @return an <code>ObjectId</code> if it can be massaged, null otherwise
      */
     public static ObjectId massageToObjectId( Object o ){
         if ( o == null )
             return null;
-        
+
         if ( o instanceof ObjectId )
             return (ObjectId)o;
 
@@ -88,8 +92,23 @@ public class ObjectId implements Comparable<ObjectId>{
             if ( isValid( s ) )
                 return new ObjectId( s );
         }
-        
+
         return null;
+    }
+
+    public ObjectId( Date time ){
+        this(time, _genmachine, _nextInc.getAndIncrement());
+    }
+
+    public ObjectId( Date time , int inc ){
+        this( time , _genmachine , inc );
+    }
+
+    public ObjectId( Date time , int machine , int inc ){
+        _time = (int)(time.getTime() / 1000);
+        _machine = machine;
+        _inc = inc;
+        _new = false;
     }
 
     /** Creates a new instance from a string.
@@ -107,69 +126,69 @@ public class ObjectId implements Comparable<ObjectId>{
 
         if ( babble )
             s = babbleToMongod( s );
-        
+
         byte b[] = new byte[12];
         for ( int i=0; i<b.length; i++ ){
-            b[b.length-(i+1)] = (byte)Integer.parseInt( s.substring( i*2 , i*2 + 2) , 16 );
+            b[i] = (byte)Integer.parseInt( s.substring( i*2 , i*2 + 2) , 16 );
         }
         ByteBuffer bb = ByteBuffer.wrap( b );
-        
-        _inc = bb.getInt(); 
-        _machine = bb.getInt();
         _time = bb.getInt();
-
+        _machine = bb.getInt();
+        _inc = bb.getInt();
         _new = false;
     }
 
     public ObjectId( byte[] b ){
         if ( b.length != 12 )
             throw new IllegalArgumentException( "need 12 bytes" );
-        reverse( b );
         ByteBuffer bb = ByteBuffer.wrap( b );
-        
-        _inc = bb.getInt();            
-        _machine = bb.getInt();
         _time = bb.getInt();
+        _machine = bb.getInt();
+        _inc = bb.getInt();
+        _new = false;
     }
-    
-    
+
+    /**
+     * Creates an ObjectId
+     * @param time time in seconds
+     * @param machine machine ID
+     * @param inc incremental value
+     */
     public ObjectId( int time , int machine , int inc ){
         _time = time;
         _machine = machine;
         _inc = inc;
-        
         _new = false;
     }
-    
+
     /** Create a new object id.
      */
     public ObjectId(){
-        _time = _gentime;
+        _time = (int) (System.currentTimeMillis() / 1000);
         _machine = _genmachine;
-        
-        synchronized ( _incLock ){
-            _inc = _nextInc++;
-        }
-        
+        _inc = _nextInc.getAndIncrement();
         _new = true;
     }
 
     public int hashCode(){
-        return _inc;
+        int x = _time;
+        x += ( _machine * 111 );
+        x += ( _inc * 17 );
+        return x;
     }
 
     public boolean equals( Object o ){
-        
+
         if ( this == o )
             return true;
 
         ObjectId other = massageToObjectId( o );
         if ( other == null )
             return false;
-        
-        return 
-            _time == other._time && 
-            _machine == other._machine && 
+
+        return
+            _time == other._time &&
+            _machine == other._machine &&
             _inc == other._inc;
     }
 
@@ -181,7 +200,7 @@ public class ObjectId implements Comparable<ObjectId>{
         byte b[] = toByteArray();
 
         StringBuilder buf = new StringBuilder(24);
-        
+
         for ( int i=0; i<b.length; i++ ){
             int x = b[i] & 0xFF;
             String s = Integer.toHexString( x );
@@ -192,39 +211,31 @@ public class ObjectId implements Comparable<ObjectId>{
 
         return buf.toString();
     }
-    
+
     public byte[] toByteArray(){
         byte b[] = new byte[12];
         ByteBuffer bb = ByteBuffer.wrap( b );
-        bb.putInt( _inc );
-        bb.putInt( _machine );
+        // by default BB is big endian like we need
         bb.putInt( _time );
-        reverse( b );
+        bb.putInt( _machine );
+        bb.putInt( _inc );
         return b;
     }
 
-    static void reverse( byte[] b ){
-        for ( int i=0; i<b.length/2; i++ ){
-            byte t = b[i];
-            b[i] = b[ b.length-(i+1) ];
-            b[b.length-(i+1)] = t;
-        }
-    }
-    
     static String _pos( String s , int p ){
         return s.substring( p * 2 , ( p * 2 ) + 2 );
     }
-    
+
     public static String babbleToMongod( String b ){
         if ( ! isValid( b ) )
             throw new IllegalArgumentException( "invalid object id: " + b );
-        
+
         StringBuilder buf = new StringBuilder( 24 );
         for ( int i=7; i>=0; i-- )
             buf.append( _pos( b , i ) );
         for ( int i=11; i>=8; i-- )
             buf.append( _pos( b , i ) );
-        
+
         return buf.toString();
     }
 
@@ -232,148 +243,156 @@ public class ObjectId implements Comparable<ObjectId>{
         return toStringMongod();
     }
 
+    int _compareUnsigned( int i , int j ){
+        long li = 0xFFFFFFFFL;
+        li = i & li;
+        long lj = 0xFFFFFFFFL;
+        lj = j & lj;
+        long diff = li - lj;
+        if (diff < Integer.MIN_VALUE)
+            return Integer.MIN_VALUE;
+        if (diff > Integer.MAX_VALUE)
+            return Integer.MAX_VALUE;
+        return (int) diff;
+    }
+
     public int compareTo( ObjectId id ){
         if ( id == null )
             return -1;
-        
-        long xx = id.getTime() - getTime();
-        if ( xx > 0 )
-            return -1;
-        else if ( xx < 0 )
-            return 1;
 
-        int x = id._machine - _machine;
+        int x = _compareUnsigned( _time , id._time );
         if ( x != 0 )
-            return -x;
+            return x;
 
-        x = id._inc - _inc;
+        x = _compareUnsigned( _machine , id._machine );
         if ( x != 0 )
-            return -x;
+            return x;
 
-        return 0;
+        return _compareUnsigned( _inc , id._inc );
     }
 
     public int getMachine(){
         return _machine;
     }
-    
+
+    /**
+     * Gets the time of this ID, in milliseconds
+     */
     public long getTime(){
-        long z = _flip( _time );
-        return z * 1000;
+        return _time * 1000L;
+    }
+
+    /**
+     * Gets the time of this ID, in seconds
+     */
+    public int getTimeSecond(){
+        return _time;
     }
 
     public int getInc(){
         return _inc;
     }
 
+    public int _time(){
+        return _time;
+    }
+    public int _machine(){
+        return _machine;
+    }
+    public int _inc(){
+        return _inc;
+    }
+
+    public boolean isNew(){
+        return _new;
+    }
+
+    public void notNew(){
+        _new = false;
+    }
+
+    /**
+     * Gets the generated machine ID, identifying the machine / process / class loader
+     */
+    public static int getGenMachineId() {
+        return _genmachine;
+    }
+
+    /**
+     * Gets the current value of the auto increment
+     */
+    public static int getCurrentInc() {
+        return _nextInc.get();
+    }
+
     final int _time;
     final int _machine;
     final int _inc;
-    
+
     boolean _new;
 
-    static int _flip( int x ){
-        if ( true ){
-            byte b[] = new byte[4];
-            ByteBuffer bb = ByteBuffer.wrap( b );
-            bb.order( ByteOrder.LITTLE_ENDIAN );
-            bb.putInt( x );
-            bb.flip();
-            bb.order( ByteOrder.BIG_ENDIAN );
-            return bb.getInt();
-        }
+    public static int _flip( int x ){
         int z = 0;
-        z |= ( x & 0xFF ) << 24;
-        z |= ( x & 0xFF00 ) << 8;
-        z |= ( x & 0xFF00000 ) >> 8;
-        z |= ( x & 0xFF000000 ) >> 24;
+        z |= ( ( x << 24 ) & 0xFF000000 );
+        z |= ( ( x << 8 )  & 0x00FF0000 );
+        z |= ( ( x >> 8 )  & 0x0000FF00 );
+        z |= ( ( x >> 24 ) & 0x000000FF );
         return z;
     }
-    
-    private static int _nextInc = (new java.util.Random()).nextInt();
-    private static final String _incLock = new String( "ObjectId._incLock" );
 
-    private static int _gentime = _flip( (int)(System.currentTimeMillis()/1000) );
-    
-    static final Thread _timeFixer;
+    private static AtomicInteger _nextInc = new AtomicInteger( (new java.util.Random()).nextInt() );
+
     private static final int _genmachine;
     static {
 
         try {
-            
-            final int machinePiece;
+            // build a 2-byte machine piece based on NICs info
+            int machinePiece;
             {
-                StringBuilder sb = new StringBuilder();
-                Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
-                while ( e.hasMoreElements() ){
-                    NetworkInterface ni = e.nextElement();
-                    sb.append( ni.toString() );
+                try {
+                    StringBuilder sb = new StringBuilder();
+                    Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
+                    while ( e.hasMoreElements() ){
+                        NetworkInterface ni = e.nextElement();
+                        sb.append( ni.toString() );
+                    }
+                    machinePiece = sb.toString().hashCode() << 16;
+                } catch (Throwable e) {
+                    // exception sometimes happens with IBM JVM, use random
+                    LOGGER.log(Level.WARNING, e.getMessage(), e);
+                    machinePiece = (new Random().nextInt()) << 16;
                 }
-                machinePiece = sb.toString().hashCode() << 16;
-                if ( D ) System.out.println( "machine piece post: " + Integer.toHexString( machinePiece ) );
+                LOGGER.fine( "machine piece post: " + Integer.toHexString( machinePiece ) );
             }
-            
-            final int processPiece = java.lang.management.ManagementFactory.getRuntimeMXBean().getName().hashCode() & 0xFFFF;
-            if ( D ) System.out.println( "process piece: " + Integer.toHexString( processPiece ) );
+
+            // add a 2 byte process piece. It must represent not only the JVM but the class loader.
+            // Since static var belong to class loader there could be collisions otherwise
+            final int processPiece;
+            {
+                int processId = new java.util.Random().nextInt();
+                try {
+                    processId = java.lang.management.ManagementFactory.getRuntimeMXBean().getName().hashCode();
+                }
+                catch ( Throwable t ){
+                }
+
+                ClassLoader loader = ObjectId.class.getClassLoader();
+                int loaderId = loader != null ? System.identityHashCode(loader) : 0;
+
+                StringBuilder sb = new StringBuilder();
+                sb.append(Integer.toHexString(processId));
+                sb.append(Integer.toHexString(loaderId));
+                processPiece = sb.toString().hashCode() & 0xFFFF;
+                LOGGER.fine( "process piece: " + Integer.toHexString( processPiece ) );
+            }
 
             _genmachine = machinePiece | processPiece;
-            if ( D ) System.out.println( "machine : " + Integer.toHexString( _genmachine ) );
+            LOGGER.fine( "machine : " + Integer.toHexString( _genmachine ) );
         }
-        catch ( java.io.IOException ioe ){
-            throw new RuntimeException( ioe );
-        }
-
-        _timeFixer = new Thread("ObjectId-TimeFixer"){
-                public void run(){
-                    while ( true ){
-                    	// Modified
-                        //ThreadUtil.sleep( 499 );
-                        try {
-                            Thread.sleep( 499 );
-                        }
-                        catch ( InterruptedException e ){
-                        }
-                        _gentime = _flip( (int)(System.currentTimeMillis()/1000) );
-                    }
-                }
-            };
-        _timeFixer.setDaemon( true );
-        _timeFixer.start();
-    }
-
-    public static void main( String args[] ){
-        
-        if ( true ){
-            int z = _nextInc;
-            System.out.println( Integer.toHexString( z ) );
-            System.out.println( Integer.toHexString( _flip( z ) ) );
-            System.out.println( Integer.toHexString( _flip( _flip( z ) ) ) );
-            return;
-        }
-
-        ObjectId x = new ObjectId();
-
-        double num = 5000000.0;
-        
-        long start = System.currentTimeMillis();
-        for ( double i=0; i<num; i++ ){
-            ObjectId id = get();
-        }
-        long end = System.currentTimeMillis();
-        System.out.println( ( ( num * 1000.0 ) / ( end - start ) ) + " oid/sec" );
-        
-        Set<ObjectId> s = new HashSet<ObjectId>();
-        for ( double i=0; i<num/10; i++ ){
-            ObjectId id = get();
-            if ( s.contains( id ) )
-                throw new RuntimeException( "ObjectId() generated a repeat" );
-            s.add( id );
-
-            ObjectId o = new ObjectId( id.toString() );
-            if ( ! id.equals( o ) )
-                throw new RuntimeException( o.toString() + " != " + id.toString() );
+        catch ( Exception e ){
+            throw new RuntimeException( e );
         }
 
     }
-
 }
+

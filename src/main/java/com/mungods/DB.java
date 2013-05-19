@@ -1093,4 +1093,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		return o.toMap();
 	}
 
+	public DBCollection getCollectionFromString(String _ns) {
+		throw new IllegalArgumentException("Not yet implemented");
+	}
+
 }

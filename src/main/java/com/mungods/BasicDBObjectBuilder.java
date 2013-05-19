@@ -23,9 +23,13 @@ import java.util.Map;
 
 
 /**
- * utility for building complex objects
+ * Utility for building complex objects
  * example:
+ * <br>
+ * <br>
+ * <code>
  *  BasicDBObjectBuilder.start().add( "name" , "eliot" ).add( "number" , 17 ).get()
+ * </code>
  */
 public class BasicDBObjectBuilder {
 

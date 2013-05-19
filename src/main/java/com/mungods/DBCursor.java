@@ -23,10 +23,10 @@ public class DBCursor implements Iterator<DBObject>,
 		this._it = it;
 	}
 
-	public DBCursor(DBCollection collection, DBObject dbObject,
-			DBObject fieldsAsDBObject, ReadPreference readPreference) {
-		throw new IllegalArgumentException("Not yet implemented");
-	}
+//	public DBCursor(DBCollection collection, DBObject dbObject,
+//			DBObject fieldsAsDBObject, ReadPreference readPreference) {
+//		throw new IllegalArgumentException("Not yet implemented");
+//	}
 
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
