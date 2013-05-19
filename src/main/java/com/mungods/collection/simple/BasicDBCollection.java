@@ -17,6 +17,7 @@
  */
 package com.mungods.collection.simple;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,6 +26,7 @@ import org.bson.types.ObjectId;
 
 import com.google.appengine.api.NamespaceManager;
 import com.google.appengine.api.datastore.Entity;
+import com.google.common.base.Preconditions;
 import com.mungods.CommandResult;
 import com.mungods.DB;
 import com.mungods.DBCollection;
@@ -50,24 +52,6 @@ public class BasicDBCollection extends DBCollection {
 		
 	}
 
-	@Override
-	public WriteResult insert(List<DBObject> toInsert, WriteConcern concern) {
-	    for (DBObject obj : toInsert) {
-	        LOG.log(Level.INFO,"insert: " + obj);
-	        //filterLists(obj);
-	        Object id = putIdIfNotPresent(obj);
-	        if (getDB().containsKey(id, _collection)) {
-	          if (enforceDuplicates(concern)) {
-	            //throw new MungoException().DuplicateKey(0, "Attempting to insert duplicate _id: " + id);          
-	          } else {
-	            // TODO(jon) log          
-	          }
-	        } else {
-	          putSizeCheck(id, obj);        
-	        }
-	      }
-	    return new WriteResult(insertResult(toInsert.size()), concern);
-	}
 	
 	public Object putIdIfNotPresent(DBObject obj) {
 		if (obj.get(ID) == null) {
@@ -86,7 +70,7 @@ public class BasicDBCollection extends DBCollection {
 //		      throw new FongoException("Whoa, hold up there.  Fongo's designed for lightweight testing.  100,000 items per collection max");
 //		    }
 //		    objects.put(id, obj);
-		getDB().createObject(obj, _collection);
+		_store.createObject(obj, _collection);
 	}	
 	
 	boolean enforceDuplicates(WriteConcern concern) {
@@ -118,5 +102,35 @@ public class BasicDBCollection extends DBCollection {
 //		}
 //		return dbo;
 		return null;
+	}
+
+	@Override
+	public WriteResult insert(DBObject[] arr, WriteConcern concern) {
+		Preconditions.checkNotNull(_collection, "Cannot insert when collection is null");
+		List<DBObject> objects = Arrays.asList(arr);
+		for (DBObject o : objects){
+			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
+			Object id = _store.createObject(o, _collection); 
+		}
+		return new WriteResult(getDB(), null, concern); // Is this correct?
+	}	
+
+	@Override
+	public WriteResult insert(List<DBObject> toInsert, WriteConcern concern) {
+	    for (DBObject obj : toInsert) {
+	        LOG.log(Level.INFO,"insert: " + obj);
+	        //filterLists(obj);
+	        Object id = putIdIfNotPresent(obj);
+	        if (_store.containsKey(id, _collection)) {
+	          if (enforceDuplicates(concern)) {
+	            //throw new MungoException().DuplicateKey(0, "Attempting to insert duplicate _id: " + id);          
+	          } else {
+	            // TODO(jon) log          
+	          }
+	        } else {
+	          putSizeCheck(id, obj);        
+	        }
+	      }
+	    return new WriteResult(insertResult(toInsert.size()), concern);
 	}	
 }

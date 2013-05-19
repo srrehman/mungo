@@ -48,6 +48,7 @@ import com.google.common.base.Preconditions;
 
 import com.mungods.collection.WriteConcern;
 import com.mungods.collection.WriteResult;
+import com.mungods.object.ObjectStore;
 /**
  * Collections class for GAE stored JSON objects
  * 
@@ -61,13 +62,14 @@ public abstract class DBCollection implements ParameterNames {
 	
 	protected final String _namespace;
 	protected final String _collection;
-	protected final DB _store;
+	protected final DB _db;
 	
 	protected static DatastoreService _ds;
 	protected static TransactionOptions options;
-	protected Calendar cal;
-	
+	protected Calendar cal;	
 	protected Class _objectClass = null;
+	
+	protected ObjectStore _store; 
 	
 	/**
 	 * GAE datastore supported types.
@@ -82,9 +84,10 @@ public abstract class DBCollection implements ParameterNames {
 			LOG.log(Level.INFO, "Create a new DatastoreService instance");
 		}
 		cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));			
-		this._collection = collection;
-		this._namespace = db.getName();
-		this._store = db;
+		_collection = collection;
+		_namespace = db.getName();
+		_db = db;
+		_store = new ObjectStore(db, collection);
 	}
 	
 	protected DBObject _checkObject(DBObject o, boolean canBeNull, boolean query){
@@ -92,7 +95,7 @@ public abstract class DBCollection implements ParameterNames {
 	}
 	
 	public DB getDB() {
-		return this._store;
+		return this._db;
 	}
 	
 	public String getName(){
@@ -110,7 +113,7 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return the number of documents in this collection
 	 */
 	public long count() {
-		return _store.countCollections();
+		return _db.countCollections();
 	}
 	/**
 	 * 
@@ -241,7 +244,7 @@ public abstract class DBCollection implements ParameterNames {
 		// Need to add a way to deal with other query operators
 		if (ref == null)
 			return null;
-		Iterator<DBObject> it = getDB().getObjectsLike(ref, _collection);
+		Iterator<DBObject> it = _store.getObjectsLike(ref, _collection);
 		if (it.hasNext()){
 			return new DBCursor(it);
 		}
@@ -354,10 +357,10 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public DBObject findOne(Object id){
-		if (getDB().containsKey(id, _collection)){
+		if (_store.containsKey(id, _collection)){
 			BasicDBObject obj = new BasicDBObject();
 			obj.put(ID, id);
-			return getDB().getObject(obj, _collection);
+			return _store.getObject(obj, _collection);
 		}
 		return null;
 	}
@@ -428,15 +431,17 @@ public abstract class DBCollection implements ParameterNames {
 		return insert(arr, WriteConcern.NONE);
 	}
 	
-	public WriteResult insert(DBObject[] arr, WriteConcern concern){
-		Preconditions.checkNotNull(_collection, "Cannot insert when collection is null");
-		List<DBObject> objects = Arrays.asList(arr);
-		for (DBObject o : objects){
-			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
-			Object id = getDB().createObject(o, _collection); 
-		}
-		return new WriteResult(getDB(), null, concern); // Is this correct?
-	}	 
+//	public WriteResult insert(DBObject[] arr, WriteConcern concern){
+//		Preconditions.checkNotNull(_collection, "Cannot insert when collection is null");
+//		List<DBObject> objects = Arrays.asList(arr);
+//		for (DBObject o : objects){
+//			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
+//			Object id = getDB().createObject(o, _collection); 
+//		}
+//		return new WriteResult(getDB(), null, concern); // Is this correct?
+//	}	 
+	
+	public abstract WriteResult insert(DBObject[] arr, WriteConcern concern);
 	
 	/**
 	 * Inserts a document into the database
@@ -478,7 +483,7 @@ public abstract class DBCollection implements ParameterNames {
 	}
 	
 	public WriteResult remove(DBObject o){
-		if (getDB().deleteObject(o, _collection)){
+		if (_store.deleteObject(o, _collection)){
 			return new WriteResult(getDB().okResult(), WriteConcern.NONE);
 		};
 		CommandResult result = new CommandResult();
