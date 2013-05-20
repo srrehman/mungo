@@ -220,8 +220,12 @@ public class MungoTest {
     	
 
     	BasicDBObject ref3 = new BasicDBObject("non", "existent");
-    	objects2 = greetings.find(ref3);
-    	assertNull(objects2);
+    	DBCursor curr = greetings.find(ref3);
+    	for (DBObject o : curr){
+    		l(o.toMap());
+    	}
+    	//assertNull(objects2);
+    	
     	
     	BasicDBObject ref4 = new BasicDBObject("non", "existent")
     		.append("hello", "world"); 
@@ -348,6 +352,7 @@ public class MungoTest {
     	// delete
     	WriteResult wr = coll.remove(result);
     	assertTrue((Boolean)wr.getField("ok"));
+    	// should have been deleted
     	assertNull(coll.findOne(id));
     }
     

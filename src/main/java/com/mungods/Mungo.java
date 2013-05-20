@@ -46,7 +46,7 @@ import com.google.appengine.api.utils.SystemProperty.Environment;
 import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Preconditions;
 import com.google.inject.Singleton;
-import com.mungods.collection.simple.BasicDB;
+import com.mungods.collection.simple.DBApiLayer;
 /**
  * 
  * The "Mungo" class. Provides the interface to do <code>DB</code> operations.
@@ -110,7 +110,7 @@ public class Mungo implements ParameterNames {
 			e.setProperty(CREATED, new Date().getTime());
 			e.setProperty(UPDATED, new Date().getTime());
 			_ds.put(e);
-			db = new BasicDB(this, e.getKey(), dbName);
+			db = new DBApiLayer(this, dbName, _ds);
 		} catch (Exception e) {
 			// TODO: Rollback
 		} finally {
@@ -140,7 +140,7 @@ public class Mungo implements ParameterNames {
 			e.getProperty(DATABASE_NAME);
 			e.getProperty(CREATED);
 			e.getProperty(UPDATED);			
-			db = new BasicDB(this, e.getKey(), dbName);
+			db = new DBApiLayer(this, dbName, _ds);
 			tx.commit();
 		} catch(EntityNotFoundException ex) {
 			Entity e = new Entity(key);
@@ -148,7 +148,7 @@ public class Mungo implements ParameterNames {
 			e.setProperty(CREATED, new Date().getTime());
 			e.setProperty(UPDATED, new Date().getTime());			
 			_ds.put(e);
-			db = new BasicDB(this, e.getKey(), dbName);
+			db = new DBApiLayer(this, dbName, _ds);
 			tx.commit();
 		} catch (Exception e) {
 			// TODO: Rollback
@@ -173,7 +173,7 @@ public class Mungo implements ParameterNames {
 			PreparedQuery pq = _ds.prepare(q);
 			List<Entity> result = pq.asList(FetchOptions.Builder.withDefaults());
 			for (Entity e : result) {
-				cols.add(new BasicDB(this, e.getKey(), (String) e.getProperty(DATABASE_NAME)));
+				cols.add(new DBApiLayer(this, (String) e.getProperty(DATABASE_NAME), _ds));
 			}			
 		} catch (Exception e) {
 			// TODO: handle exception

@@ -17,8 +17,12 @@
  */
 package com.mungods.collection.simple;
 
+import java.util.Properties;
 import java.util.logging.Logger;
 
+import com.google.appengine.api.NamespaceManager;
+import com.google.appengine.api.datastore.DatastoreService;
+import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.Key;
 import com.mungods.CommandResult;
 import com.mungods.DB;
@@ -26,15 +30,26 @@ import com.mungods.DBCollection;
 import com.mungods.DBObject;
 import com.mungods.Mungo;
 
-public class BasicDB extends DB {
+/**
+ * Database API layer
+ * This cannot be directly instantiated, but the functions are available
+ * through the instances for Mungo.
+ * <br>
+ * 
+ * @author Kerby Martino <kerbymart@gmail.com>
+ *
+ */
+public class DBApiLayer extends DB {
 
 	private static final Logger LOG 
-		= Logger.getLogger(BasicDB.class.getName());
-	private final Mungo joongo;
+		= Logger.getLogger(DBApiLayer.class.getName());
+	private final Mungo _mungo;
+	private DatastoreService _ds;
 	
-	public BasicDB(Mungo joongo, Key key, String namespace) {
-		super(key, namespace);
-		this.joongo = joongo;
+	public DBApiLayer(Mungo mungo, String namespace, DatastoreService connector) { 
+		super(namespace);
+		_mungo = mungo;
+		_ds = connector;
 	}
 
 	@Override
@@ -51,5 +66,32 @@ public class BasicDB extends DB {
 	    CommandResult errorResult = new CommandResult();
 	    errorResult.put("err", "undefined command: " + cmd);
 	    return errorResult;
+	}
+
+	@Override
+	protected DBCollection doGetCollection(String collection) {
+		DBCollection col = null; 
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(ADMIN_NAMESPACE); 
+		try {
+			Entity e = getCollectionEntity(collection);
+			if (e == null) {
+				col = createCollection(collection);
+			} else {
+				col = new BasicDBCollection(this, collection);
+			}
+			// extract the data from the datastore entity
+			// unused right now
+			Properties props = new Properties();
+			props.put(DATABASE_NAME, _dbName);
+			props.put(COLLECTION_NAME, collection);
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}
+		return col;
 	}
 }

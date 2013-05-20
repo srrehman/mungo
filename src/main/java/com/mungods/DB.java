@@ -19,6 +19,7 @@ package com.mungods;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -38,6 +39,7 @@ import com.google.appengine.api.datastore.Transaction;
 import com.google.common.base.Preconditions;
 import com.mungods.collection.AbstractDBCollection;
 import com.mungods.collection.simple.BasicDBCollection;
+import com.mungods.object.KeyStructure;
 import com.mungods.serializer.ObjectSerializer;
 import com.mungods.serializer.XStreamSerializer;
 
@@ -60,6 +62,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	
 	public abstract CommandResult command(DBObject cmd);
 	
+	protected final Set<DBCollection> _seenCollections = new HashSet<DBCollection>();
+	
 	protected Key _dbkey;
 	/**
 	 * GAE datastore supported types.
@@ -67,10 +71,10 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	private static final Set<Class<?>> GAE_SUPPORTED_TYPES =
 	        DataTypeUtils.getSupportedTypes();	
 
-	public DB(Key key, String namespace){
+	public DB(String namespace){
 		super(namespace);
 		this._dbName = namespace;
-		this._dbkey = key;
+		//this._dbkey = key;
 		this.serializer = new XStreamSerializer();
 	}
 	
@@ -139,29 +143,12 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	public DBCollection getCollection(String collection){
-		DBCollection col = null; 
-		String oldNamespace = NamespaceManager.get();
-		NamespaceManager.set(ADMIN_NAMESPACE); 
-		try {
-			Entity e = getCollectionEntity(collection);
-			if (e == null) {
-				col = createCollection(collection);
-			} else {
-				col = new BasicDBCollection(this, collection);
-			}
-			// extract the data from the datastore entity
-			// unused right now
-			Properties props = new Properties();
-			props.put(DATABASE_NAME, _dbName);
-			props.put(COLLECTION_NAME, collection);
-		} catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
-		} finally {
-			if (oldNamespace != null)
-				NamespaceManager.set(oldNamespace);
-		}
-		return col;
+        DBCollection c = doGetCollection( collection );
+        if ( c != null ){
+            _seenCollections.add( c );
+        }
+        return c;
+		
 	}
 	
 	/**
@@ -215,10 +202,10 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	public long countCollections(){		
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(ADMIN_NAMESPACE);
-		Preconditions.checkNotNull(_dbkey,"DB key cannot be null");
+		//Preconditions.checkNotNull(_dbkey,"DB key cannot be null");
 		try {
 			Query q = new Query(COLLECTION_KIND)
-				.setAncestor(_dbkey);
+				.setAncestor(KeyStructure.createKey(DATABASE_KIND, _dbName)); 
 			PreparedQuery pq = _ds.prepare(q);
 			List<Entity> result = pq.asList(FetchOptions.Builder.withDefaults());
 			return result.size();
@@ -304,8 +291,8 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 	
 
 	protected Key createCollectionKey(String name) {
-		return KeyFactory.createKey(_dbkey, COLLECTION_KIND, name);
-	}
+		return KeyFactory.createKey(KeyStructure.createKey(DATABASE_KIND, _dbName), COLLECTION_KIND, name);
+	} 
 	
 	public CommandResult okResult() {
 		CommandResult result = new CommandResult();
@@ -317,4 +304,11 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		throw new IllegalArgumentException("Not yet implemented");
 	}	
 	
+	
+	/** Returns the collection represented by the string <code>dbName</code>.<code>collectionName</code>.
+	 * 
+     * @param fullNameSpace the string
+     * @return the collection
+     */
+    protected abstract DBCollection doGetCollection( String name );	
 }

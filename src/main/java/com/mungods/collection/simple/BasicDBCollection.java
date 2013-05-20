@@ -27,6 +27,7 @@ import org.bson.types.ObjectId;
 import com.google.appengine.api.NamespaceManager;
 import com.google.appengine.api.datastore.Entity;
 import com.google.common.base.Preconditions;
+import com.mungods.BasicDBObject;
 import com.mungods.CommandResult;
 import com.mungods.DB;
 import com.mungods.DBCollection;
@@ -34,6 +35,7 @@ import com.mungods.DBObject;
 import com.mungods.collection.WriteConcern;
 import com.mungods.collection.WriteResult;
 import com.mungods.common.MungoException;
+import com.mungods.shell.GAEObject;
 
 public class BasicDBCollection extends DBCollection {
 	
@@ -53,6 +55,12 @@ public class BasicDBCollection extends DBCollection {
 	}
 
 	
+	/**
+	 * Put ID if not present
+	 * 
+	 * @param obj
+	 * @return
+	 */
 	public Object putIdIfNotPresent(DBObject obj) {
 		if (obj.get(ID) == null) {
 			ObjectId id = new ObjectId();
@@ -65,12 +73,21 @@ public class BasicDBCollection extends DBCollection {
 		}
 	}
 	
-	public void putSizeCheck(Object id, DBObject obj) {
+	/**
+	 * Put the object. Check the size of the object before persisting.
+	 * 
+	 * @param obj
+	 */
+	public void putSizeCheck(DBObject obj) {
 //		    if (objects.size() > 100000) {
 //		      throw new FongoException("Whoa, hold up there.  Fongo's designed for lightweight testing.  100,000 items per collection max");
 //		    }
 //		    objects.put(id, obj);
-		_store.createObject(obj, _collection);
+//		_store.createObject(obj, _collection);	
+		GAEObject xobj = new GAEObject(_db.getName(), _collection);
+		xobj.setCommand(GAEObject.INSERT);
+		xobj.setDoc(obj);
+		xobj.execute();
 	}	
 	
 	boolean enforceDuplicates(WriteConcern concern) {
@@ -108,10 +125,16 @@ public class BasicDBCollection extends DBCollection {
 	public WriteResult insert(DBObject[] arr, WriteConcern concern) {
 		Preconditions.checkNotNull(_collection, "Cannot insert when collection is null");
 		List<DBObject> objects = Arrays.asList(arr);
-		for (DBObject o : objects){
-			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
-			Object id = _store.createObject(o, _collection); 
-		}
+//		for (DBObject o : objects){
+//			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
+//			Object id = _store.createObject(o, _collection); 
+//		}
+		
+		GAEObject xobj = new GAEObject(_db.getName(), _collection);
+		xobj.setCommand(GAEObject.INSERT);
+		xobj.setDoc(objects);
+		xobj.execute();
+		
 		return new WriteResult(getDB(), null, concern); // Is this correct?
 	}	
 
@@ -121,15 +144,16 @@ public class BasicDBCollection extends DBCollection {
 	        LOG.log(Level.INFO,"insert: " + obj);
 	        //filterLists(obj);
 	        Object id = putIdIfNotPresent(obj);
-	        if (_store.containsKey(id, _collection)) {
-	          if (enforceDuplicates(concern)) {
-	            //throw new MungoException().DuplicateKey(0, "Attempting to insert duplicate _id: " + id);          
-	          } else {
-	            // TODO(jon) log          
-	          }
-	        } else {
-	          putSizeCheck(id, obj);        
-	        }
+	        putSizeCheck(obj);
+//	        if (_store.containsKey(id, _collection)) {
+//	          if (enforceDuplicates(concern)) {
+//	            //throw new MungoException().DuplicateKey(0, "Attempting to insert duplicate _id: " + id);          
+//	          } else {
+//	            // TODO(jon) log          
+//	          }
+//	        } else {
+//	          putSizeCheck(obj);        
+//	        }
 	      }
 	    return new WriteResult(insertResult(toInsert.size()), concern);
 	}	

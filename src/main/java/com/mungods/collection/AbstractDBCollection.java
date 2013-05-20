@@ -45,6 +45,7 @@ public abstract class AbstractDBCollection {
 	 */
 	protected static final Set<Class<?>> GAE_SUPPORTED_TYPES =
 	        DataTypeUtils.getSupportedTypes();		
+	
 	public AbstractDBCollection(String namespace) {
 		if (_ds == null) {
 			_ds = DatastoreServiceFactory.getDatastoreService();
@@ -54,12 +55,5 @@ public abstract class AbstractDBCollection {
 		cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));			
 	}
 	
-	
-	protected Key createKey(String kind, String key) {
-		return KeyFactory.createKey(kind, key);
-	}
 
-	protected Key createKey(Key parent, String kind, String key) {
-		return KeyFactory.createKey(parent, kind, key);
-	}	
 }

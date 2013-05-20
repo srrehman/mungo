@@ -49,6 +49,7 @@ import com.google.common.base.Preconditions;
 import com.mungods.collection.WriteConcern;
 import com.mungods.collection.WriteResult;
 import com.mungods.object.ObjectStore;
+import com.mungods.shell.GAEObject;
 /**
  * Collections class for GAE stored JSON objects
  * 
@@ -69,8 +70,6 @@ public abstract class DBCollection implements ParameterNames {
 	protected Calendar cal;	
 	protected Class _objectClass = null;
 	
-	protected ObjectStore _store; 
-	
 	/**
 	 * GAE datastore supported types.
 	 */
@@ -87,7 +86,6 @@ public abstract class DBCollection implements ParameterNames {
 		_collection = collection;
 		_namespace = db.getName();
 		_db = db;
-		_store = new ObjectStore(db, collection);
 	}
 	
 	protected DBObject _checkObject(DBObject o, boolean canBeNull, boolean query){
@@ -244,11 +242,19 @@ public abstract class DBCollection implements ParameterNames {
 		// Need to add a way to deal with other query operators
 		if (ref == null)
 			return null;
-		Iterator<DBObject> it = _store.getObjectsLike(ref, _collection);
-		if (it.hasNext()){
-			return new DBCursor(it);
-		}
-		return null;
+		
+		GAEObject xobj 
+			= new GAEObject(_db.getName(), _collection)
+				.setCommand(GAEObject.FIND)
+				.setQuery(ref)
+				.justOne(false)
+				.execute();
+		
+		//Iterator<DBObject> it = _store.getObjectsLike(ref, _collection);
+		//if (it.hasNext()){
+		//	return new DBCursor(it);
+		//}
+		return xobj.getResult();
 	}
 	
 	/**
@@ -357,12 +363,20 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public DBObject findOne(Object id){
-		if (_store.containsKey(id, _collection)){
-			BasicDBObject obj = new BasicDBObject();
-			obj.put(ID, id);
-			return _store.getObject(obj, _collection);
-		}
-		return null;
+//		if (_store.containsKey(id, _collection)){
+//			BasicDBObject obj = new BasicDBObject();
+//			obj.put(ID, id);
+//			return _store.getObject(obj, _collection);
+//		}
+		
+		GAEObject xobj 
+			= new GAEObject(_db.getName(), _collection)
+				.setCommand(GAEObject.FIND)
+				.setQuery(new BasicDBObject("_id", id))
+				.justOne(true)
+				.execute();
+		
+		return xobj.getSingleResult();
 	}
 	
 	/**
@@ -483,9 +497,20 @@ public abstract class DBCollection implements ParameterNames {
 	}
 	
 	public WriteResult remove(DBObject o){
-		if (_store.deleteObject(o, _collection)){
-			return new WriteResult(getDB().okResult(), WriteConcern.NONE);
-		};
+//		if (_store.deleteObject(o, _collection)){
+//			return new WriteResult(getDB().okResult(), WriteConcern.NONE);
+//		};
+		
+		GAEObject xobj 
+			= new GAEObject(_db.getName(), _collection)
+				.setCommand(GAEObject.REMOVE)
+				.setDoc(o)
+				.execute();
+		
+		if (xobj.getLastError().get("ok").equals(true)){
+			return new WriteResult(getDB().okResult(), WriteConcern.NONE); 
+		} 
+		
 		CommandResult result = new CommandResult();
 		result.put("ok", false);	
 		result.put("code", 1000); // TODO create a error list!
