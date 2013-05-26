@@ -221,11 +221,7 @@ public class MungoTest {
 
     	BasicDBObject ref3 = new BasicDBObject("non", "existent");
     	DBCursor curr = greetings.find(ref3);
-    	for (DBObject o : curr){
-    		l(o.toMap());
-    	}
-    	//assertNull(objects2);
-    	
+    	assertNull(curr);
     	
     	BasicDBObject ref4 = new BasicDBObject("non", "existent")
     		.append("hello", "world"); 

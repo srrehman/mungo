@@ -245,20 +245,11 @@ public abstract class DBCollection implements ParameterNames {
 		// Need to add a way to deal with other query operators
 		if (ref == null)
 			return null;
-		
-//		GAEObject xobj 
-//			= new GAEObject(_db.getName(), _collection)
-//				.setCommand(GAEObject.FIND)
-//				.setQuery(ref)
-//				.justOne(false)
-//				.execute();
-		
 		Iterator<DBObject> it = ObjectStore.get(_namespace, _collection).getObjectsLike(ref);
 		if (it.hasNext()){
 			return new DBCursor(it);
 		}
 		return null;
-//		return xobj.getResult();
 	}
 	
 	/**
