@@ -36,9 +36,9 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.google.inject.Inject;
 import com.mungods.Mungo;
 import com.mungods.collection.WriteResult;
+import com.mungods.object.GAEObject;
+import com.mungods.object.GAEObjectFactory;
 import com.mungods.shell.Connector;
-import com.mungods.shell.GAEObject;
-import com.mungods.shell.GAEObjectFactory;
 
 public class XObjectTest {
 	

@@ -54,8 +54,6 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	
 	public BasicDBObject() {
 		super();
-		// FIXME - This is faulty, whenever used it doesn't seem to fit the ID that is stored in the datastore
-		put(ID, new ObjectId()); 
 	}
 	@SuppressWarnings("unchecked")
 	public BasicDBObject(Map<String,Object> json){
@@ -111,15 +109,15 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	public Object removeField(String key) {
 		return super.remove(key);
 	}
-	public Map toMap() {
-		Map m = new HashMap<String,Object>();
-		Iterator<String> it = keySet().iterator();
-		while (it.hasNext()){
-			String key = it.next();
-			m.put(key, get(key));
-		}
-		return m;
-	}
+//	public Map toMap() {
+//		Map m = new HashMap<String,Object>();
+//		Iterator<String> it = keySet().iterator();
+//		while (it.hasNext()){
+//			String key = it.next();
+//			m.put(key, get(key));
+//		}
+//		return m;
+//	}
 
 
 	/**

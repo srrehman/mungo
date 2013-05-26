@@ -14,6 +14,7 @@ import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.inject.Singleton;
 import com.mungods.Mungo;
+import com.mungods.object.GAEObjectFactory;
 
 /**
  * Connector encapsulates database operations to the datastore. 

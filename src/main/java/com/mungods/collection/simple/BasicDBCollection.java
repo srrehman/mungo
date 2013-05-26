@@ -35,7 +35,8 @@ import com.mungods.DBObject;
 import com.mungods.collection.WriteConcern;
 import com.mungods.collection.WriteResult;
 import com.mungods.common.MungoException;
-import com.mungods.shell.GAEObject;
+import com.mungods.object.GAEObject;
+import com.mungods.object.ObjectStore;
 
 public class BasicDBCollection extends DBCollection {
 	
@@ -80,14 +81,10 @@ public class BasicDBCollection extends DBCollection {
 	 */
 	public void putSizeCheck(DBObject obj) {
 //		    if (objects.size() > 100000) {
-//		      throw new FongoException("Whoa, hold up there.  Fongo's designed for lightweight testing.  100,000 items per collection max");
+//		      throw new FongoException("Whoa, hold up there.  Mungo's designed for lightweight testing.  100,000 items per collection max");
 //		    }
 //		    objects.put(id, obj);
-//		_store.createObject(obj, _collection);	
-		GAEObject xobj = new GAEObject(_db.getName(), _collection);
-		xobj.setCommand(GAEObject.INSERT);
-		xobj.setDoc(obj);
-		xobj.execute();
+		_store.persistObject(obj);	
 	}	
 	
 	boolean enforceDuplicates(WriteConcern concern) {

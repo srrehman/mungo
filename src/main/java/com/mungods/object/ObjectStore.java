@@ -24,6 +24,7 @@ import com.google.appengine.api.datastore.DataTypeUtils;
 import com.google.appengine.api.datastore.EmbeddedEntity;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.EntityNotFoundException;
+import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.PreparedQuery;
@@ -78,7 +79,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param docId
 	 * @return
 	 */
-	private String createStringIdFromObject(Object docId){
+	private static String createStringIdFromObject(Object docId){
+		Preconditions.checkNotNull(docId, "Object doc id cannot be null");
 		if (docId instanceof ObjectId){
 			logger.info("Create ID String from ObjectID");
 			return ((ObjectId) docId).toStringMongod();
@@ -114,13 +116,13 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	public Object persistObject(DBObject object){
+		Preconditions.checkNotNull(object, "Cannot persist null object");
 		Object id = null;
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
 			String _id = null;
 			// Pre-process, the Datastore does not accept ObjectId as is
-			//ObjectId oid = (ObjectId) object.get(ID);
 			Object oid = object.get(ID);
 			if (oid == null){
 				logger.info("No id object found in the object, creating new");
@@ -138,7 +140,6 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			// Persist to datastore, get back the Key
 			Key key = createEntity(null, Mapper.convertToMap(object)); 
 			if (key != null){
-				//id = new ObjectId(key.getName());
 				id = createIdObjectFromString(key.getName());
 			}
 		} catch (Exception e) {
@@ -160,41 +161,46 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 */
 	@SuppressWarnings("unchecked")
 	public DBObject getObject(DBObject object){
+		Preconditions.checkNotNull(object, "Null reference object");
 		DBObject obj = null;
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			String id = createStringIdFromObject(object.get(ID));
-			Map<String, Object> map = getEntity(KeyStructure.createKey(_collName, id));
-			obj = new BasicDBObject();
-			obj.putAll(map);
+			Map<String, Object> map = getEntity(KeyStructure.createKey(_collName, 
+					buildStringIdFromObject(object)));
+			if (map != null){
+				obj = new BasicDBObject(map);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);
 		}		
+		logger.warning("Returning null DBObject");
 		return obj;
 	}	
 	
-	public boolean contains(DBObject object){
-		return getObject(object) == null ? false : true;
+	/**
+	 * Check if object exist
+	 * 
+	 * @param object
+	 * @return
+	 */
+	public boolean containsObject(DBObject object){
+		Entity e = Mapper.createEntityFromDBObject(object, _collName);
+		return containsEntityLike(e);
+		//return getObject(object) == null ? false : true;
 	}
 	
 	public boolean containsKey(Object id){
-		if (id == null)
-			return false;
+		Preconditions.checkNotNull(id, "Object id cannot be null");
 		boolean contains = false;
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			String _id = createStringIdFromObject(id); 
-//			if (id instanceof ObjectId){
-//				_id = ((ObjectId) id).toStringMongod();
-//			} else {
-//				_id = id.toString();
-//			}
-			contains = containsEntityKey(KeyStructure.createKey(_collName, _id)); // Safe?
+			contains = containsEntityKey(KeyStructure.createKey(_collName, 
+					createStringIdFromObject(id))); // Safe?
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -215,6 +221,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	public Iterator<DBObject> getObjectsLike(DBObject object){
+		Preconditions.checkNotNull(object, "Reference object cannot be null");
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		Iterator<DBObject> it = null;
@@ -239,7 +246,18 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);
 		}		
+		if (it == null){
+			logger.warning("Returning null iterator");
+		}
 		return it;
+	}
+	
+	// Helper get method
+	public DBObject getFirstObjectLike(DBObject obj){
+		Iterator<DBObject> it = getObjectsLike(obj);
+		if (it != null)
+			return it.next();
+		return null;
 	}
 	
 	/**
@@ -250,20 +268,21 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	public boolean deleteObject(DBObject object){
+		Preconditions.checkNotNull(object, "Reference object cannot be null");
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
-		boolean result = false;
 		try {
-			//ObjectId id = (ObjectId) object.get(ID);
-			String id = createStringIdFromObject(object.get(ID));
-			result = deleteEntity(KeyStructure.createKey(_collName, id));
+			Key key = KeyStructure.createKey(_collName, 
+					createStringIdFromObject(object.get(ID)));
+			deleteEntity(key);
+			return containsEntityKey(key); 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);
 		}		
-		return result;
+		return false;
 	}	
 
 	/**
@@ -274,8 +293,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param kind
 	 * @return
 	 */
-	public Iterator<Entity> getEntitiesLike(Entity entity){
-		logger.info("Fetching entities like: " + entity);
+	private Iterator<Entity> getEntitiesLike(Entity entity){
+		logger.info("Fetching entities like: " + entity + " in [" + _dbName + "][" + _collName + "]");
 		Map<String,Object> m = entity.getProperties();
 		Iterator<String> it = m.keySet().iterator();
 		Query q = new Query(_collName);
@@ -291,13 +310,18 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return pq.asIterator();
 	}
 
-	public Map<String,Object> getEntity(Key k){
-		Map<String,Object> json = null;
-		if (k == null)
-			return null;		
+	// FIXME - not returning null for non existing entity
+	private Map<String,Object> getEntity(Key k){
+		Preconditions.checkNotNull(k, "Entity key cannot be null");
+		
+		if (!containsEntityKey(k)){
+			return null;
+		}
+		
+		Map<String,Object> doc = null;	
 		try {
-			json = new LinkedHashMap<String, Object>();
 			Entity e = _ds.get(k);
+			doc = new LinkedHashMap<String, Object>();
 			Map<String,Object> props = e.getProperties();
 			Iterator<Map.Entry<String, Object>> it = props.entrySet().iterator();
 			// Preprocess - 
@@ -307,11 +331,11 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				String key = entry.getKey();
 				Object val = entry.getValue();
 				if (val == null){
-					json.put(key, val);
+					doc.put(key, val);
 				} else if (val instanceof String
 						|| val instanceof Number
 						|| val instanceof Boolean) {
-					json.put(key, val);
+					doc.put(key, val);
 				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
 					logger.log(Level.INFO, "Embedded entity found.");
 					Object mapOrList = Mapper.getMapOrList((EmbeddedEntity) val);
@@ -320,40 +344,45 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 					} else if (mapOrList instanceof Map){
 						logger.log(Level.INFO, "Embedded Map="+mapOrList);
 					}
-					json.put(key, mapOrList);	
+					doc.put(key, mapOrList);	
 				} 
 			}
 			//json.put(ID, e.getKey().getName());
 			Object _id = createIdObjectFromString(e.getKey().getName());
 			if (_id instanceof ObjectId){
-				json.put(ID, ((ObjectId)_id).toStringMongod()); 
+				doc.put(ID, ((ObjectId)_id).toStringMongod()); 
 			} else if (_id instanceof Long) {
-				json.put(ID, (Long)_id);
+				doc.put(ID, (Long)_id);
 			} else {
-				json.put(ID, _id); 
+				doc.put(ID, _id); 
 			}
 			
 		} catch (EntityNotFoundException e) {
 			// Just return null
+			doc = null;
 		} finally {
 			
 		}
-		return json;
+		logger.warning("Returning null document");
+		return doc;
 	}
 	
 	
-	public boolean containsEntityKey(Key key){
-		if (key == null)
-			return false;
+	private boolean containsEntityKey(Key key){
+		Preconditions.checkNotNull(key, "Entity key cannot be null");
 		Transaction tx = _ds.beginTransaction();
 		try {
-			Entity e = _ds.get(key);
+			Query q 
+				= new Query(_collName)
+					.setFilter(new FilterPredicate(Entity.KEY_RESERVED_PROPERTY, 
+							FilterOperator.EQUAL, key)).setKeysOnly(); 
+			PreparedQuery pq = _ds.prepare(q);
+			Entity e = pq.asSingleEntity();			
 			if (e != null)
 				return true;
 			tx.commit();
 		} catch (Exception e) {
 			tx.rollback();
-			return false;
 		} finally {
 		    if (tx.isActive()) {
 		        tx.rollback();
@@ -362,26 +391,61 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return false;
 	}
 	
+	/**
+	 * Check whether entity with the given properties exist
+	 * 
+	 * @param props
+	 * @return
+	 */
+	private boolean containsEntityLike(Entity props){
+		Preconditions.checkNotNull(props, "Entity cannot be null");
+		boolean contains = false;
+		Map<String,Object> m = props.getProperties();
+		Transaction tx = _ds.beginTransaction();
+		try {
+			Iterator<String> it = m.keySet().iterator();
+			Query q = new Query(_collName);
+			while (it.hasNext()){ // build the query
+				String propName = it.next();
+				Filter filter = new FilterPredicate(propName, 
+					FilterOperator.EQUAL, m.get(propName));
+				Filter prevFilter = q.getFilter();
+				// Note that the Query object is immutable
+				q = new Query(_collName).setFilter(prevFilter).setFilter(filter);
+				q = q.setKeysOnly();
+			}
+			PreparedQuery pq = _ds.prepare(q);
+			int c = pq.countEntities(FetchOptions.Builder.withDefaults());
+			if (c != 0)
+				contains = true;
+			tx.commit();
+		} catch (Exception e) {
+			tx.rollback();
+		} finally {
+		    if (tx.isActive()) {
+		        tx.rollback();
+		    }
+		}		
+		return contains;
+	}
 	
-	public boolean deleteEntity(Key key){
-		if (key == null)
-			return false;
+	
+	private void deleteEntity(Key key){
+		Preconditions.checkNotNull(key, "Entity key cannot be null");
 		Transaction tx = _ds.beginTransaction();
 		try {
 			_ds.delete(key);
 			tx.commit();
 		} catch (Exception e) {
 			tx.rollback();
-			return false;
 		} finally {
 		    if (tx.isActive()) {
 		        tx.rollback();
 		    }
 		}
-		return true;
 	}	
 
-    protected void setProperty(Entity entity, String key, Object value){
+    private void setProperty(Entity entity, String key, Object value){
     	Preconditions.checkNotNull(entity, "Entity can't be null");
     	Preconditions.checkNotNull(key, "String key can't be null");
     	Preconditions.checkNotNull(value, "Value can't be null");
@@ -421,6 +485,9 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * fails it creates a new ObjectId with the given String. Since
 	 * there is only two type of String id that is stored using Mungo
 	 * which is a ObjectId string and a XStream serialized Object.
+	 * 
+	 * FIXME - Bug, when a String docId is a number string
+	 * it is interpreted as Long
 	 * 
 	 * @param docId
 	 * @return
@@ -472,7 +539,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param parent when provided becomes the parent key of the created Entity, can be set to null
 	 * @param obj
 	 */
-	public Key createEntity(Key parent, Map obj){	
+	private Key createEntity(Key parent, Map obj){	
 		Key entityKey = null;
 		try {
 			String id = (String) obj.get(ID);
@@ -502,7 +569,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 					setProperty(e, key, Mapper.createEmbeddedEntityFromMap(parent, (Map) value));
 				}
 			}	
-			logger.log(Level.INFO, "Persisting entity to the datastore");
+			logger.log(Level.INFO, "Persisting entity [" 
+					+ e.getKey().getName() + "] in [" + e.getNamespace() + "][" + e.getKind() + "]");
 			entityKey = _ds.put(e);
 		} catch (ConcurrentModificationException e){
 			e.printStackTrace();
@@ -514,6 +582,11 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	
 	public static ObjectStore get(String namespace, String kind) {
 		return new ObjectStore(namespace, kind);
+	}
+	
+	// Helper method
+	private static String buildStringIdFromObject(DBObject obj){
+		return createStringIdFromObject(obj.get(ID));
 	}
 	
 }
