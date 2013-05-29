@@ -181,6 +181,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return obj;
 	}	
 	
+	
+	
 	/**
 	 * Check if object exist
 	 * 
@@ -260,6 +262,36 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return null;
 	}
 	
+	public Iterator<DBObject> getObjects() {
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		Iterator<DBObject> it = null;
+		try {
+			final Iterator<Entity> eit = getEntities();
+			it = new Iterator<DBObject>() {
+				public void remove() {
+					eit.remove();
+				}
+				public DBObject next() {
+					Entity e = eit.next();
+					return Mapper.createDBObjectFromEntity(e);
+				}
+				public boolean hasNext() {
+					return eit.hasNext();
+				}
+			};	
+		} catch (Exception e) {
+			it = null;
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}		
+		if (it == null){
+			logger.warning("Returning null iterator");
+		}
+		return it;
+	}
+	
 	/**
 	 * Delete the object from this DB under the given collection
 	 * 
@@ -306,6 +338,12 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			// Note that the Query object is immutable
 			q = new Query(_collName).setFilter(prevFilter).setFilter(filter); 
 		}
+		PreparedQuery pq = _ds.prepare(q);
+		return pq.asIterator();
+	}
+	
+	private Iterator<Entity> getEntities(){
+		Query q = new Query(_collName);
 		PreparedQuery pq = _ds.prepare(q);
 		return pq.asIterator();
 	}

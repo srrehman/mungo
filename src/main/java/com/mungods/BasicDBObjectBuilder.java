@@ -85,7 +85,6 @@ public class BasicDBObjectBuilder {
         return this;
     }
 
-
     /**
      * same as appends
      * @see #append(String, Object)

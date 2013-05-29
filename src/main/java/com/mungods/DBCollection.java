@@ -225,18 +225,23 @@ public abstract class DBCollection implements ParameterNames {
 	
 	/**
 	 * Queries for all object in this collection
+	 * TODO - No test for this method yet
 	 * 
-	 * @return
+	 * @return the DBCursor
 	 */
 	public DBCursor find() {
-		throw new IllegalArgumentException("Not yet implemented");
+		Iterator<DBObject> it = ObjectStore.get(_namespace, _collection).getObjects();
+		if (it.hasNext()){
+			return new DBCursor(it);
+		}
+		return null;
 	}
 	
 	/**
 	 * Queries for an object in this collection
 	 * 
 	 * @param ref
-	 * @return
+	 * @return the DBCursor
 	 */
 	public DBCursor find(DBObject ref){
 		// TODO - Right now the underlying find implementation

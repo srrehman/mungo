@@ -163,6 +163,12 @@ public class Mungo implements ParameterNames {
 		}	
 		return db;
 	}
+	
+	
+	public DB getDB() {
+		return getDB("");
+	}
+	
 	public Collection<DB> getUsedDatabases(){
 		List<DB> cols = null;
 		String oldNamespace = NamespaceManager.get();

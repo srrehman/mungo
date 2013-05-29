@@ -55,27 +55,69 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	public BasicDBObject() {
 		super();
 	}
+	
+	/**
+	 * Construct by <code>Map</code>
+	 * 
+	 * @param map
+	 */
 	@SuppressWarnings("unchecked")
-	public BasicDBObject(Map<String,Object> json){
+	public BasicDBObject(Map<String,Object> map){
 		this();
-		putAll(json);
+		putAll(map);
 	}
+	/**
+	 * Construct by key value pair
+	 * 
+	 * @param key
+	 * @param value
+	 */
 	public BasicDBObject(String key, Object value){
 		this();
 		put(key, value);
 	}
+	
+	/**
+	 * Construct by JSON <code>String</code>
+	 * 
+	 * @param json
+	 */
 	public BasicDBObject(String json){
 		Object obj = JSONValue.parse(json);
 		if (obj instanceof JSONObject){
 			putAll((Map) obj);
 		} else if(obj instanceof JSONArray){
-			for (Object o : (JSONArray) obj){
-				
-			}
+			throw new RuntimeException("Contructing from JSON array not yet supported");
+//			for (Object o : (JSONArray) obj){
+//				
+//			}
 		} else if(obj instanceof JSONValue){
-
+			throw new RuntimeException("Contructing from JSON value not yet supported");
 		}
 	}
+	
+	/**
+	 * Construct by <code>Object</code>. 
+	 * TODO - Add check for obj if its a primitive type
+	 * TODO - Improve code depth
+	 * @param obj
+	 */
+	public BasicDBObject (Object obj){
+		Gson gson = new Gson();
+		String json = gson.toJson(obj);
+		Object jsonObject = JSONValue.parse(json);
+		if (jsonObject instanceof JSONObject){
+			putAll((Map) jsonObject);
+		} else if(jsonObject instanceof JSONArray){
+			throw new RuntimeException("Contructing from JSON array not yet supported");
+//			for (Object o : (JSONArray) obj){
+//				
+//			}
+		} else if(jsonObject instanceof JSONValue){
+			throw new RuntimeException("Contructing from JSON value not yet supported");
+		}
+	}
+	
 	public BasicDBObject append(String key, Object value){
 		put(key, value);
 		return this;

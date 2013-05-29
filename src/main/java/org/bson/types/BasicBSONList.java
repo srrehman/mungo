@@ -20,31 +20,6 @@ import org.bson.util.StringRangeSet;
 
 import java.util.*;
 
-/** 
- * Utility class to allow array <code>DBObject</code>s to be created.
- * <p>
- * Note: MungoDS will also create arrays from <code>java.util.List</code>s.
- * </p>
- * <p>
- * <blockquote><pre>
- * DBObject obj = new BasicBSONList();
- * obj.put( "0", value1 );
- * obj.put( "4", value2 );
- * obj.put( 2, value3 );
- * </pre></blockquote>
- * This simulates the array [ value1, null, value3, null, value2 ] by creating the 
- * <code>DBObject</code> <code>{ "0" : value1, "1" : null, "2" : value3, "3" : null, "4" : value2 }</code>.
- * </p>
- * <p>
- * BasicBSONList only supports numeric keys.  Passing strings that cannot be converted to ints will cause an
- * IllegalArgumentException.
- * <blockquote><pre>
- * BasicBSONList list = new BasicBSONList();
- * list.put("1", "bar"); // ok
- * list.put("1E1", "bar"); // throws exception
- * </pre></blockquote>
- * </p>
- */
 public class BasicBSONList extends ArrayList<Object> implements BSONObject {
 
     private static final long serialVersionUID = -4415279469780082174L;
