@@ -1,4 +1,4 @@
-package com.mongods.operators;
+package com.mungods.operators;
 
 public enum UpdateIsolation {
 
