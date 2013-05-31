@@ -15,6 +15,8 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.management.RuntimeErrorException;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.bson.types.ObjectId;
 
@@ -29,12 +31,15 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.PreparedQuery;
 import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Query.SortDirection;
 import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.Query.Filter;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.datastore.Query.FilterPredicate;
+import com.google.appengine.api.datastore.Query.SortPredicate;
 import com.google.common.base.Preconditions;
+import com.google.gson.Gson;
 import com.mungods.BasicDBObject;
 import com.mungods.CommandResult;
 import com.mungods.DB;
@@ -42,6 +47,9 @@ import com.mungods.DBCollection;
 import com.mungods.DBObject;
 import com.mungods.ParameterNames;
 import com.mungods.collection.AbstractDBCollection;
+import com.mungods.common.SerializationException;
+import com.mungods.serializer.ObjectSerializer;
+import com.mungods.serializer.XStreamSerializer;
 
 /**
  * Middle class to interface between DB and the GAE Datastore entities.
@@ -59,6 +67,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	
 	private final String _dbName;
 	private final String _collName;
+	
+	private final ObjectSerializer serializer;
 	/**
 	 * GAE datastore supported types.
 	 */
@@ -69,6 +79,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		super(namespace);
 		_dbName = namespace;
 		_collName = collection;
+		serializer = new XStreamSerializer();
 	}
 	
 
@@ -172,7 +183,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				obj = new BasicDBObject(map);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "Error: " + e.getMessage());
 		} finally {
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);
@@ -180,6 +191,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		logger.warning("Returning null DBObject");
 		return obj;
 	}	
+	
+
 	
 	
 	
@@ -190,6 +203,9 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	public boolean containsObject(DBObject object){
+		if (object.keySet().isEmpty()){
+			logger.warning("Empty object");
+		}
 		Entity e = Mapper.createEntityFromDBObject(object, _collName);
 		return containsEntityLike(e);
 		//return getObject(object) == null ? false : true;
@@ -224,12 +240,69 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 */
 	public Iterator<DBObject> getObjectsLike(DBObject object){
 		Preconditions.checkNotNull(object, "Reference object cannot be null");
+		if (object.keySet().isEmpty()){
+			logger.warning("Empty object");
+		}
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		Iterator<DBObject> it = null;
 		try {
+			Entity mapped = Mapper.createEntityFromDBObject(object, _collName);
+			final Iterator<Entity> eit = getEntitiesLike(mapped); 
+			it = new Iterator<DBObject>() {
+				public void remove() {
+					eit.remove();
+				}
+				public DBObject next() {
+					Entity e = eit.next();
+					return Mapper.createDBObjectFromEntity(e);
+				}
+				public boolean hasNext() {
+					return eit.hasNext();
+				}
+			};	
+		} catch (Exception e) {
+			e.printStackTrace();
+			it = null;
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}		
+		if (it == null){
+			logger.warning("Returning null iterator");
+		}
+		return it;
+	}
+	
+	/**
+	 * 
+	 * @param object
+	 * @param orderby
+	 * @return
+	 */
+	public Iterator<DBObject> getSortedObjectsLike(DBObject object, DBObject orderby){
+		Preconditions.checkNotNull(object, "Reference object cannot be null");
+		if (object.keySet().isEmpty()){
+			logger.warning("Empty object");
+		}
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		Iterator<DBObject> it = null;
+		try {
+			Map<String, Query.SortDirection> sorts = new LinkedHashMap<String,Query.SortDirection>();
+			Iterator<String> kit = orderby.keySet().iterator();
+			while (kit.hasNext()){
+				String key = kit.next();
+				int dir = (Integer) orderby.get(key);
+				Query.SortDirection direction =  dir == 1 ? 
+						Query.SortDirection.ASCENDING : null;
+				direction = dir == -1 ? 
+						Query.SortDirection.DESCENDING : direction;
+				logger.info("Adding sort key="+key + " direction=" + direction);
+				sorts.put(key, direction);
+			}
 			final Iterator<Entity> eit  
-				= getEntitiesLike(Mapper.createEntityFromDBObject(object, _collName)); 
+				= getSortedEntitiesLike(Mapper.createEntityFromDBObject(object, _collName), sorts); 
 			it = new Iterator<DBObject>() {
 				public void remove() {
 					eit.remove();
@@ -252,7 +325,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			logger.warning("Returning null iterator");
 		}
 		return it;
-	}
+	}	
+	
 	
 	// Helper get method
 	public DBObject getFirstObjectLike(DBObject obj){
@@ -281,6 +355,53 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				}
 			};	
 		} catch (Exception e) {
+			it = null;
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}		
+		if (it == null){
+			logger.warning("Returning null iterator");
+		}
+		return it;
+	}
+	
+	// FIXME - Method is returning null always
+	public Iterator<DBObject> getSortedObjects(DBObject orderby) {
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		Iterator<DBObject> it = null;
+		try {
+			
+			Map<String, Query.SortDirection> sorts = new LinkedHashMap<String,Query.SortDirection>();
+			Iterator<String> kit = orderby.keySet().iterator();
+			while (kit.hasNext()){
+				String key = kit.next();
+				int dir = (Integer) orderby.get(key);
+				Query.SortDirection direction =  dir == 1 ? 
+						Query.SortDirection.ASCENDING : null;
+				direction = dir == -1 ? 
+						Query.SortDirection.DESCENDING : direction;
+				logger.warning("Adding sort key="+key + " direction=" + direction);
+				sorts.put(key, direction);
+			}
+			
+			final Iterator<Entity> eit = getSortedEntities(sorts);
+			
+			it = new Iterator<DBObject>() {
+				public void remove() {
+					eit.remove();
+				}
+				public DBObject next() {
+					Entity e = eit.next();
+					return Mapper.createDBObjectFromEntity(e);
+				}
+				public boolean hasNext() {
+					return eit.hasNext();
+				}
+			};	
+		} catch (Exception e) {
+			e.printStackTrace();
 			it = null;
 		} finally {
 			if (oldNamespace != null)
@@ -326,6 +447,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	private Iterator<Entity> getEntitiesLike(Entity entity){
+		Preconditions.checkNotNull(entity, "Reference entity can't be null");
 		logger.info("Fetching entities like: " + entity + " in [" + _dbName + "][" + _collName + "]");
 		Map<String,Object> m = entity.getProperties();
 		Iterator<String> it = m.keySet().iterator();
@@ -342,10 +464,84 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return pq.asIterator();
 	}
 	
+	/**
+	 * Builds a query filter from the given <code>Entity</code> property names and values and add sorting from
+	 * <code>Map</code> sorts.
+	 *  
+	 * <br>
+	 * <code>
+	 *  Query q = new Query(kind).filter(f1).filter(f2).filter(fn).addSort(s).addSort(sn); // and so forth
+	 * </code>
+	 * 
+	 * FIXME - Fix query object filter/sort getting wiped out
+	 * 
+	 * @param entity
+	 * @param sorts
+	 * @return
+	 */
+	private Iterator<Entity> getSortedEntitiesLike(Entity entity, Map<String,Query.SortDirection> sorts){
+		Preconditions.checkNotNull(entity, "Entity can't be null");
+		Preconditions.checkNotNull(sorts, "Sort can't be null");
+		logger.info("Fetching entities like: " + entity + " in [" + _dbName + "][" + _collName + "]");
+		PreparedQuery pq = null;
+		Map<String,Object> m = entity.getProperties();
+		Iterator<String> it = m.keySet().iterator();
+	
+		Query q = new Query(_collName);
+
+		// Filter
+		while (it.hasNext()){ // build the query
+			String propName = it.next();
+			Filter filter = new FilterPredicate(propName, 
+				FilterOperator.EQUAL, m.get(propName));
+			Filter prevFilter = q.getFilter();
+			// Note that the Query object is immutable
+			q = new Query(_collName).setFilter(prevFilter).setFilter(filter); 
+		}
+	
+		// Sort
+		Iterator<Map.Entry<String, Query.SortDirection>> eit = sorts.entrySet().iterator(); 
+		while(eit.hasNext()){
+			Map.Entry<String, Query.SortDirection> entry = eit.next();
+			// Get previous sort and append it
+			List<SortPredicate> list = q.getSortPredicates();
+			if (list != null && !list.isEmpty()){
+				SortPredicate sp = list.get(0);
+				list.remove(0); // so the sort predicate does not accumulate
+				String prevField = sp.getPropertyName();
+				SortDirection prevDirection = sp.getDirection();	
+				q = new Query(_collName)
+					.addSort(prevField, prevDirection)
+					.addSort(entry.getKey(), entry.getValue());
+			} else { // first time
+				q = new Query(_collName)
+				.addSort(entry.getKey(), entry.getValue());	
+			}
+			logger.info("Added sort by " + entry.getKey());
+		}
+		pq = _ds.prepare(q);
+		return pq.asIterator();
+	}	
+	
+	
 	private Iterator<Entity> getEntities(){
 		Query q = new Query(_collName);
 		PreparedQuery pq = _ds.prepare(q);
 		return pq.asIterator();
+	}
+	
+	private Iterator<Entity> getSortedEntities(Map<String,Query.SortDirection> sorts){
+		PreparedQuery pq = null;
+		Iterator<Map.Entry<String, Query.SortDirection>> it = sorts.entrySet().iterator();
+		Query q = new Query(_collName);
+		while(it.hasNext()){
+			Map.Entry<String, Query.SortDirection> entry = it.next();
+			q = new Query(_collName)
+				.addSort(entry.getKey(), entry.getValue());
+	
+		}
+		pq = _ds.prepare(q);
+		return pq.asIterator();		
 	}
 
 	// FIXME - not returning null for non existing entity
@@ -372,7 +568,17 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 					doc.put(key, val);
 				} else if (val instanceof String
 						|| val instanceof Number
-						|| val instanceof Boolean) {
+						|| val instanceof Boolean
+						|| val instanceof Date) {
+					// TODO - Check if String is a serialized object
+					if (val instanceof String){
+						// Try to deserialize
+						if(deserializeString((String)val) != null ){
+							val = deserializeString((String)val);
+						}
+					}
+					logger.info("Inserting to document key="+key);
+					logger.info("Inserting to document value type="+val.getClass().getName());
 					doc.put(key, val);
 				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
 					logger.log(Level.INFO, "Embedded entity found.");
@@ -403,6 +609,21 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		}
 		logger.warning("Returning null document");
 		return doc;
+	}
+	
+	// Used to try to deserialize a String, if it can't 
+	// it will just return null
+	private Object deserializeString(String value){
+		try {
+			//logger.info("Parsing string="+value);
+			Object deserialized = serializer.deserialize(value);
+			return deserialized;
+		} catch (SerializationException e){
+			// do nothing
+		} catch (Exception e) {
+			// do nothing
+		}
+		return null;
 	}
 	
 	
@@ -592,11 +813,16 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				Object value = obj.get(key);
 				if (value == null){
 					e.setProperty(key, null);
+				} else if (value instanceof ObjectId) {
+					// FIXME - Check if this is correct
+					setProperty(e, key, ((ObjectId) value).toStringMongod());
 				} else if (value instanceof String) {
 					setProperty(e, key, value);
 				} else if(value instanceof Number) {
 					setProperty(e, key, value);
 				} else if(value instanceof Boolean) {
+					setProperty(e, key, value);
+				} else if(value instanceof Date) {
 					setProperty(e, key, value);
 				} else if(value instanceof List) {
 					logger.log(Level.INFO, "Processing List value");
@@ -605,6 +831,10 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 					// TODO: Need to deal with sub-documents Object id
 					logger.log(Level.INFO, "Processing Map value");
 					setProperty(e, key, Mapper.createEmbeddedEntityFromMap(parent, (Map) value));
+				} else {
+					//throw new RuntimeErrorException(null, "Unsupported value type: " + value.getClass().getName());
+					String serialized = serializer.serialize(value);
+					setProperty(e, key, serialized);
 				}
 			}	
 			logger.log(Level.INFO, "Persisting entity [" 

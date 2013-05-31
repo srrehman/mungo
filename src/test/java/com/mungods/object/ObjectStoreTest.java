@@ -56,6 +56,7 @@ public class ObjectStoreTest {
 	@Test
 	public void testGetLongId(){
 		DBObject obj = new BasicDBObject("hello", "world")
+			.append("hey", "dude") 
 			.append("_id", 123L);
 		Object id = ObjectStore.get("db", "coll").persistObject(obj);
 		assertNotNull(id);
@@ -98,9 +99,12 @@ public class ObjectStoreTest {
 	
 	@Test
 	public void testGetObjectLike(){
+		l(">>>>>>>>>>> Test Get Objects >>>>>>>>>>>>>>>>>");
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there"));
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there"));
-		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("how", "are you")); 
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there")
+			.append("how", "are you") 
+			.append("good", "morning")); 
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow"));
 		
 		Iterator<DBObject> it 
@@ -111,7 +115,49 @@ public class ObjectStoreTest {
 			assertNotNull(obj);
 			l(obj);
 		}
+		l("<<<<<<<<<<< Test Get Objects <<<<<<<<<<<<<<<<<<");
 	}	
+	
+	@Test
+	public void testGetSortedObjectLike(){
+		l(">>>>>>>>>>> Test Get Sorted Objects Like >>>>>>>>>>>>>>>>>");
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 1));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 2));
+		ObjectStore.get("db", "coll").persistObject(
+				new BasicDBObject("hi", "there").append("how", "are you").append("good", "morning").append("count", 3)); 
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
+		
+		Iterator<DBObject> it 
+			= ObjectStore.get("db", "coll").getSortedObjectsLike(new BasicDBObject("hi", "there"), new BasicDBObject("count", -1));
+		assertNotNull(it);
+		while(it.hasNext()){
+			DBObject obj = it.next();
+			assertNotNull(obj);
+			l(obj);
+		}
+		l("<<<<<<<<<<< Test Get Sorted Objects Like <<<<<<<<<<<<<<<<<<");
+	}		
+	
+	@Test
+	public void testGetSortedObject() {
+		l(">>>>>>>>>>> Test Get Sorted Objects >>>>>>>>>>>");
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 1)) ;
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 2));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there")
+			.append("how", "are you") 
+			.append("good", "morning").append("count", 3)); 
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
+		
+		Iterator<DBObject> it 
+			= ObjectStore.get("db", "coll").getSortedObjects(new BasicDBObject("count", -1));
+		assertNotNull(it);
+		while(it.hasNext()){
+			DBObject obj = it.next();
+			assertNotNull(obj);
+			l(obj);
+		}		
+		l("<<<<<<<<<<< Test Get Sorted Objects <<<<<<<<<<<<");
+	}
 	
 	@Test
 	public void testDeleteObject(){

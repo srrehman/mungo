@@ -18,6 +18,7 @@
 package com.mungods.collection.simple;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -122,16 +123,10 @@ public class BasicDBCollection extends DBCollection {
 	public WriteResult insert(DBObject[] arr, WriteConcern concern) {
 		Preconditions.checkNotNull(_collection, "Cannot insert when collection is null");
 		List<DBObject> objects = Arrays.asList(arr);
-//		for (DBObject o : objects){
-//			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
-//			Object id = _store.createObject(o, _collection); 
-//		}
-		
-		GAEObject xobj = new GAEObject(_db.getName(), _collection);
-		xobj.setCommand(GAEObject.INSERT);
-		xobj.setDoc(objects);
-		xobj.execute();
-		
+		for (DBObject o : objects){
+			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
+			Object id = _store.persistObject(o);
+		}
 		return new WriteResult(getDB(), null, concern); // Is this correct?
 	}	
 
@@ -154,4 +149,55 @@ public class BasicDBCollection extends DBCollection {
 	      }
 	    return new WriteResult(insertResult(toInsert.size()), concern);
 	}	
+	
+	/**
+	 * Find DBObject(s) 
+	 * 
+	 * @param ref
+	 * @param fields - Not yet implemented
+	 * @param numToSkip
+	 * @param batchSize
+	 * @param limit
+	 * @param options
+	 * @return
+	 */
+	@Override
+	public Iterator<DBObject> __find(DBObject ref, DBObject fields, 
+			int numToSkip , int batchSize , int limit, int options){
+		Preconditions.checkNotNull(ref, "Reference object can't be null");
+		
+		LOG.info("Reference object=" + ref);
+		
+		DBObject query = (DBObject) ref.get("$query");
+		DBObject orderby = (DBObject) ref.get("$orderby");
+		
+		// Remove special fields
+		dataCleansing(ref);
+		
+		if (query != null){
+			LOG.info("Query object=" + query);
+			if (orderby != null){
+				LOG.info("Sort object=" + orderby);
+				Iterator<DBObject> it = _store.getSortedObjectsLike(query, orderby);
+				return it;
+			} else {
+				Iterator<DBObject> it = _store.getObjectsLike(query);
+				return it;
+			}		
+		} else {
+			if (orderby != null){
+				LOG.info("Sort object=" + orderby);
+				Iterator<DBObject> it = _store.getSortedObjects(orderby);
+				return it;
+			} else { // query and ordeby are both null
+				Iterator<DBObject> it = _store.getObjects();
+				return it;
+			}	
+		}
+	}
+	
+	private void dataCleansing(DBObject obj){
+		obj.removeField("$query");
+		obj.removeField("$orderby");
+	}
 }

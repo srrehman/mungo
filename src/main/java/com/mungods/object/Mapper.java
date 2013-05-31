@@ -2,6 +2,7 @@ package com.mungods.object;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -22,6 +23,9 @@ import com.google.appengine.api.datastore.Text;
 import com.google.common.base.Preconditions;
 import com.mungods.BasicDBObject;
 import com.mungods.DBObject;
+import com.mungods.common.SerializationException;
+import com.mungods.serializer.ObjectSerializer;
+import com.mungods.serializer.XStreamSerializer;
 
 public class Mapper {
 	
@@ -29,7 +33,6 @@ public class Mapper {
 		= Logger.getLogger(Mapper.class.getName());
 	
 	private static final String ID = "_id";
-	
 	/**
 	 * Process <code>EmbeddedEntity</code> and inner <code>EmbeddedEntity</code>
 	 * of this entity. 
@@ -99,7 +102,8 @@ public class Mapper {
 				logger.info("Value="+entry.getValue());
 				if (value instanceof String
 						|| value instanceof Boolean
-						|| value instanceof Number){
+						|| value instanceof Number
+						|| value instanceof Date){
 					arr[i] = value;
 					indexToRemove.remove(i);
 				} else if (value instanceof EmbeddedEntity){
@@ -153,7 +157,8 @@ public class Mapper {
 			for (Object o : entity){
 				if (o instanceof String
 						|| o instanceof Boolean
-						|| o instanceof Number){
+						|| o instanceof Number
+						|| o instanceof Date){
 					ee.setProperty(String.valueOf(index), o); 
 				} else if (o instanceof List){
 					ee.setProperty(String.valueOf(index), 
@@ -215,6 +220,8 @@ public class Mapper {
 				ee.setProperty(key, value);
 			} else if(value instanceof Boolean) {
 				ee.setProperty(key, value);
+			} else if(value instanceof Date) {
+				ee.setProperty(key, value);
 			} else if(value instanceof List) {
 				ee.setProperty(key, createEmbeddedEntityFromList(ee.getKey(), (List)value));
 			} else if(value instanceof Map){
@@ -244,6 +251,9 @@ public class Mapper {
 		}
 		Map map = convertToMap(object);
 		Iterator it = map.entrySet().iterator();
+		if (!it.hasNext()){
+			logger.warning("Iterator is empty");
+		}
 		while (it.hasNext()){
 			if (e == null) {
 				e = new Entity(KeyStructure.createKey(new ObjectId().toStringMongod(), kind));
@@ -263,16 +273,25 @@ public class Mapper {
 						throw new RuntimeException("List values are not yet supported");
 					} else if (value instanceof String 
 							|| value instanceof Number
-							|| value instanceof Boolean) {
+							|| value instanceof Boolean
+							|| value instanceof Date) {
 						e.setProperty((String)key, value);
 					} else {
 						throw new RuntimeException("Unsupported DBObject property type");
 					}
 				}
+				Preconditions.checkNotNull(e, "Entity is null");
 			} catch (ClassCastException ex) {
 				// Something is wrong here
+				ex.printStackTrace();
+			} catch (Exception ex){
+				ex.printStackTrace();
 			}
 		}	
+//		if (e == null){
+//			logger.warning("Returning null Entity from createEntityFromDBObject");
+//		}
+		
 		return e;
 	}
 	
@@ -292,7 +311,8 @@ public class Mapper {
 					map.put(key, val);
 				} else if (val instanceof String
 						|| val instanceof Number
-						|| val instanceof Boolean) {
+						|| val instanceof Boolean
+						|| val instanceof Date) {
 					map.put(key, val);
 				} else if (val instanceof Text) {
 					map.put(key, ((Text) val).getValue());
@@ -349,11 +369,31 @@ public class Mapper {
 	
 	@SuppressWarnings("unchecked")
 	public static DBObject createDBObjectFromEntity(Entity e){
+		// FIXME - Would instantiated this here 
+		// will make it very slow?
+		ObjectSerializer serializer = new XStreamSerializer();
 		if (e == null)
 			return null;
 		Map<String,Object> map = createMapFromEntity(e);
+		Map<String,Object> newMap = new HashMap<String, Object>();
 		BasicDBObject obj = new BasicDBObject();
-		obj.putAll(map);
+		// Check if the String values or deserializable
+		Iterator<String> it = map.keySet().iterator();
+		while (it.hasNext()){
+			String key = it.next();
+			Object value = map.get(key);
+			if (value instanceof String){
+				try {
+					value = serializer.deserialize((String)value);
+				} catch (SerializationException e2) {
+					// do nothing
+				} catch (Exception e2) {
+					// do nothing
+				}
+			}
+			newMap.put(key, value);
+		}
+		obj.putAll(newMap);
 		return obj;
 	}
 	

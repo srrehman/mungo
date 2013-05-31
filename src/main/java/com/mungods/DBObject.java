@@ -1,11 +1,8 @@
 package com.mungods;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.bson.BSONObject;
 
-public interface DBObject extends BSONObject{
+public interface DBObject extends BSONObject {
 
 	/**
 	 * whether markAsPartialObject was ever called only matters 

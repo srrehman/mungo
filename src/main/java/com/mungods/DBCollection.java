@@ -19,36 +19,34 @@ package com.mungods;
 
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.management.RuntimeErrorException;
+
 import org.bson.types.ObjectId;
 
-import com.google.appengine.api.NamespaceManager;
-import com.google.appengine.api.datastore.Blob;
 import com.google.appengine.api.datastore.DataTypeUtils;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
-import com.google.appengine.api.datastore.EmbeddedEntity;
-import com.google.appengine.api.datastore.Entity;
-import com.google.appengine.api.datastore.EntityNotFoundException;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
-import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.TransactionOptions;
-import com.google.common.base.Preconditions;
 
 import com.mungods.collection.WriteConcern;
 import com.mungods.collection.WriteResult;
-import com.mungods.object.GAEObject;
+//import com.mungods.object.GAEObject;
 import com.mungods.object.ObjectStore;
 /**
  * Collections class for GAE stored JSON objects
@@ -68,9 +66,12 @@ public abstract class DBCollection implements ParameterNames {
 	protected static DatastoreService _ds;
 	protected static TransactionOptions options;
 	protected Calendar cal;	
-	protected Class _objectClass = null;
 	
-	protected ObjectStore _store;
+	protected Class _objectClass = null;
+	private Map<String,Class> _internalClass = Collections.synchronizedMap( new HashMap<String,Class>() );
+    private ReflectionDBObject.JavaWrapper _wrapper = null;
+	
+    protected ObjectStore _store;
 	
 	/**
 	 * GAE datastore supported types.
@@ -92,8 +93,67 @@ public abstract class DBCollection implements ParameterNames {
 	}
 	
 	protected DBObject _checkObject(DBObject o, boolean canBeNull, boolean query){
-		throw new IllegalArgumentException("Not yet implemented");
+		if ( o == null ){
+            if ( canBeNull )
+                return null;
+            throw new IllegalArgumentException( "can't be null" );
+        }
+
+        if ( o.isPartialObject() && ! query )
+            throw new IllegalArgumentException( "can't save partial objects" );
+
+        if ( ! query ){
+            _checkKeys(o);
+        }
+        return o;
 	}
+	
+	/**
+     * Checks key strings for invalid characters.
+     */
+    private void _checkKeys( DBObject o ) {
+//        if ( o instanceof LazyDBObject || o instanceof LazyDBList )
+//            return;
+        if ( o instanceof BasicDBObject || o instanceof BasicDBList )
+            return;    	
+
+        for ( String s : o.keySet() ){
+            validateKey ( s );
+            Object inner = o.get( s );
+            if ( inner instanceof DBObject ) {
+                _checkKeys( (DBObject)inner );
+            } else if ( inner instanceof Map ) {
+                _checkKeys( (Map<String, Object>)inner );
+            }
+        }
+    }	
+    
+    /**
+     * Checks key strings for invalid characters.
+     */
+    private void _checkKeys( Map<String, Object> o ) {
+        for ( String s : o.keySet() ){
+            validateKey ( s );
+            Object inner = o.get( s );
+            if ( inner instanceof DBObject ) {
+                _checkKeys( (DBObject)inner );
+            } else if ( inner instanceof Map ) {
+                _checkKeys( (Map<String, Object>)inner );
+            }
+        }
+    }
+    
+    /**
+     * Check for invalid key names
+     * @param s the string field/key to check
+     * @exception IllegalArgumentException if the key is not valid.
+     */
+    private void validateKey(String s ) {
+        if ( s.contains( "." ) )
+            throw new IllegalArgumentException( "fields stored in the db can't have . in them. (Bad Key: '" + s + "')" );
+        if ( s.startsWith( "$" ) )
+            throw new IllegalArgumentException( "fields stored in the db can't start with '$' (Bad Key: '" + s + "')" );
+    }    
 	
 	public DB getDB() {
 		return this._db;
@@ -230,13 +290,9 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return the DBCursor
 	 */
 	public DBCursor find() {
-		Iterator<DBObject> it = ObjectStore.get(_namespace, _collection).getObjects();
-		if (it.hasNext()){
-			return new DBCursor(it);
-		}
-		return null;
+		return new DBCursor(this, null, null);
 	}
-	
+
 	/**
 	 * Queries for an object in this collection
 	 * 
@@ -249,12 +305,8 @@ public abstract class DBCollection implements ParameterNames {
 		// which more likely is a '$all' query.
 		// Need to add a way to deal with other query operators
 		if (ref == null)
-			return null;
-		Iterator<DBObject> it = ObjectStore.get(_namespace, _collection).getObjectsLike(ref);
-		if (it.hasNext()){
-			return new DBCursor(it);
-		}
-		return null;
+			return null;	
+		return new DBCursor(this, ref, null); 
 	}
 	
 	/**
@@ -268,7 +320,7 @@ public abstract class DBCollection implements ParameterNames {
 		throw new IllegalArgumentException("Not yet implemented");
 	}
 	
-	public DBCursor find(DBObject quer, DBObject fields, int numToSkip, int batchSize){
+	public DBCursor find(DBObject query, DBObject fields, int numToSkip, int batchSize){
 		throw new IllegalArgumentException("Not yet implemented");
 	}
 	
@@ -313,16 +365,23 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public DBObject findOne(){
-		throw new IllegalArgumentException("Not yet implemented");
+//		try {
+//			DBCursor cur = find();
+//			return cur.iterator().next();
+//		} catch (NoSuchElementException e) {
+//			throw new RuntimeException("Collection is empty");
+//		}
+		return findOne(new BasicDBObject());
 	}
 	
 	/**
 	 * Returns a single object from this collection matching this query
 	 * 
-	 * @param o
+	 * @param obj
 	 * @return
 	 */
-	public DBObject findOne(DBObject o){
+	public DBObject findOne(DBObject obj){
+		/*
 		Iterator<DBObject> it = find(o).iterator();
 		while (it.hasNext()){
 			DBObject temp = it.next(); 
@@ -330,8 +389,10 @@ public abstract class DBCollection implements ParameterNames {
 			Object id = new ObjectId((String)temp.get("_id"));
 			LOG.info("Finding object with ID="+id);
 			return findOne(id);
-		}
+		} 
 		return null;
+		*/
+		return findOne(obj, null);
 	}
 	
 	/**
@@ -341,8 +402,9 @@ public abstract class DBCollection implements ParameterNames {
 	 * @param fields
 	 * @return
 	 */
-	public DBObject findOne(DBObject o, DBObject fields){
-		throw new IllegalArgumentException("Not yet implemented");
+	public DBObject findOne(DBObject obj, DBObject fields){
+		Iterator<DBObject> iterator = __find( new BasicDBObject("_id", obj), fields, 0, -1, 0, getOptions());
+        return (iterator.hasNext() ? iterator.next() : null);
 	}
 	
 	/**
@@ -363,20 +425,12 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public DBObject findOne(Object id){
-//		if (_store.containsKey(id, _collection)){
-//			BasicDBObject obj = new BasicDBObject();
-//			obj.put(ID, id);
-//			return _store.getObject(obj, _collection);
-//		}
-		
-		GAEObject xobj 
-			= new GAEObject(_db.getName(), _collection)
-				.setCommand(GAEObject.FIND)
-				.setQuery(new BasicDBObject("_id", id))
-				.justOne(true)
-				.execute();
-		
-		return xobj.getSingleResult();
+		if (_store.containsKey(id)){
+			BasicDBObject obj = new BasicDBObject();
+			obj.put(ID, id);
+			return _store.getObject(obj);
+		}
+		return null;
 	}
 	
 	/**
@@ -434,7 +488,8 @@ public abstract class DBCollection implements ParameterNames {
 
 	
 	public int getOptions() {
-		throw new IllegalArgumentException("Not yet implemented");
+		return 0;
+		//throw new IllegalArgumentException("Not yet implemented");
 	}
 	
 //	public int hashCode() {
@@ -497,20 +552,9 @@ public abstract class DBCollection implements ParameterNames {
 	}
 	
 	public WriteResult remove(DBObject o){
-//		if (_store.deleteObject(o, _collection)){
-//			return new WriteResult(getDB().okResult(), WriteConcern.NONE);
-//		};
-		
-		GAEObject xobj 
-			= new GAEObject(_db.getName(), _collection)
-				.setCommand(GAEObject.REMOVE)
-				.setDoc(o)
-				.execute();
-		
-		if (xobj.getLastError().get("ok").equals(true)){
-			return new WriteResult(getDB().okResult(), WriteConcern.NONE); 
-		} 
-		
+		if (_store.deleteObject(o)){
+			return new WriteResult(getDB().okResult(), WriteConcern.NONE);
+		};
 		CommandResult result = new CommandResult();
 		result.put("ok", false);	
 		result.put("code", 1000); // TODO create a error list!
@@ -538,7 +582,7 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public WriteResult save(DBObject jo){
-		return insert(jo, WriteConcern.NONE);
+		return save(jo, WriteConcern.NONE);
 	}
 	
 	/**
@@ -549,7 +593,25 @@ public abstract class DBCollection implements ParameterNames {
 	 * @return
 	 */
 	public WriteResult save(DBObject jo, WriteConcern concern){
-		throw new IllegalArgumentException("Not yet implemented");
+		_checkObject( jo , false , false );
+
+        Object id = jo.get( "_id" );
+
+        if ( id == null || ( id instanceof ObjectId && ((ObjectId)id).isNew() ) ){
+            if ( id != null && id instanceof ObjectId )
+                ((ObjectId)id).notNew();
+            if ( concern == null )
+            	return insert( jo );
+            else
+            	return insert( jo, concern );
+        }
+
+        DBObject q = new BasicDBObject();
+        q.put( "_id" , id );
+        if ( concern == null )
+        	return update( q , jo , true , false );
+        else
+        	return update( q , jo , true , false , concern );
 	}
 	
 	/**
@@ -596,6 +658,8 @@ public abstract class DBCollection implements ParameterNames {
 	}	
     
 	
+	
+	
 	/** Set a default class for objects in this collection
 	 * 
      * @param c the class
@@ -606,7 +670,16 @@ public abstract class DBCollection implements ParameterNames {
     		throw new IllegalArgumentException( c.getName() + " is not a DBObject" );
     	}
     	_objectClass = c;
+    	if ( ! DBObject.class.isAssignableFrom( c ) )
+            throw new IllegalArgumentException( c.getName() + " is not a DBObject" );
+        _objectClass = c;
+        if ( ReflectionDBObject.class.isAssignableFrom( c ) )
+            _wrapper = ReflectionDBObject.getWrapper( c );
+        else
+            _wrapper = null;
     }	
+    
+    
     
 	/**
 	 * Gets the default class for object in the collection
@@ -614,7 +687,31 @@ public abstract class DBCollection implements ParameterNames {
 	 */
 	public Class getObjectClass() {
 		return _objectClass;
-	}    
+	}   
+	
+	/**
+     * sets the internal class
+     * @param path
+     * @param c
+     */
+    public void setInternalClass( String path , Class c ){
+        _internalClass.put( path , c );
+    }
+
+    /**
+     * gets the internal class
+     * @param path
+     * @return
+     */
+    protected Class getInternalClass( String path ){
+        Class c = _internalClass.get( path );
+        if ( c != null )
+            return c;
+
+        if ( _wrapper == null )
+            return null;
+        return _wrapper.getInternalClass( path );
+    }	
     
 	/**
 	 * Internal stuff
@@ -630,11 +727,21 @@ public abstract class DBCollection implements ParameterNames {
 	protected Key createKey(Key parent, String kind, String key) {
 		return KeyFactory.createKey(parent, kind, key);
 	}
+	
+	/**
+	 * Find objects
+	 * 
+	 * @param ref reference object
+	 * @param fields fields to include in the resulting document(s)
+	 * @param numToSkip Not yet supported
+	 * @param batchSize Not yet supported
+	 * @param limit Not yet supported
+	 * @param options Not yet supported
+	 * @return
+	 */
+    public abstract Iterator<DBObject> __find( DBObject ref , DBObject fields , int numToSkip , int batchSize , int limit, int options);
 
-//	public DBObject findOne(DBObject dbObject, DBObject fieldsAsDBObject,
-//			ReadPreference readPreference) {
-//		throw new IllegalArgumentException("Not yet implemented");	
-//	}
+    
 
 }
 

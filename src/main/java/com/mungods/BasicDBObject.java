@@ -19,6 +19,7 @@ package com.mungods;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,7 +49,7 @@ import org.bson.*;
 public class BasicDBObject extends BasicBSONObject implements DBObject, ParameterNames {
 	
 	private static final long serialVersionUID = 1L;
-	private boolean isPartial = false;
+    private boolean _isPartialObject;
 	private static final Logger LOG 
 		= Logger.getLogger(BasicDBObject.class.getName());
 	
@@ -126,31 +127,23 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	public Object getId(){
 		return get(ID); 
 	}
-	public boolean containsField(String s) {
-		return super.containsKey(s);
-	}
+		
+	public Object copy() {
+        // copy field values into new object
+        BasicDBObject newobj = new BasicDBObject(this.toMap());
+        // need to clone the sub obj
+        for (String field : keySet()) {
+            Object val = get(field);
+            if (val instanceof BasicDBObject) {
+                newobj.put(field, ((BasicDBObject)val).copy());
+            } else if (val instanceof BasicDBList) {
+                //newobj.put(field, ((BasicDBList)val).copy());
+            }
+        }
+        return newobj;
+    }	
 	
-	public boolean containsKey(String s) {
-		return false;
-	}
-	public Object get(String key) {
-		return super.get(key);
-	}
-	public boolean isPartialObject() {
-		return isPartial;
-	}
-	public void markAsPartialObject() {
-		this.isPartial = true;
-	}
-	public Object put(String key, Object v) {
-		return super.put(key, v);
-	}
-	public void putAll(DBObject o) {
-		super.putAll(o.toMap());
-	}
-	public Object removeField(String key) {
-		return super.remove(key);
-	}
+	
 //	public Map toMap() {
 //		Map m = new HashMap<String,Object>();
 //		Iterator<String> it = keySet().iterator();
@@ -169,6 +162,7 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	 * @param clazz
 	 * @return
 	 */
+	@Override
 	public <T> T as(Class<T> clazz){
 		// For use as in:
 		// Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
@@ -208,5 +202,29 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 //			LOG.log(Level.SEVERE, "XStraem cannot deserialize this object: " + e.getMessage());
 //		}
 		return obj;
+	}
+	
+	private boolean isValidType(Object val){
+		if (val instanceof ObjectId){
+			return true;
+		}
+		if (val instanceof String
+				|| val instanceof Number
+				|| val instanceof Boolean
+				|| val instanceof List
+				|| val instanceof Map) {
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean isPartialObject() {
+		return _isPartialObject;
+	}
+
+	@Override
+	public void markAsPartialObject() {
+		_isPartialObject = true;		
 	}
 }

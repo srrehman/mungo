@@ -139,7 +139,7 @@ public class GAEObject {
 				}
 			} else {
 				Preconditions.checkNotNull(_query, "Query cannot be null");
-				_curr = new DBCursor(store().getObjectsLike(_query));
+				//_curr = new DBCursor(store().getObjectsLike(_query));
 			}
 		} else if (_cmd.equalsIgnoreCase(REMOVE)){
 			if (_justOne){
