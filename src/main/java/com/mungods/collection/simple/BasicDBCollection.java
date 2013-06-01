@@ -38,6 +38,7 @@ import com.mungods.collection.WriteResult;
 import com.mungods.common.MungoException;
 import com.mungods.object.GAEObject;
 import com.mungods.object.ObjectStore;
+import com.mungods.util.BoundedIterator;
 
 public class BasicDBCollection extends DBCollection {
 	
@@ -174,27 +175,27 @@ public class BasicDBCollection extends DBCollection {
 		// Remove special fields
 		dataCleansing(ref);
 		
+		Iterator<DBObject> it = null;
 		if (query != null){
 			LOG.info("Query object=" + query);
 			if (orderby != null){
 				LOG.info("Sort object=" + orderby);
-				Iterator<DBObject> it = _store.getSortedObjectsLike(query, orderby);
-				return it;
+				it = _store.getSortedObjectsLike(query, orderby);
 			} else {
-				Iterator<DBObject> it = _store.getObjectsLike(query);
-				return it;
+				it = _store.getObjectsLike(query);
 			}		
 		} else {
 			if (orderby != null){
 				LOG.info("Sort object=" + orderby);
-				Iterator<DBObject> it = _store.getSortedObjects(orderby);
-				return it;
+				it = _store.getSortedObjects(orderby);
 			} else { // query and ordeby are both null
-				Iterator<DBObject> it = _store.getObjects();
-				return it;
+				it = _store.getObjects();
 			}	
 		}
+		//return it;
+		return new BoundedIterator<DBObject>(numToSkip, limit, it);
 	}
+	
 	
 	private void dataCleansing(DBObject obj){
 		obj.removeField("$query");

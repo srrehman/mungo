@@ -63,7 +63,7 @@ public class DBObjectTest {
 		l(myTweet);
 	}
 	
-	@Test
+	//@Test
 	public void testSave(){
 //		collection.setObjectClass(Tweet.class);
 //		Tweet myTweet = (Tweet)collection.findOne();

@@ -1,7 +1,5 @@
 package com.mungods;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -9,14 +7,12 @@ import java.util.logging.Logger;
 
 import com.google.common.base.Preconditions;
 import com.mungods.common.MungoException;
-import com.mungods.object.ObjectStore;
-import com.mungods.util.BoundedIterator;
 
 public class DBCursor implements Iterator<DBObject>,
 	Iterable<DBObject> {
 	
 	private static final int DEFAULT_FETCH_OFFSET = 0;
-	private static final int DEFAULT_FETCH_LIMIT = 5;
+	private static final int DEFAULT_FETCH_LIMIT = 100;
 	
 	private static final Logger LOG 
 		= Logger.getLogger(DBCursor.class.getName());
@@ -31,36 +27,6 @@ public class DBCursor implements Iterator<DBObject>,
     private int _batchSize = 5;
     private int _skip = DEFAULT_FETCH_OFFSET;
     private int _limit = DEFAULT_FETCH_LIMIT;
-    
-//    public DBCursor(Iterator<DBObject> it){
-//		Preconditions.checkNotNull(it, "DBObject iterator cannot be null");
-//		this._it = it;
-//	}
-//    
-//    public DBCursor(Iterator<DBObject> it, DBCollection coll){
-//		Preconditions.checkNotNull(it, "DBObject iterator cannot be null");
-//		this._it = it;
-//		this._collection = coll;
-//	}
-    
-    
-    /**
-     * Create a new DBCursor, a bounded iterator with a given offset and maximum
-     *
-     * @param skip  offset to start iteration at. Must be non negative
-     * @param limit  maximum elements this iterator should return. Set to -1 for all
-     * @param iterator  the underlying iterator
-     * @throws  IllegalArgumentException  if offset is negative
-     */
-//    public DBCursor(Iterator<DBObject> it, long skip, long limit){
-//		Preconditions.checkNotNull(it, "DBObject iterator cannot be null");
-//        if (skip < 0) {
-//            throw new IllegalArgumentException("Offset must not be negative");
-//        }
-//        this.offset = skip;
-//        this.max = limit;
-//		this._it = it; 
-//	}
     
     public DBCursor(DBCollection coll, DBObject q, DBObject k){
     	_collection = coll;
@@ -134,17 +100,11 @@ public class DBCursor implements Iterator<DBObject>,
     
     public DBCursor limit(Integer limit){
     	this._limit = limit;
-    	this._it = new BoundedIterator<DBObject>(this._skip, this._limit, this._it);
     	return this;
     }
     
     public DBCursor skip(Integer skip){
     	this._skip = skip;
-//    	int i;
-//    	for (i = 0; i < skip ; i++){
-//    		this._it.next();
-//    	}
-    	this._it = new BoundedIterator<DBObject>(this._skip, this._limit, this._it);
     	return this;
     }
 
@@ -152,6 +112,7 @@ public class DBCursor implements Iterator<DBObject>,
 		
 	}	
 	
+	@Deprecated
 	private List<DBObject> copyIterator(Iterator<DBObject> it){
 		List<DBObject> copy = new ArrayList<DBObject>();
 		while (it.hasNext()){

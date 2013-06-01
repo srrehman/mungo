@@ -15,7 +15,12 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungods.object.GAEObject;
 import com.mungods.object.ObjectStore;
-
+/**
+ * A very crud test
+ * 
+ * @author kerby
+ *
+ */
 public class DBCursorTest {
     private final LocalServiceTestHelper helper =
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
@@ -48,43 +53,40 @@ public class DBCursorTest {
 		assertEquals(11, list.size());
 		
 		
+		BasicDBObject query = new BasicDBObject("number", new BasicDBObject("$gte", 1));
 		cursor = new DBCursor(coll, 
-				BasicDBObjectBuilder.start("hi", "there").get(), 
-				null).sort(BasicDBObjectBuilder.start("number", -1).get());  
-
+				query, null).sort(new BasicDBObject("number", -1));  
 		list = copyIterator(cursor);
 		printList(list);
-		assertEquals(10, list.size());
+		assertEquals(11, list.size());
 		
-		/*
-		cursor = new DBCursor(coll, null, null).skip(5); 
-		list = copyIterator(cursor); 
+		query = new BasicDBObject("number", new BasicDBObject("$gte", 5));
+		cursor = new DBCursor(coll, 
+				query, null).sort(new BasicDBObject("number", -1));  
+		list = copyIterator(cursor);
 		printList(list);
-		assertEquals(5, list.size());
-	
-		cursor = new DBCursor(coll, null, null).limit(5); 
-		list = copyIterator(cursor); 
+		assertEquals(7, list.size());
+
+		query = new BasicDBObject("hi", new BasicDBObject("$e", "dont exist"));
+		cursor = new DBCursor(coll, 
+				query, null).sort(new BasicDBObject("hi", -1));  
+		list = copyIterator(cursor);
 		printList(list);
-		assertEquals(5, list.size());
-	
-		cursor = new DBCursor(coll, null, null).limit(1); 
-		list = copyIterator(cursor); 
-		printList(list);
-		assertEquals(1, list.size());
+		assertEquals(0, list.size());
 		
-		// FIXME - Fails because the iterator is limited to 1 element
-		// while trying to skip 5 elements
-
-		cursor = new DBCursor(coll, null, null).skip(5).limit(1); 
-		list = copyIterator(cursor); 
+		
+		/**
+		 * Limit and skip tests
+		 */
+		
+		cursor = new DBCursor(coll, 
+				new BasicDBObject("number", new BasicDBObject("$gte", 1)), 
+				null).sort(new BasicDBObject("number", -1)).limit(5).skip(1);  
+		
+		list = copyIterator(cursor);
 		printList(list);
-		//assertEquals(1, list.size());
+		//assertEquals(11, list.size());
 
-		cursor = new DBCursor(coll, null, null).limit(5).skip(1); 
-		list = copyIterator(cursor); 
-		printList(list);
-		//assertEquals(1, list.size());
-		*/
 	}
 	
 	public void persistTestData(){

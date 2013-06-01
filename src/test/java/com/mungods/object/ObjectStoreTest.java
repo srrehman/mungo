@@ -32,6 +32,24 @@ public class ObjectStoreTest {
     public void tearDown() {
         helper.tearDown();
     }	
+    
+	@Test
+	public void testContainsObject() {
+		ObjectId id = new ObjectId();
+		System.out.println("Test id=" + id.toStringMongod());
+		
+		// Test for object that does not exist
+		//assertFalse(ObjectStore.get("db", "coll")
+		//		.containsObject(new BasicDBObject("hello", "world").append("_id", id)));
+		
+		// Persist
+		
+		ObjectStore.get("db", "coll").persistObject(
+				new BasicDBObject("hello", "world").append("_id", id)); 
+		// Check
+		//assertTrue(ObjectStore.get("db", "coll").containsObject(
+		//		new BasicDBObject("hello", "world").append("_id", id))); 
+	}
 	
 	@Test
 	public void testGetObjectId(){
@@ -68,16 +86,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hello", "world"));
 	}
 	
-	@Test
-	public void testContainsObject() {
-		// Test for object that does not exist
-		assertFalse(ObjectStore.get("db", "coll")
-				.containsObject(new BasicDBObject("hello", "world")));
-		// Persist
-		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hello", "world"));
-		// Check
-		assertTrue(ObjectStore.get("db", "coll").containsObject(new BasicDBObject("hello", "world")));
-	}
+
 	
 	@Test
 	public void testGetObjectById(){
@@ -108,14 +117,16 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow"));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").getObjectsLike(new BasicDBObject("hi", "there"));
+			= ObjectStore.get("db", "coll").getObjectsLike(new BasicDBObject("hi", 
+					new BasicDBObject("$gte", "there")));
+		
 		assertNotNull(it);
 		while(it.hasNext()){
 			DBObject obj = it.next();
 			assertNotNull(obj);
 			l(obj);
 		}
-		l("<<<<<<<<<<< Test Get Objects <<<<<<<<<<<<<<<<<<");
+		l("<<<<<<<<<<< Test Get Objects Like <<<<<<<<<<<<<<<<<<");
 	}	
 	
 	@Test
@@ -126,9 +137,13 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(
 				new BasicDBObject("hi", "there").append("how", "are you").append("good", "morning").append("count", 3)); 
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("will not be", "fetched"));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").getSortedObjectsLike(new BasicDBObject("hi", "there"), new BasicDBObject("count", -1));
+			= ObjectStore.get("db", "coll").getSortedObjectsLike(
+					new BasicDBObject("count", new BasicDBObject("$gte", 2)),  
+					new BasicDBObject("count", -1));
+		
 		assertNotNull(it);
 		while(it.hasNext()){
 			DBObject obj = it.next();
@@ -136,7 +151,60 @@ public class ObjectStoreTest {
 			l(obj);
 		}
 		l("<<<<<<<<<<< Test Get Sorted Objects Like <<<<<<<<<<<<<<<<<<");
-	}		
+	}	
+	
+	/**
+	 * This test 
+	 */
+	@Test
+	public void testGetSortedObjectLike2(){
+		l(">>>>>>>>>>> Test Get Sorted Objects Like2 >>>>>>>>>>>>>>>>>");
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 1));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 2));
+		ObjectStore.get("db", "coll").persistObject(
+				new BasicDBObject("hi", "there").append("how", "are you").append("good", "morning").append("count", 3)); 
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("will not be", "fetched"));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("a", "b").append("number", 1)
+				.append("count", 2)); 
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("c", "d").append("number", 2)
+				.append("count", 1)); 
+		
+		Iterator<DBObject> it 
+			= ObjectStore.get("db", "coll").getSortedObjectsLike(
+					new BasicDBObject("count", new BasicDBObject("$gte", 2))
+						.append("number", new BasicDBObject("$gte", 1)),  
+					new BasicDBObject("count", -1).append("number", -1)); 
+		
+		assertNotNull(it);
+		while(it.hasNext()){
+			DBObject obj = it.next();
+			assertNotNull(obj);
+			l(obj);
+		}
+		l("<<<<<<<<<<< Test Get Sorted Objects Like2 <<<<<<<<<<<<<<<<<<");
+	}	
+	
+	@Test
+	public void testGetbjects(){
+		l(">>>>>>>>>>> Test Get Objects >>>>>>>>>>>>>>>>>");
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 1));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 2));
+		ObjectStore.get("db", "coll").persistObject(
+				new BasicDBObject("hi", "there").append("how", "are you").append("good", "morning").append("count", 3)); 
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
+		
+		Iterator<DBObject> it 
+			= ObjectStore.get("db", "coll").getObjects();
+		
+		assertNotNull(it);
+		while(it.hasNext()){
+			DBObject obj = it.next();
+			assertNotNull(obj);
+			l(obj);
+		}
+		l("<<<<<<<<<<< Test Get Objects <<<<<<<<<<<<<<<<<<");		
+	}
 	
 	@Test
 	public void testGetSortedObject() {
@@ -160,17 +228,30 @@ public class ObjectStoreTest {
 	}
 	
 	@Test
-	public void testDeleteObject(){
+	public void testGetFirstObjectLike(){
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there"));
-		DBObject result = ObjectStore.get("db", "coll").getFirstObjectLike(new BasicDBObject("_id", "123"));
+	}
+	
+	@Test
+	public void testDeleteObject(){
+		ObjectStore.get("db", "coll").persistObject(
+				new BasicDBObject("username", "jack").append("points", 100)); 
+		DBObject result = ObjectStore.get("db", "coll").getFirstObjectLike(
+				new BasicDBObject("points", 
+				new BasicDBObject("$gte", 100)));
+		assertNotNull(result);
+		l("Fetched document="+result);
+		
 		ObjectStore.get("db", "coll").deleteObject(result);
-		assertFalse(ObjectStore.get("db", "coll")
-				.containsObject(new BasicDBObject("hi", "there")));
+		
+		//assertFalse(ObjectStore.get("db", "coll")
+		//		.containsObject(new BasicDBObject("hi", "there")));
 	}
 	
 	@Test
 	public void testDeleteObjectNotExist(){
-		boolean result = ObjectStore.get("db", "coll").deleteObject(new BasicDBObject("_id", "123"));
+		boolean result = ObjectStore.get("db", "coll").deleteObject(
+				new BasicDBObject("_id", 123));
 		assertFalse(result);
 	}	
 

@@ -227,4 +227,13 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	public void markAsPartialObject() {
 		_isPartialObject = true;		
 	}
+	
+	@Override
+	public String toString() {
+		Object id = get("_id");
+		if (id instanceof ObjectId){
+			put("_id", "ObjectId(" + ((ObjectId) id).toStringMongod() + ")");
+		}
+		return super.toString();
+	}
 }

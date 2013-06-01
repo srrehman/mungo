@@ -19,13 +19,18 @@ import org.bson.types.ObjectId;
 import com.google.appengine.api.datastore.EmbeddedEntity;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Text;
+import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.common.base.Preconditions;
 import com.mungods.BasicDBObject;
 import com.mungods.DBObject;
 import com.mungods.common.SerializationException;
+import com.mungods.operators.OpDecode;
+import com.mungods.operators.Operator;
 import com.mungods.serializer.ObjectSerializer;
 import com.mungods.serializer.XStreamSerializer;
+import com.mungods.util.Tuple;
 
 public class Mapper {
 	
@@ -239,18 +244,20 @@ public class Mapper {
 		Entity e = null;
 		// Pre-process object id
 		if (object.get(ID) != null){
+			logger.info("Constructing Entity from DBObject with id="+object.get(ID));
 			Object oid = object.get(ID);
 			if (oid instanceof ObjectId){
 				e = new Entity(KeyStructure.createKey(((ObjectId) oid).toStringMongod(), kind));
 			} else if (oid instanceof String){
 				e = new Entity(KeyStructure.createKey((String)oid, kind));
 			} else {
-				// FIXME This could be really unsafe
+				// FIXME - This could be really unsafe
 				e = new Entity(KeyStructure.createKey(oid.toString(), kind));
 			}
+			logger.info("Datastore Key constructed: " + e.getKey());
 		}
-		Map map = convertToMap(object);
-		Iterator it = map.entrySet().iterator();
+		Map<String,Object> map = convertToMap(object);
+		Iterator<Entry<String, Object>> it = map.entrySet().iterator();
 		if (!it.hasNext()){
 			logger.warning("Iterator is empty");
 		}
@@ -288,10 +295,6 @@ public class Mapper {
 				ex.printStackTrace();
 			}
 		}	
-//		if (e == null){
-//			logger.warning("Returning null Entity from createEntityFromDBObject");
-//		}
-		
 		return e;
 	}
 	
@@ -394,10 +397,44 @@ public class Mapper {
 			newMap.put(key, value);
 		}
 		obj.putAll(newMap);
+		_checkId(obj);
 		return obj;
 	}
 	
-	public static Map convertToMap(DBObject o){
+	private static void _checkId(DBObject obj) {
+		if (obj.get("_id") != null && obj.get("_id") instanceof ObjectId){
+			((ObjectId)obj.get("_id")).notNew();
+		}
+	}
+	
+	public static Map<String,Object> convertToMap(DBObject o){
 		return o.toMap();
 	}	
+	
+	/**
+	 * Translates a DBObject query into a Map of Datastore Query filters
+	 * 
+	 * @param query
+	 * @return
+	 */
+	public static Map<String, Tuple<FilterOperator, Object>> createOperatorObjectFrom(
+			DBObject query){ 
+		Map<String, Tuple<FilterOperator, Object>> _ops = new HashMap<String, Tuple<FilterOperator, Object>>();
+		// Iterate over all the fields
+		for (String field : query.keySet()){
+			try {
+				Object operator = (Object) query.get(field);
+				logger.info("Operator="+operator);
+				for (String op : ((DBObject)operator).keySet()){
+					// e.g { "$gte" : 10 } 
+					Object compareValue = ((DBObject)operator).get(op);
+					_ops.put(field, new Tuple<Query.FilterOperator, Object>(OpDecode.get(op), compareValue));   
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new IllegalArgumentException("Invalid query");
+			}
+		}
+		return _ops;
+	}
 }
