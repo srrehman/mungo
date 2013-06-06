@@ -24,8 +24,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 import com.google.appengine.api.NamespaceManager;
 import com.google.appengine.api.appidentity.AppIdentityService;
@@ -57,9 +59,9 @@ import com.mungoae.collection.simple.DBApiLayer;
  */
 @Singleton
 public class Mungo implements ParameterNames {
-	private static final Logger logger 
-		= Logger.getLogger(Mungo.class.getName());
-	
+
+	private static Logger LOG = LogManager.getLogger(Mungo.class.getName());
+
     protected AppIdentityService _appIdentity; 
     protected static DatastoreService _ds;
 	protected static TransactionOptions options;
@@ -80,7 +82,7 @@ public class Mungo implements ParameterNames {
 		if (_ds == null) {
 			_ds = DatastoreServiceFactory.getDatastoreService();
 			options = TransactionOptions.Builder.withXG(true);
-			logger.log(Level.INFO, "Create a new DatastoreService instance");
+			LOG.info("Create a new DatastoreService instance");
 		}
 		cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));				
 	}

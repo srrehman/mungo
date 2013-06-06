@@ -23,8 +23,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.appengine.api.NamespaceManager;
 import com.google.appengine.api.datastore.DataTypeUtils;
@@ -54,8 +56,7 @@ import com.mungoae.serializer.XStreamSerializer;
  */
 public abstract class DB extends AbstractDBCollection implements ParameterNames {
 	
-	private static final Logger logger 
-		= Logger.getLogger(DB.class.getName());
+	private static Logger LOG = LogManager.getLogger(DB.class.getName());
 
 	protected final String _dbName;
 	protected final ObjectSerializer serializer; 
@@ -128,7 +129,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			}
 			_ds.put(e);
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "Error creating collection");
+			LOG.error("Error creating collection");
 		} finally {
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);

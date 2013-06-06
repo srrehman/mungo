@@ -10,10 +10,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.types.ObjectId;
 
 import com.google.appengine.api.datastore.EmbeddedEntity;
@@ -24,6 +24,7 @@ import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.common.base.Preconditions;
 import com.mungoae.BasicDBObject;
+import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.common.SerializationException;
 import com.mungoae.operators.OpDecode;
@@ -34,9 +35,8 @@ import com.mungoae.util.Tuple;
 
 public class Mapper {
 	
-	private static final Logger logger 
-		= Logger.getLogger(Mapper.class.getName());
-	
+	private static Logger LOG = LogManager.getLogger(Mapper.class.getName());
+
 	private static final String ID = "_id";
 	/**
 	 * Process <code>EmbeddedEntity</code> and inner <code>EmbeddedEntity</code>
@@ -56,7 +56,7 @@ public class Mapper {
 			while(it.hasNext()){
 				Map.Entry<String, Object> entry = it.next();
 				if (entry.getValue() instanceof EmbeddedEntity){
-					logger.log(Level.INFO, "Inner embedded entity found with key=" + entry.getKey());
+					LOG.debug( "Inner embedded entity found with key=" + entry.getKey());
 //					newMap.put(entry.getKey(), getMapFromEmbeddedEntity( (EmbeddedEntity) entry.getValue()));
 					newMap.put(entry.getKey(), getMapOrList( (EmbeddedEntity) entry.getValue()));
 					it.remove();
@@ -65,7 +65,7 @@ public class Mapper {
 			map.putAll(newMap);
 		} catch (Exception e) {
 			e.printStackTrace();
-			logger.log(Level.SEVERE, "Error when processing EmbeddedEntity to Map");
+			LOG.error("Error when processing EmbeddedEntity to Map");
 		}
 		return map;
 	}
@@ -104,7 +104,7 @@ public class Mapper {
 				}
 				Object value = entry.getValue();
 				Integer i = Integer.valueOf(entry.getKey());
-				logger.info("Value="+entry.getValue());
+				LOG.debug("Value="+entry.getValue());
 				if (value instanceof String
 						|| value instanceof Boolean
 						|| value instanceof Number
@@ -127,7 +127,7 @@ public class Mapper {
 	}
 	
 	private static Object[] copyArrayRemove(Object[] objects, int[] elemToRemove){
-		logger.info("Removing elements from array="+elemToRemove);
+		LOG.debug("Removing elements from array="+elemToRemove);
 		Object[] nobjs = Arrays.copyOf(objects, objects.length - elemToRemove.length);
 		for (int i = 0, j = 0, k = 0; i < objects.length; i ++) {
 		    if (j < elemToRemove.length && i == elemToRemove[j]) {
@@ -234,7 +234,7 @@ public class Mapper {
 				ee.setProperty(key, createEmbeddedEntityFromMap(ee.getKey(), map));
 			}			
 		}
-		logger.info("Warning method is returning null value");
+		LOG.debug("Warning method is returning null value");
 		return ee;
 	}
 	
@@ -244,7 +244,7 @@ public class Mapper {
 		Entity e = null;
 		// Pre-process object id
 		if (object.get(ID) != null){
-			logger.info("Constructing Entity from DBObject with id="+object.get(ID));
+			LOG.debug("Constructing Entity from DBObject with id="+object.get(ID));
 			Object oid = object.get(ID);
 			if (oid instanceof ObjectId){
 				e = new Entity(KeyStructure.createKey(((ObjectId) oid).toStringMongod(), kind));
@@ -254,12 +254,12 @@ public class Mapper {
 				// FIXME - This could be really unsafe
 				e = new Entity(KeyStructure.createKey(oid.toString(), kind));
 			}
-			logger.info("Datastore Key constructed: " + e.getKey());
+			LOG.debug("Datastore Key constructed: " + e.getKey());
 		}
 		Map<String,Object> map = convertToMap(object);
 		Iterator<Entry<String, Object>> it = map.entrySet().iterator();
 		if (!it.hasNext()){
-			logger.warning("Iterator is empty");
+			LOG.debug("Iterator is empty");
 		}
 		while (it.hasNext()){
 			if (e == null) {
@@ -321,7 +321,7 @@ public class Mapper {
 					map.put(key, ((Text) val).getValue());
 				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
 					// TODO Must identify if the EmbeddedEntity is a List or Map
-					logger.log(Level.INFO, "Embedded entity found.");
+					LOG.debug( "Embedded entity found.");
 					Map<String,Object> ee = getMapFromEmbeddedEntity((EmbeddedEntity) val);
 					map.put(key, ee);
 				} 
@@ -424,7 +424,7 @@ public class Mapper {
 		for (String field : query.keySet()){
 			try {
 				Object operator = (Object) query.get(field);
-				logger.info("Operator="+operator);
+				LOG.debug("Operator="+operator);
 				for (String op : ((DBObject)operator).keySet()){
 					// e.g { "$gte" : 10 } 
 					Object compareValue = ((DBObject)operator).get(op);

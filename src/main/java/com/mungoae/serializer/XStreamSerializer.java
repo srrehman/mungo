@@ -17,10 +17,11 @@
  */
 package com.mungoae.serializer;
 
-import java.util.logging.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import com.mungoae.DBCollection;
 import com.mungoae.common.SerializationException;
+import com.mungoae.object.ObjectStore;
 import com.thoughtworks.xstream.XStream;
 /**
  * Object serializer that user XStreamGae, a port of XStream to GAE
@@ -30,9 +31,8 @@ import com.thoughtworks.xstream.XStream;
  */
 public class XStreamSerializer implements ObjectSerializer {
 	
-	private static final Logger LOG 
-		= Logger.getLogger(XStreamSerializer.class.getName());
-	
+	private static Logger LOG = LogManager.getLogger(XStreamSerializer.class.getName());
+
 	XStream xstream;
 	
 	public XStreamSerializer() {

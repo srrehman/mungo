@@ -20,31 +20,24 @@ package com.mungoae.collection.simple;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.types.ObjectId;
 
-import com.google.appengine.api.NamespaceManager;
-import com.google.appengine.api.datastore.Entity;
 import com.google.common.base.Preconditions;
-import com.mungoae.BasicDBObject;
 import com.mungoae.CommandResult;
 import com.mungoae.DB;
 import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.collection.WriteConcern;
 import com.mungoae.collection.WriteResult;
-import com.mungoae.common.MungoException;
-import com.mungoae.object.GAEObject;
-import com.mungoae.object.ObjectStore;
 import com.mungoae.util.BoundedIterator;
 
 public class BasicDBCollection extends DBCollection {
 	
-	private static final Logger LOG 
-		= Logger.getLogger(DBCollection.class.getName());
-	
+	private static Logger LOG = LogManager.getLogger(BasicDBCollection.class.getName());
+
 	private final boolean nonIdCollection = false;
 	
 	public BasicDBCollection(DB ds, String collection) {
@@ -125,7 +118,7 @@ public class BasicDBCollection extends DBCollection {
 		Preconditions.checkNotNull(_collection, "Cannot insert when collection is null");
 		List<DBObject> objects = Arrays.asList(arr);
 		for (DBObject o : objects){
-			LOG.log(Level.INFO, "Creating object: " + o.get(ID) + " in collection: " + _collection);
+			LOG.debug("Creating object: " + o.get(ID) + " in collection: " + _collection);
 			Object id = _store.persistObject(o);
 		}
 		return new WriteResult(getDB(), null, concern); // Is this correct?
@@ -134,7 +127,7 @@ public class BasicDBCollection extends DBCollection {
 	@Override
 	public WriteResult insert(List<DBObject> toInsert, WriteConcern concern) {
 	    for (DBObject obj : toInsert) {
-	        LOG.log(Level.INFO,"insert: " + obj);
+	        LOG.debug("insert: " + obj);
 	        //filterLists(obj);
 	        Object id = putIdIfNotPresent(obj);
 	        putSizeCheck(obj);

@@ -1,21 +1,17 @@
 package com.mungoae.object;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.types.ObjectId;
 
 import com.google.appengine.api.NamespaceManager;
@@ -26,29 +22,20 @@ import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.EntityNotFoundException;
 import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.PreparedQuery;
 import com.google.appengine.api.datastore.Query;
-import com.google.appengine.api.datastore.Query.CompositeFilter;
-import com.google.appengine.api.datastore.Query.CompositeFilterOperator;
 import com.google.appengine.api.datastore.Query.SortDirection;
 import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.Query.Filter;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.datastore.Query.FilterPredicate;
-import com.google.appengine.api.datastore.Query.SortPredicate;
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 import com.mungoae.BasicDBObject;
-import com.mungoae.CommandResult;
-import com.mungoae.DB;
-import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.ParameterNames;
 import com.mungoae.collection.AbstractDBCollection;
 import com.mungoae.common.SerializationException;
-import com.mungoae.operators.Operator;
 import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
 import com.mungoae.util.Tuple;
@@ -64,8 +51,8 @@ import com.mungoae.util.Tuple;
  */
 public class ObjectStore extends AbstractDBCollection implements ParameterNames {
 	
-	private static final Logger logger 
-		= Logger.getLogger(ObjectStore.class.getName());
+	private static Logger LOG = LogManager.getLogger(ObjectStore.class.getName());
+
 	
 	private final String _dbName;
 	private final String _collName;
@@ -95,7 +82,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	private static String createStringIdFromObject(Object docId){
 		Preconditions.checkNotNull(docId, "Object doc id cannot be null");
 		if (docId instanceof ObjectId){
-			logger.info("Create ID String from ObjectID");
+			LOG.debug("Create ID String from ObjectID");
 			return ((ObjectId) docId).toStringMongod();
 		} else {
 			if (docId instanceof String
@@ -103,7 +90,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				return String.valueOf(docId);
 			}
 //			try {
-//				logger.info("Create ID String from arbitrary Object");
+//				LOG.debug("Create ID String from arbitrary Object");
 //				return serializer.serialize(id);
 //			} catch (SerializationException e) {
 //				e.printStackTrace();
@@ -138,10 +125,10 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			// Pre-process, the Datastore does not accept ObjectId as is
 			Object oid = object.get(ID);
 			if (oid == null){
-				logger.info("No id object found in the object, creating new");
+				LOG.debug("No id object found in the object, creating new");
 				_id = new ObjectId().toStringMongod();
 			} else {
-				logger.info("ObjectId found, getting string id");
+				LOG.debug("ObjectId found, getting string id");
 //				if (oid instanceof ObjectId){
 //					_id = ((ObjectId)oid).toStringMongod();
 //				} else {
@@ -187,13 +174,13 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				obj = new BasicDBObject(map);
 			}
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "Error: " + e.getMessage());
+			LOG.error("Error: " + e.getMessage());
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);
 		}		
-		logger.warning("Returning null DBObject");
+		LOG.debug("Returning null DBObject");
 		return obj;
 	}	
 
@@ -277,7 +264,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	public Iterator<DBObject> getObjectsLike(DBObject query){
 		Preconditions.checkNotNull(query, "Query object cannot be null");
 		if (query.keySet().isEmpty()){
-			logger.warning("Empty query object");
+			LOG.debug("Empty query object");
 		}
 		
 		/**
@@ -312,7 +299,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				NamespaceManager.set(oldNamespace);
 		}		
 		if (it == null){
-			logger.warning("Returning null iterator");
+			LOG.debug("Returning null iterator");
 		}
 		return it;
 	}
@@ -327,7 +314,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				throw new IllegalArgumentException("Invalid query: " 
 							+ operatorCompareValuePair);
 			}
-			logger.info("Query reference field=" 
+			LOG.debug("Query reference field=" 
 					+ field 
 					+ " reference operator/value=" 
 					+ operatorCompareValuePair);
@@ -356,7 +343,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 						Query.SortDirection.ASCENDING : null;
 				direction = dir == -1 ? 
 						Query.SortDirection.DESCENDING : direction;
-				logger.info("Adding sort key="+key + " direction=" + direction); 
+				LOG.debug("Adding sort key="+key + " direction=" + direction); 
 				sorts.put(key, direction);
 			}
 			final Iterator<Entity> eit  
@@ -381,7 +368,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				NamespaceManager.set(oldNamespace);
 		}		
 		if (it == null){
-			logger.warning("Returning null iterator");
+			LOG.debug("Returning null iterator");
 		}
 		return it;
 	}	
@@ -420,7 +407,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				NamespaceManager.set(oldNamespace);
 		}		
 		if (it == null){
-			logger.warning("Returning null iterator");
+			LOG.debug("Returning null iterator");
 		}
 		return it;
 	}
@@ -441,7 +428,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 						Query.SortDirection.ASCENDING : null;
 				direction = dir == -1 ? 
 						Query.SortDirection.DESCENDING : direction;
-				logger.warning("Adding sort key="+key + " direction=" + direction);
+				LOG.debug("Adding sort key="+key + " direction=" + direction);
 				sorts.put(key, direction);
 			}
 			
@@ -467,7 +454,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				NamespaceManager.set(oldNamespace);
 		}		
 		if (it == null){
-			logger.warning("Returning null iterator");
+			LOG.debug("Returning null iterator");
 		}
 		return it;
 	}
@@ -488,7 +475,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			throw new IllegalArgumentException("Empty query object");
 		}
 		String id = createStringIdFromObject(query.get(ID));
-		logger.warning("Deleting document with id="+ id);
+		LOG.debug("Deleting document with id="+ id);
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
@@ -548,7 +535,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			Map<String, Tuple<FilterOperator, Object>> query, Map<String, SortDirection> sorts){
 		Preconditions.checkNotNull(query, "Query object can't be null");
 		Preconditions.checkNotNull(sorts, "Sort can't be null");
-		logger.info("Query map="+query.toString());
+		LOG.debug("Query map="+query.toString());
 		
 		PreparedQuery pq = null;
 	
@@ -556,13 +543,13 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		Iterator<Map.Entry<String, Query.SortDirection>> sortIterator = sorts.entrySet().iterator(); 
 		while(sortIterator.hasNext()){
 			Map.Entry<String, Query.SortDirection> dir = sortIterator.next();
-			logger.info("Sort propName="+dir.getKey() + " direction="+dir.getValue());
+			LOG.debug("Sort propName="+dir.getKey() + " direction="+dir.getValue());
 		}
 		Query q = new Query(_collName);
 		Filter compositeFilter = null;
 		List<Filter> subFilters = new ArrayList<Filter>();
 		for (String propName : query.keySet()){
-			logger.info("Filter Property name="+propName);
+			LOG.debug("Filter Property name="+propName);
 			Tuple<FilterOperator, Object> filterAndValue = query.get(propName);
 			FilterOperator operator = filterAndValue.getFirst();
 			Object value = filterAndValue.getSecond();
@@ -598,7 +585,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 					.setFilter(f)
 					.addSort(entry.getKey(), entry.getValue());	
 			}
-			logger.info("Added sort by " + entry.getKey());
+			LOG.debug("Added sort by " + entry.getKey());
 		}
 		*/
 		pq = _ds.prepare(q);
@@ -673,16 +660,16 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 							val = deserializeString((String)val);
 						}
 					}
-					logger.info("Inserting to document key="+key);
-					logger.info("Inserting to document value type="+val.getClass().getName());
+					LOG.debug("Inserting to document key="+key);
+					LOG.debug("Inserting to document value type="+val.getClass().getName());
 					doc.put(key, val);
 				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
-					logger.log(Level.INFO, "Embedded entity found.");
+					LOG.debug( "Embedded entity found.");
 					Object mapOrList = Mapper.getMapOrList((EmbeddedEntity) val);
 					if (mapOrList instanceof List){
-						logger.log(Level.INFO, "Embedded List="+mapOrList);
+						LOG.debug( "Embedded List="+mapOrList);
 					} else if (mapOrList instanceof Map){
-						logger.log(Level.INFO, "Embedded Map="+mapOrList);
+						LOG.debug( "Embedded Map="+mapOrList);
 					}
 					doc.put(key, mapOrList);	
 				} 
@@ -703,7 +690,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		} finally {
 			
 		}
-		logger.warning("Returning null document");
+		LOG.debug("Returning null document");
 		return doc;
 	}
 	
@@ -711,7 +698,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	// it will just return null
 	private Object deserializeString(String value){
 		try {
-			//logger.info("Parsing string="+value);
+			//LOG.debug("Parsing string="+value);
 			Object deserialized = _serializer.deserialize(value);
 			return deserialized;
 		} catch (SerializationException e){
@@ -931,11 +918,11 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				} else if(value instanceof Date) {
 					setProperty(e, key, value);
 				} else if(value instanceof List) {
-					logger.log(Level.INFO, "Processing List value");
+					LOG.debug( "Processing List value");
 					setProperty(e, key, Mapper.createEmbeddedEntityFromList(parent, (List) value));
 				} else if(value instanceof Map){
 					// TODO: Need to deal with sub-documents Object id
-					logger.log(Level.INFO, "Processing Map value");
+					LOG.debug( "Processing Map value");
 					setProperty(e, key, Mapper.createEmbeddedEntityFromMap(parent, (Map) value));
 				} else {
 					//throw new RuntimeErrorException(null, "Unsupported value type: " + value.getClass().getName());
@@ -943,11 +930,11 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 					setProperty(e, key, serialized);
 				}
 			}	
-			logger.log(Level.INFO, "Persisting entity [" 
+			LOG.debug( "Persisting entity [" 
 					+ e.getKey().getName() + "] in [" + e.getNamespace() + "][" + e.getKind() + "]");
 			entityKey = _ds.put(e);
-			logger.log(Level.INFO, "Persisted entity [" + e + "] with key=" + entityKey);
-			logger.log(Level.INFO, "Raw id was="+id);
+			LOG.debug( "Persisted entity [" + e + "] with key=" + entityKey);
+			LOG.debug( "Raw id was="+id);
 		} catch (ConcurrentModificationException e){
 			e.printStackTrace();
 		} catch (Exception e) {

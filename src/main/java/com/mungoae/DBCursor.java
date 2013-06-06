@@ -3,7 +3,9 @@ package com.mungoae;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.mungoae.common.MungoException;
@@ -14,9 +16,8 @@ public class DBCursor implements Iterator<DBObject>,
 	private static final int DEFAULT_FETCH_OFFSET = 0;
 	private static final int DEFAULT_FETCH_LIMIT = 1000;
 	
-	private static final Logger LOG 
-		= Logger.getLogger(DBCursor.class.getName());
-	
+	private static Logger LOG = LogManager.getLogger(DBCursor.class.getName());
+
 	private DBCollection _collection;
 	private DBObject _query;
 	private DBObject _keysWanted;

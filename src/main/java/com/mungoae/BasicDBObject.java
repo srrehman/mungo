@@ -17,13 +17,11 @@
  */
 package com.mungoae;
 
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -50,8 +48,8 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	
 	private static final long serialVersionUID = 1L;
     private boolean _isPartialObject;
-	private static final Logger LOG 
-		= Logger.getLogger(BasicDBObject.class.getName());
+	
+	private static Logger LOG = LogManager.getLogger(BasicDBObject.class.getName());
 	
 	public BasicDBObject() {
 		super();
@@ -174,7 +172,7 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 			//}
 			return obj;
 		} catch (Exception e) {
-			LOG.log(Level.SEVERE, "Exception in getting DBObject as type=" + clazz.getName() + " : " + e.getMessage());
+			LOG.error("Exception in getting DBObject as type=" + clazz.getName() + " : " + e.getMessage());
 			throw new RuntimeException(e);
 		}
 	}
@@ -185,9 +183,9 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 		try {
 			obj = gson.fromJson(gson.toJson(this), clazz);
 		} catch (JsonSyntaxException e) {
-			LOG.log(Level.SEVERE, "Cannot create object because JSON string is malformed");
+			LOG.error("Cannot create object because JSON string is malformed");
 		} catch(Exception e) {
-			LOG.log(Level.SEVERE, "Some other error occurred when trying to deserialize JSON string");
+			LOG.error("Some other error occurred when trying to deserialize JSON string");
 		}
 		return obj;		
 	}		

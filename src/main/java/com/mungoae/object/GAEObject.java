@@ -5,10 +5,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
-import com.google.appengine.api.datastore.DatastoreService;
-import com.google.appengine.api.datastore.Entity;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.common.base.Preconditions;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
@@ -26,9 +26,8 @@ import com.mungoae.DBObject;
  */
 public class GAEObject {
 	
-	private static final Logger LOG 
-		= Logger.getLogger(GAEObject.class.getName());
-	
+	private static Logger LOG = LogManager.getLogger(GAEObject.class.getName());
+
 	public static final String INSERT = "insert";
 	public static final String SAVE = "save";
 	public static final String UPDATE = "update";
@@ -158,7 +157,7 @@ public class GAEObject {
 	
 	public DBCursor getResult(){
 		if (_curr == null)
-			LOG.warning("Returning null cursor");
+			LOG.debug("Returning null cursor");
 		return _curr;
 	}
 	

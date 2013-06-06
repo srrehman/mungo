@@ -1,8 +1,10 @@
 package com.mungoae.operators;
 
-import java.util.logging.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.mungoae.object.ObjectStore;
 /**
  * Operator decoder. Decodes a given string operator (e.g. "$gte")
  * and returns the corresponding Datastore <code>FilterOperator</code>
@@ -11,10 +13,10 @@ import com.google.appengine.api.datastore.Query.FilterOperator;
  *
  */
 public class OpDecode {
-	private static final Logger logger 
-		= Logger.getLogger(OpDecode.class.getName());
+	private static Logger LOG = LogManager.getLogger(OpDecode.class.getName());
+
 	public static FilterOperator get(String filter) {
-		logger.info("Get operator [" + filter + "]");
+		LOG.debug("Get operator [" + filter + "]");
 //		if (filter.equals(Operator.GREATER_THAN_OR_EQUAL.toString())){
 //			return FilterOperator.GREATER_THAN_OR_EQUAL;
 //		}

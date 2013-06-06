@@ -3,8 +3,9 @@ package com.mungoae.shell;
 import java.util.Calendar;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.appengine.api.appidentity.AppIdentityService;
 import com.google.appengine.api.appidentity.AppIdentityServiceFactory;
@@ -15,6 +16,7 @@ import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.inject.Singleton;
 import com.mungoae.Mungo;
 import com.mungoae.object.GAEObjectFactory;
+import com.mungoae.object.ObjectStore;
 
 /**
  * Connector encapsulates database operations to the datastore. 
@@ -30,9 +32,8 @@ import com.mungoae.object.GAEObjectFactory;
 @Singleton
 public class Connector {
 	
-	private static final Logger logger 
-		= Logger.getLogger(Connector.class.getName());
-	
+	private static Logger LOG = LogManager.getLogger(Connector.class.getName());
+
 	protected AppIdentityService _appIdentity; 
     protected static DatastoreService _ds;
 	protected static TransactionOptions options;
@@ -49,8 +50,7 @@ public class Connector {
 		}
 		if (_ds == null) {
 			_ds = DatastoreServiceFactory.getDatastoreService();
-			options = TransactionOptions.Builder.withXG(true);
-			logger.log(Level.INFO, "Create a new DatastoreService instance");
+			LOG.debug("Create a new DatastoreService instance");
 		}
 		cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));				
 	}

@@ -17,24 +17,17 @@
  */
 package com.mungoae;
 
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import javax.management.RuntimeErrorException;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.types.ObjectId;
 
 import com.google.appengine.api.datastore.DataTypeUtils;
@@ -47,7 +40,7 @@ import com.google.appengine.api.datastore.TransactionOptions;
 import com.mungoae.collection.WriteConcern;
 import com.mungoae.collection.WriteResult;
 import com.mungoae.object.ObjectStore;
-//import com.mungods.object.GAEObject;
+
 /**
  * Collections class for GAE stored JSON objects
  * 
@@ -56,9 +49,8 @@ import com.mungoae.object.ObjectStore;
  */
 public abstract class DBCollection implements ParameterNames {
 	
-	private static final Logger LOG 
-		= Logger.getLogger(DBCollection.class.getName());
-	
+	private static Logger LOG = LogManager.getLogger(DBCollection.class.getName());
+
 	protected final String _namespace;
 	protected final String _collection;
 	protected final DB _db;
@@ -83,7 +75,7 @@ public abstract class DBCollection implements ParameterNames {
 		if (_ds == null) {
 			_ds = DatastoreServiceFactory.getDatastoreService();
 			options = TransactionOptions.Builder.withXG(true);
-			LOG.log(Level.INFO, "Create a new DatastoreService instance");
+			LOG.info("Create a new DatastoreService instance");
 		}
 		cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));			
 		_collection = collection;

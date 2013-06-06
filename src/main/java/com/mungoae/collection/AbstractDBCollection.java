@@ -20,23 +20,24 @@ package com.mungoae.collection;
 import java.util.Calendar;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
 
 import com.google.appengine.api.datastore.DataTypeUtils;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.TransactionOptions;
+import com.mungoae.DBCollection;
 /**
  * 
  * @author Kerby Martino<kerbymart@gmail.com>
  *
  */
 public abstract class AbstractDBCollection {
-	private static final Logger LOG 
-		= Logger.getLogger(AbstractDBCollection.class.getName());	
+	private static Logger LOG = LogManager.getLogger(AbstractDBCollection.class.getName());	
 	protected static DatastoreService _ds;
 	protected static TransactionOptions options;
 	protected Calendar cal;
@@ -50,7 +51,7 @@ public abstract class AbstractDBCollection {
 		if (_ds == null) {
 			_ds = DatastoreServiceFactory.getDatastoreService();
 			options = TransactionOptions.Builder.withXG(true);
-			LOG.log(Level.INFO, "Create a new DatastoreService instance");
+			LOG.info("Create a new DatastoreService instance");
 		}
 		cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));			
 	}

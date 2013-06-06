@@ -18,12 +18,13 @@
 package com.mungoae.collection.simple;
 
 import java.util.Properties;
-import java.util.logging.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.appengine.api.NamespaceManager;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.Entity;
-import com.google.appengine.api.datastore.Key;
 import com.mungoae.CommandResult;
 import com.mungoae.DB;
 import com.mungoae.DBCollection;
@@ -41,8 +42,8 @@ import com.mungoae.Mungo;
  */
 public class DBApiLayer extends DB {
 
-	private static final Logger LOG 
-		= Logger.getLogger(DBApiLayer.class.getName());
+	private static Logger LOG = LogManager.getLogger(DBApiLayer.class.getName());
+
 	private final Mungo _mungo;
 	private DatastoreService _ds;
 	
@@ -54,7 +55,7 @@ public class DBApiLayer extends DB {
 
 	@Override
 	public CommandResult command(DBObject cmd) { 
-		LOG.info("Mungo got command: " + cmd);
+		LOG.debug("Mungo got command: " + cmd);
 	    if (cmd.containsKey("getlasterror")) {
 	    	return okResult();
 	    } else if (cmd.containsKey("drop")) {
