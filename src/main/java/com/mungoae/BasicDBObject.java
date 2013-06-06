@@ -1,0 +1,239 @@
+/**
+ * 	
+ * Copyright 2013 Pagecrumb
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * 	   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *  
+ */
+package com.mungoae;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.bson.types.ObjectId;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.mungoae.serializer.XStreamGae;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
+
+import org.bson.*;
+
+/**
+ * 
+ * Basic implementation of DBObject
+ * 
+ * @author Kerby Martino<kerbymart@gmail.com>
+ * 
+ * @since 0.0.1
+ * @version 0.0.1
+ */
+public class BasicDBObject extends BasicBSONObject implements DBObject, ParameterNames {
+	
+	private static final long serialVersionUID = 1L;
+    private boolean _isPartialObject;
+	private static final Logger LOG 
+		= Logger.getLogger(BasicDBObject.class.getName());
+	
+	public BasicDBObject() {
+		super();
+	}
+	
+	/**
+	 * Construct by <code>Map</code>
+	 * 
+	 * @param map
+	 */
+	@SuppressWarnings("unchecked")
+	public BasicDBObject(Map<String,Object> map){
+		this();
+		putAll(map);
+	}
+	/**
+	 * Construct by key value pair
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	public BasicDBObject(String key, Object value){
+		this();
+		put(key, value);
+	}
+	
+	/**
+	 * Construct by JSON <code>String</code>
+	 * 
+	 * @param json
+	 */
+	public BasicDBObject(String json){
+		Object obj = JSONValue.parse(json);
+		if (obj instanceof JSONObject){
+			putAll((Map) obj);
+		} else if(obj instanceof JSONArray){
+			throw new RuntimeException("Contructing from JSON array not yet supported");
+//			for (Object o : (JSONArray) obj){
+//				
+//			}
+		} else if(obj instanceof JSONValue){
+			throw new RuntimeException("Contructing from JSON value not yet supported");
+		}
+	}
+	
+	/**
+	 * Construct by <code>Object</code>. 
+	 * TODO - Add check for obj if its a primitive type
+	 * TODO - Improve code depth
+	 * @param obj
+	 */
+	public BasicDBObject (Object obj){
+		Gson gson = new Gson();
+		String json = gson.toJson(obj);
+		Object jsonObject = JSONValue.parse(json);
+		if (jsonObject instanceof JSONObject){
+			putAll((Map) jsonObject);
+		} else if(jsonObject instanceof JSONArray){
+			throw new RuntimeException("Contructing from JSON array not yet supported");
+//			for (Object o : (JSONArray) obj){
+//				
+//			}
+		} else if(jsonObject instanceof JSONValue){
+			throw new RuntimeException("Contructing from JSON value not yet supported");
+		}
+	}
+	
+	public BasicDBObject append(String key, Object value){
+		put(key, value);
+		return this;
+	}
+	
+	public Object getId(){
+		return get(ID); 
+	}
+		
+	public Object copy() {
+        // copy field values into new object
+        BasicDBObject newobj = new BasicDBObject(this.toMap());
+        // need to clone the sub obj
+        for (String field : keySet()) {
+            Object val = get(field);
+            if (val instanceof BasicDBObject) {
+                newobj.put(field, ((BasicDBObject)val).copy());
+            } else if (val instanceof BasicDBList) {
+                //newobj.put(field, ((BasicDBList)val).copy());
+            }
+        }
+        return newobj;
+    }	
+	
+	
+//	public Map toMap() {
+//		Map m = new HashMap<String,Object>();
+//		Iterator<String> it = keySet().iterator();
+//		while (it.hasNext()){
+//			String key = it.next();
+//			m.put(key, get(key));
+//		}
+//		return m;
+//	}
+
+
+	/**
+	 * Fetch this DBObject as a type <code>T</code> specified.
+	 * Class types should have a no-args constructor
+	 * 
+	 * @param clazz
+	 * @return
+	 */
+	@Override
+	public <T> T as(Class<T> clazz){
+		// For use as in:
+		// Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
+		// Friend one = friends.findOne("{name: 'Joe'}").as(Friend.class);
+		try {
+			T obj = createTObject(clazz);
+			//if (obj == null){ // Try with XStream
+			//	obj = createTObjectWithXStream(clazz);
+			//}
+			return obj;
+		} catch (Exception e) {
+			LOG.log(Level.SEVERE, "Exception in getting DBObject as type=" + clazz.getName() + " : " + e.getMessage());
+			throw new RuntimeException(e);
+		}
+	}
+	
+	private <T> T createTObject(Class<T> clazz){
+		T obj = null;
+		Gson gson = new Gson();
+		try {
+			obj = gson.fromJson(gson.toJson(this), clazz);
+		} catch (JsonSyntaxException e) {
+			LOG.log(Level.SEVERE, "Cannot create object because JSON string is malformed");
+		} catch(Exception e) {
+			LOG.log(Level.SEVERE, "Some other error occurred when trying to deserialize JSON string");
+		}
+		return obj;		
+	}		
+	
+	private <T> T createTObjectWithXStream(Class<T> clazz){
+		XStream xstream = new XStreamGae(new JettisonMappedXmlDriver());
+		T obj = null;
+//		try {
+//			String json = this.toJSONString();
+//			obj = (T) xstream.fromXML(json);
+//		} catch (Exception e) {
+//			LOG.log(Level.SEVERE, "XStraem cannot deserialize this object: " + e.getMessage());
+//		}
+		return obj;
+	}
+	
+	private boolean isValidType(Object val){
+		if (val instanceof ObjectId){
+			return true;
+		}
+		if (val instanceof String
+				|| val instanceof Number
+				|| val instanceof Boolean
+				|| val instanceof List
+				|| val instanceof Map) {
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean isPartialObject() {
+		return _isPartialObject;
+	}
+
+	@Override
+	public void markAsPartialObject() {
+		_isPartialObject = true;		
+	}
+	
+	@Override
+	public String toString() {
+		Object id = get("_id");
+		if (id instanceof ObjectId){
+			put("_id", "ObjectId(" + ((ObjectId) id).toStringMongod() + ")");
+		}
+		return super.toString();
+	}
+}
