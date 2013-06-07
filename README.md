@@ -1,15 +1,15 @@
 Mungo
 =========
 
-Mungo is a abstraction layer to the App Engine Datastore which introduces the concept of DB, DBCollection, and DBObject.
-It is designed to allow the storing of JSON-documents in the most native way possible.
+Mungo is a "document" interface to the App Engine Datastore which introduces the concept of DB, DBCollection, and DBObject.
+It is designed to store JSON-documents into the Datastore in the most native way possible.
 
   - It's a work in progress where changes are rapid
   - It makes storing JSON objects easy
   - Easy to use
 
-Mungo, does not try to create yet another "object mapping" framework or some sort. So it should not be compared to Objectify or Twig or anything like that. 
-It just provides the Datastore a wire-up to allow the easy storing of JSON objects or Maps in a way that it is not serialized in some form.  
+Mungo, does not try to create a "yet another object mapping" framework. What it provides is just a wire-up to allow the easy storing of JSON objects or Maps 
+by mapping to native Datastore entities and not serializing the document.  
 
 The goal is to be able to store JSON documents and its sub-documents as flat as possible. Allowing smooth queries to 
 deep stored embedded documents (Work in progress).
