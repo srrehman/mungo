@@ -4,8 +4,8 @@ import java.util.Calendar;
 import java.util.Set;
 import java.util.TimeZone;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.google.appengine.api.appidentity.AppIdentityService;
 import com.google.appengine.api.appidentity.AppIdentityServiceFactory;
@@ -14,9 +14,7 @@ import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.inject.Singleton;
-import com.mungoae.Mungo;
 import com.mungoae.object.GAEObjectFactory;
-import com.mungoae.object.ObjectStore;
 
 /**
  * Connector encapsulates database operations to the datastore. 

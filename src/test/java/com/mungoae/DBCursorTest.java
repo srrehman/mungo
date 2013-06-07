@@ -105,6 +105,12 @@ public class DBCursorTest {
 		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
 		list = copyIterator(cursor);
 		printList(list);
+		
+		// Query by string
+		
+		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
+		list = copyIterator(cursor);
+		printList(list);
 	}
 	
 	public void persistTestData(){

@@ -21,10 +21,8 @@ import java.util.Calendar;
 import java.util.Set;
 import java.util.TimeZone;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.google.appengine.api.datastore.DataTypeUtils;
 import com.google.appengine.api.datastore.DatastoreService;
