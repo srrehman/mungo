@@ -1,15 +1,10 @@
 package com.mungoae.query;
 
-import com.mungoae.Mungo;
+import java.util.Iterator;
 
-public class Query {
-	
-	private Mungo _mungo;
-	
-	public Query(Mungo mungo){
-		_mungo = mungo;
-	}
-	
+import com.mungoae.DBObject;
+
+public interface Query {
 	public enum SortDirection { 
 		ASCENDING(1), DESCENDING(-1);
 		private final int dir;
@@ -20,4 +15,11 @@ public class Query {
 			return dir;
 		}
 	}
+	public QueryImpl or(Object value);
+	public Iterator<DBObject> now();
+	public QueryFilter filter(String field);
+	public QueryImpl sort(QueryImpl.SortDirection direction);
+	public QueryImpl sort(String field, QueryImpl.SortDirection direction);
+	public QueryImpl limit(int max);
+	public QueryImpl skip(int numToSkip);
 }

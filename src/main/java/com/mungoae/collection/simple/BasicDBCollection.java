@@ -158,10 +158,11 @@ public class BasicDBCollection extends DBCollection {
 	@Override
 	public Iterator<DBObject> __find(DBObject ref, DBObject fields, 
 			int numToSkip , int batchSize , int limit, int options){
-		Preconditions.checkNotNull(ref, "Reference object can't be null");
+		Preconditions.checkNotNull(ref, "Query object can't be null");
 		
-		LOG.info("Reference object=" + ref);
+		LOG.info("Collection find with query object=" + ref);
 		
+		Object id = ref.get("_id");
 		DBObject query = (DBObject) ref.get("$query");
 		DBObject orderby = (DBObject) ref.get("$orderby");
 		
@@ -182,6 +183,10 @@ public class BasicDBCollection extends DBCollection {
 				LOG.info("Sort object=" + orderby);
 				it = _store.getSortedObjects(orderby);
 			} else { // query and orderby are both null
+				if (id != null){
+					// TODO
+					DBObject obj = _store.getObject(ref);
+				}
 				it = _store.getObjects();
 			}	
 		}

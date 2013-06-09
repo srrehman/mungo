@@ -15,6 +15,7 @@ import org.junit.runner.RunWith;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
+import com.mungoae.BasicDBObjectBuilder;
 import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.object.ObjectStore;
@@ -108,8 +109,8 @@ public class ObjectStoreTest {
 	}	
 	
 	@Test
-	public void testGetObjectLike(){
-		l(">>>>>>>>>>> Test Get Objects >>>>>>>>>>>>>>>>>");
+	public void testGetObjectsLike(){
+		l(">>>>>>>>>>> Test Get Objects Like >>>>>>>>>>>>>>>>>");
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there"));
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there"));
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there")
@@ -131,7 +132,32 @@ public class ObjectStoreTest {
 	}	
 	
 	@Test
-	public void testGetSortedObjectLike(){
+	public void testGetObjectLikeMulti() {
+		l(">>>>>>>>>>> Test Get Objects Multi Like >>>>>>>>>>>>>>>>>");
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("title", "sample1"));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("title", "sample2"));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("title", "sample3"));
+		
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("title", "sample1").append("count", 1));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("title", "sample2").append("count", 2));
+		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("title", "sample3").append("count", 3));
+		
+		DBObject query = new BasicDBObject("title", new BasicDBObject("$e", "sample1"))
+				.append("count", new BasicDBObject("$e", 1)); 
+		
+		Iterator<DBObject> it = ObjectStore.get("db", "coll").getObjectsLike(query);
+		
+		assertNotNull(it);
+		while(it.hasNext()){
+			DBObject obj = it.next();
+			assertNotNull(obj);
+			l(obj);
+		}
+		l("<<<<<<<<<<< Test Get Objects Multi Like <<<<<<<<<<<<<<<<<<");
+	}
+	
+	@Test
+	public void testGetSortedObjectsLike(){
 		l(">>>>>>>>>>> Test Get Sorted Objects Like >>>>>>>>>>>>>>>>>");
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 1));
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there").append("count", 2));

@@ -48,6 +48,7 @@ import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Preconditions;
 import com.google.inject.Singleton;
 import com.mungoae.collection.simple.DBApiLayer;
+import com.mungoae.query.QueryImpl;
 /**
  * 
  * The "Mungo" class. Provides the interface to do <code>DB</code> operations.
@@ -246,4 +247,9 @@ public class Mungo implements ParameterNames {
 	public String getServerIP() {
 		return "localhost";
 	}
+	
+	public com.mungoae.query.Query query(String dbName, String collection){
+		return new QueryImpl(getDB(dbName).getCollection(collection));
+	}
+	
 }

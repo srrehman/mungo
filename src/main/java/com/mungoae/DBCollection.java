@@ -723,7 +723,6 @@ public abstract class DBCollection implements ParameterNames {
 	 */
     public abstract Iterator<DBObject> __find( DBObject ref , DBObject fields , int numToSkip , int batchSize , int limit, int options);
 
-    
 
 }
 

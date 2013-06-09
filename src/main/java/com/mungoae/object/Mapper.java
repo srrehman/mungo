@@ -413,6 +413,7 @@ public class Mapper {
 	
 	/**
 	 * Translates a DBObject query into a Map of Datastore Query filters
+	 * e.g. { "field1" : { "$gte" : 1} }
 	 * 
 	 * @param query
 	 * @return
@@ -432,7 +433,7 @@ public class Mapper {
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new IllegalArgumentException("Invalid query");
+				throw new IllegalArgumentException("Invalid query: " + query.get(field));
 			}
 		}
 		return _ops;
