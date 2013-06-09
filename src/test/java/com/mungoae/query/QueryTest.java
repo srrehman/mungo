@@ -16,21 +16,22 @@ import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
-import com.mungoae.query.Query;
-import com.mungoae.query.Query.SortDirection;
+import com.mungoae.MungoCollection;
+import com.mungoae.collection.simple.BasicMungoCollection;
+import com.mungoae.query.DBQuery.SortDirection;
 
 public class QueryTest {
     private final LocalServiceTestHelper helper =
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
                 .setDefaultHighRepJobPolicyUnappliedJobPercentage(0)); 	   	
     Mungo mungo;
-    DBCollection coll;
+    MungoCollection coll;
     
     @Before
     public void setUp() {
         helper.setUp();
         mungo = new Mungo();
-        coll = mungo.getDB("TestDB").getCollection("TestCollection");
+        coll = new BasicMungoCollection("TestDB", "TestCollection");
         persistTestData();
     }
 
@@ -42,10 +43,9 @@ public class QueryTest {
 	@Test
 	public void testQueryNumbers() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Number >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		Query q = mungo.query("TestDB", "TestCollection");
-		Iterator<DBObject> it = q.filter("number").lessThanOrEqualTo(1).now();
-		while (it.hasNext()){
-			DBObject obj = it.next();
+		DBQuery result = coll.find().filter("number").lessThanOrEqualTo(1).now();
+		while (result.hasNext()){
+			DBObject obj = result.next();
 			l(obj);
 		}
 		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query Number <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
@@ -54,10 +54,10 @@ public class QueryTest {
 	@Test
 	public void testQueryStrings() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Strings >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		Query q = mungo.query("TestDB", "TestCollection");
-		Iterator<DBObject> it = q.filter("username").greaterThanOrEqualTo("a").sort(SortDirection.DESCENDING).limit(5).skip(1).now();  
-		while (it.hasNext()){
-			DBObject obj = it.next();
+		DBQuery result = coll.find()
+				.filter("username").greaterThanOrEqualTo("a").sort(SortDirection.DESCENDING).limit(5).skip(1).now();  
+		while (result.hasNext()){
+			DBObject obj = result.next();
 			l(obj);
 		}
 		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query Strings <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
@@ -66,15 +66,47 @@ public class QueryTest {
 	@Test
 	public void testQueryDate() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Date >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		Query q = mungo.query("TestDB", "TestCollection");
-		Iterator<DBObject> it = q.sort("created", SortDirection.DESCENDING).now();  
-		while (it.hasNext()){
-			DBObject obj = it.next();
+		DBQuery result = coll.find().sort("created", SortDirection.DESCENDING).now();  
+		while (result.hasNext()){
+			DBObject obj = result.next();
 			l(obj);
 		}
 		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query Date <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 	}	
 
+	@Test
+	public void testQueryMuti() {
+		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Multi >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+		DBQuery result = coll.find().filter("number").equalTo(11).now();
+		while (result.hasNext()){
+			DBObject obj = result.next();
+			l(obj);
+		}
+		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query Multi <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+	}	
+	
+	@Test
+	public void testQueryByIntegerID() {
+		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query By ID >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+		DBQuery result = coll.find().filter("_id").equalTo(123).now();
+		while (result.hasNext()){
+			DBObject obj = result.next();
+			l(obj);
+		}
+		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query By ID <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+	}
+	
+	@Test
+	public void testQueryByStringID() {
+		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query By String ID >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+		DBQuery result = coll.find().filter("_id").equalTo(456).now();
+		while (result.hasNext()){
+			DBObject obj = result.next();
+			l(obj);
+		}
+		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query By String ID <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+	}
+	
 	private void l(Object log){
 		System.out.print(String.valueOf(log) + "\n"); 
 	}
@@ -92,6 +124,16 @@ public class QueryTest {
 		coll.insert(new BasicDBObject("username", "irwin").append("number", 9).append("created", new Date(baseDate.getTime() + 9*60*60*1000)));
 		coll.insert(new BasicDBObject("username", "jack").append("number", 10).append("created", new Date(baseDate.getTime() + 10*60*60*1000)));
 		coll.insert(new BasicDBObject("username", "kirby").append("number", 11).append("created", new Date(baseDate.getTime() + 11*60*60*1000)));
+		coll.insert(new BasicDBObject("username", "lizi").append("number", 11).append("created", new Date(baseDate.getTime() + 12*60*60*1000)));
+		//coll.insert("{'username':'mary', 'number' : 12, 'created':'Jun 9, 2013 6:13:05 PM'}");
+		coll.insert("{\"username\":\"mary\", \"number\" : 12, \"created\":\"Jun 9, 2013 6:13:05 PM\"}");
+		coll.insert(new BasicDBObject("username", "nancy").append("number", 13)
+				.append("_id", 123)
+				.append("created", new Date(baseDate.getTime() + 14*60*60*1000)));
+		coll.insert(new BasicDBObject("username", "oliver").append("number", 14)
+				.append("_id", "456")
+				.append("created", new Date(baseDate.getTime() + 15*60*60*1000)));
+
 	}
 	
 }

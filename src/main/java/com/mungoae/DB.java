@@ -41,6 +41,7 @@ import com.google.appengine.api.datastore.Transaction;
 import com.google.common.base.Preconditions;
 import com.mungoae.collection.AbstractDBCollection;
 import com.mungoae.collection.simple.BasicDBCollection;
+import com.mungoae.collection.simple.BasicMungoCollection;
 import com.mungoae.object.KeyStructure;
 import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
@@ -312,4 +313,6 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
      * @return the collection
      */
     protected abstract DBCollection doGetCollection( String name );	
+    
+    
 }

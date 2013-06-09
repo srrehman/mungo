@@ -634,7 +634,13 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			Tuple<FilterOperator, Object> filterAndValue = query.get(propName);
 			FilterOperator operator = filterAndValue.getFirst();
 			Object value = filterAndValue.getSecond();
-			Filter filter = new FilterPredicate(propName, operator, value); 
+			Filter filter = null;
+			if (propName.equals("_id")){
+				filter = new FilterPredicate(Entity.KEY_RESERVED_PROPERTY, operator, 
+						KeyStructure.createKey(_collName, String.valueOf(value)));
+ 			} else {
+ 				filter = new FilterPredicate(propName, operator, value); 
+ 			}
 			Filter prevFilter = q.getFilter();
 			if (sorts.get(propName) != null){
 				q = new Query(_collName).setFilter(prevFilter).setFilter(filter)
@@ -643,32 +649,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			} else {
 				q = new Query(_collName).setFilter(prevFilter).setFilter(filter);
 			}
-			subFilters.add(filter);
+			subFilters.add(filter);			
 		}		
-		/*
-		while(sortIterator.hasNext()){
-			Map.Entry<String, Query.SortDirection> entry = sortIterator.next();
-			// Get previous sort and append it
-			List<SortPredicate> list = q.getSortPredicates();
-			if (list != null && !list.isEmpty()){
-				SortPredicate sp = list.get(0);
-				list.remove(0); // so the sort predicate does not accumulate
-				String prevField = sp.getPropertyName();
-				SortDirection prevDirection = sp.getDirection();	
-				Filter prevFilter = q.getFilter(); // this is the compositeFilter?
-				q = new Query(_collName)
-					//.setFilter(prevFilter) // this will be wiped out after the next iteration, so it will be copied to prevFilter
-					.addSort(prevField, prevDirection)
-					.addSort(entry.getKey(), entry.getValue());
-			
-			} else { // first time
-				q = new Query(_collName)
-					.setFilter(f)
-					.addSort(entry.getKey(), entry.getValue());	
-			}
-			LOG.debug("Added sort by " + entry.getKey());
-		}
-		*/
 		pq = _ds.prepare(q);
 		return pq.asIterator();
 	}	

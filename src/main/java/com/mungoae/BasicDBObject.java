@@ -79,19 +79,29 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	/**
 	 * Construct by JSON <code>String</code>
 	 * 
-	 * @param json
+	 * @param doc
 	 */
-	public BasicDBObject(String json){
-		Object obj = JSONValue.parse(json);
-		if (obj instanceof JSONObject){
-			putAll((Map) obj);
-		} else if(obj instanceof JSONArray){
-			throw new RuntimeException("Contructing from JSON array not yet supported");
-//			for (Object o : (JSONArray) obj){
-//				
-//			}
-		} else if(obj instanceof JSONValue){
-			throw new RuntimeException("Contructing from JSON value not yet supported");
+	@SuppressWarnings("unchecked")
+	public BasicDBObject(String doc){
+		try {
+			Object obj = JSONValue.parse(doc);
+			if (obj != null){
+				if (obj instanceof JSONObject){ 
+					putAll((Map<String,Object>) obj);
+				} else if(obj instanceof JSONArray){
+					throw new RuntimeException("Contructing from JSON array not yet supported");
+//					for (Object o : (JSONArray) obj){
+//						
+//					}
+				} else if(obj instanceof JSONValue){
+					throw new RuntimeException("Contructing from JSON value not yet supported");
+				}
+			} else {
+				throw new RuntimeException("Cannot parse document: " + doc);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
 		}
 	}
 	

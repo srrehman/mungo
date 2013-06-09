@@ -47,6 +47,7 @@ import com.mungoae.object.ObjectStore;
  * @author Kerby Martino<kerbymart@gmail.com>
  *
  */
+@Deprecated
 public abstract class DBCollection implements ParameterNames {
 	
 	private static Logger LOG = LogManager.getLogger(DBCollection.class.getName());

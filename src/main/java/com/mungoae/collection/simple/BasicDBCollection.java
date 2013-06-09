@@ -34,6 +34,7 @@ import com.mungoae.collection.WriteConcern;
 import com.mungoae.collection.WriteResult;
 import com.mungoae.util.BoundedIterator;
 
+@Deprecated
 public class BasicDBCollection extends DBCollection {
 	
 	private static Logger LOG = LogManager.getLogger(BasicDBCollection.class.getName());

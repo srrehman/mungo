@@ -31,6 +31,7 @@ public interface ParameterNames {
 	public static final String ADMIN_NAMESPACE = "Admin";
 	public static final String DATABASE_KIND = "Database";
 	public static final String COLLECTION_KIND = "Collection";
+	public static final String MUNGO_COLLECTION_KIND = "MungoCollection";
 	
 	public static final String DATABASE_NAME = "_dbName";	
 	public static final String COLLECTION_NAME = "_colName";
