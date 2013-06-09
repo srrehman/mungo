@@ -391,7 +391,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		 * Map of fields and its matching filter operator and compare value
 		 */
 		Map<String, Tuple<FilterOperator, Object>> filters
-			= Mapper.createOperatorObjectFrom(query);
+			= Mapper.createFilterOperatorObjectFrom(query);
 		
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
@@ -467,7 +467,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				sorts.put(key, direction);
 			}
 			final Iterator<Entity> eit  
-				= getSortedEntitiesLike(Mapper.createOperatorObjectFrom(query), sorts); 
+				= getSortedEntitiesLike(Mapper.createFilterOperatorObjectFrom(query), sorts); 
 			it = new Iterator<DBObject>() {
 				public void remove() {
 					eit.remove();
@@ -536,7 +536,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				throw new IllegalArgumentException("Increment operation only allowed for numbers");
 			}	
 		} else if (op == UpdateOperator.SET) {
-			return updateOp;
+			return updateOp.getSecond();
 		} else if (op == UpdateOperator.UNSET) {
 			return null;
 		} else if (op == UpdateOperator.PREFIX) {

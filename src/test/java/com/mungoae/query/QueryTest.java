@@ -107,6 +107,18 @@ public class QueryTest {
 		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query By String ID <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 	}
 	
+	@Test
+	public void testUpdateQuery() {
+		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Update query >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+		coll.update("{'username': 'kirby'}").with("{ '$set' : {'number': 123}}").now();
+		DBQuery result = coll.find().now();
+		while (result.hasNext()){
+			DBObject obj = result.next();
+			l(obj);
+		}
+		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Update query <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");		
+	}
+	
 	private void l(Object log){
 		System.out.print(String.valueOf(log) + "\n"); 
 	}
@@ -126,7 +138,7 @@ public class QueryTest {
 		coll.insert(new BasicDBObject("username", "kirby").append("number", 11).append("created", new Date(baseDate.getTime() + 11*60*60*1000)));
 		coll.insert(new BasicDBObject("username", "lizi").append("number", 11).append("created", new Date(baseDate.getTime() + 12*60*60*1000)));
 		//coll.insert("{'username':'mary', 'number' : 12, 'created':'Jun 9, 2013 6:13:05 PM'}");
-		coll.insert("{\"username\":\"mary\", \"number\" : 12, \"created\":\"Jun 9, 2013 6:13:05 PM\"}");
+		coll.insert("{'username':'mary', 'number' : 12, 'created':'Jun 9, 2013 6:13:05 PM'}");
 		coll.insert(new BasicDBObject("username", "nancy").append("number", 13)
 				.append("_id", 123)
 				.append("created", new Date(baseDate.getTime() + 14*60*60*1000)));

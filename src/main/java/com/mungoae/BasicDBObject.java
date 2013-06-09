@@ -26,10 +26,12 @@ import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.json.simple.parser.JSONParser;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.mungoae.serializer.XStreamGae;
+import com.mungoae.util.JSON;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 
@@ -83,25 +85,28 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	 */
 	@SuppressWarnings("unchecked")
 	public BasicDBObject(String doc){
+		doc = doc.replaceAll("'", "\"");
 		try {
-			Object obj = JSONValue.parse(doc);
+			Object obj = JSON.parse(doc);
 			if (obj != null){
-				if (obj instanceof JSONObject){ 
-					putAll((Map<String,Object>) obj);
-				} else if(obj instanceof JSONArray){
-					throw new RuntimeException("Contructing from JSON array not yet supported");
-//					for (Object o : (JSONArray) obj){
-//						
-//					}
-				} else if(obj instanceof JSONValue){
-					throw new RuntimeException("Contructing from JSON value not yet supported");
+				if (obj instanceof DBObject){
+					putAll(((BasicDBObject)obj).toMap());
 				}
-			} else {
-				throw new RuntimeException("Cannot parse document: " + doc);
 			}
+//			if (obj != null){
+//				if (obj instanceof JSONObject){ 
+//					// TODO - JSONObject is being stored
+//					putAll((Map<String,Object>) obj);
+//				} else if(obj instanceof JSONArray){
+//					throw new RuntimeException("Contructing from JSON array not yet supported");
+//				} else if(obj instanceof JSONValue){
+//					throw new RuntimeException("Contructing from JSON value not yet supported");
+//				}
+//			} else {
+//				throw new RuntimeException("Cannot parse document: " + doc);
+//			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new RuntimeException(e.getMessage());
 		}
 	}
 	

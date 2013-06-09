@@ -1,6 +1,7 @@
 package com.mungoae;
 
 import java.util.List;
+import java.util.Map;
 
 import com.mungoae.query.Result;
 import com.mungoae.query.DBQuery;
@@ -39,4 +40,59 @@ public abstract class MungoCollection {
 		return _databaseName;
 	}
 	
+    /**
+     * Check for invalid key names
+     * @param s the string field/key to check
+     * @exception IllegalArgumentException if the key is not valid.
+     */
+    private void validateKey(String s) {
+        if ( s.contains( "." ) )
+            throw new IllegalArgumentException( "fields stored in the db can't have . in them. (Bad Key: '" + s + "')" );
+        if ( s.startsWith( "$" ) )
+            throw new IllegalArgumentException( "fields stored in the db can't start with '$' (Bad Key: '" + s + "')" );
+    }  	
+	protected DBObject _checkObject(DBObject o, boolean canBeNull, boolean query){
+		if ( o == null ){
+            if ( canBeNull )
+                return null;
+            throw new IllegalArgumentException( "can't be null" );
+        }
+        if ( ! query ){
+            _checkKeys(o);
+        }
+        return o;
+	}
+	
+	/**
+     * Checks key strings for invalid characters.
+     */
+    private void _checkKeys( DBObject o ) {
+        if ( o instanceof BasicDBObject || o instanceof BasicDBList )
+            return;    	
+
+        for ( String s : o.keySet() ){
+            validateKey ( s );
+            Object inner = o.get( s );
+            if ( inner instanceof DBObject ) {
+                _checkKeys( (DBObject)inner );
+            } else if ( inner instanceof Map ) {
+                _checkKeys( (Map<String, Object>)inner );
+            }
+        }
+    }	
+    
+    /**
+     * Checks key strings for invalid characters.
+     */
+    private void _checkKeys( Map<String, Object> o ) {
+        for ( String s : o.keySet() ){
+            validateKey ( s );
+            Object inner = o.get( s );
+            if ( inner instanceof DBObject ) {
+                _checkKeys( (DBObject)inner );
+            } else if ( inner instanceof Map ) {
+                _checkKeys( (Map<String, Object>)inner );
+            }
+        }
+    }	
 }

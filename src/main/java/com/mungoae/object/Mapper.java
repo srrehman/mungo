@@ -29,6 +29,8 @@ import com.mungoae.DBObject;
 import com.mungoae.common.SerializationException;
 import com.mungoae.operators.OpDecode;
 import com.mungoae.operators.Operator;
+import com.mungoae.query.UpdateQuery;
+import com.mungoae.query.UpdateQuery.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
 import com.mungoae.util.Tuple;
@@ -418,7 +420,7 @@ public class Mapper {
 	 * @param query
 	 * @return
 	 */
-	public static Map<String, Tuple<FilterOperator, Object>> createOperatorObjectFrom(
+	public static Map<String, Tuple<FilterOperator, Object>> createFilterOperatorObjectFrom(
 			DBObject query){ 
 		Map<String, Tuple<FilterOperator, Object>> _ops = new HashMap<String, Tuple<FilterOperator, Object>>();
 		// Iterate over all the fields
@@ -437,5 +439,34 @@ public class Mapper {
 			}
 		}
 		return _ops;
+	}
+	
+	@SuppressWarnings("unused")
+	public static Map<String, Tuple<UpdateOperator, Object>> createUpdateOperatorFrom(DBObject query) {
+		LOG.debug("Creating update operator from query: " + query);
+		Map<String, Tuple<UpdateOperator, Object>> result = null;
+		Iterator<String> it = query.keySet().iterator();
+		while(it.hasNext()){
+			if (result == null){
+				result = new HashMap<String, Tuple<UpdateOperator, Object>>();
+			}
+			String operatorField = it.next();
+			Object fieldValue = query.get(operatorField);
+			//System.out.println(fieldValue.getClass().getName());
+			if (fieldValue != null && fieldValue instanceof DBObject){
+				BasicDBObject dbo = (BasicDBObject) fieldValue;
+				Iterator<String> _it = dbo.keySet().iterator();
+				while (_it.hasNext()){ // Get the field and value for this current operation
+					String field = _it.next();
+					Object value = dbo.get(field);
+					result.put(field, new Tuple<UpdateQuery.UpdateOperator, Object>(OpDecode.parseUpdateFilterFrom(operatorField), value));
+				}
+			}
+		}
+		return result;
+	}
+	
+	private static Map<String,Object> replaceJSONwithDBOBject(Map<String,Object> obj){
+		return null;
 	}
 }
