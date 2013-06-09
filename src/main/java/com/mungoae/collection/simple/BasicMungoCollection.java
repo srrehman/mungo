@@ -30,14 +30,13 @@ public class BasicMungoCollection extends MungoCollection {
 	}
 
 	@Override
-	public DBQuery find() {
+	public DBQuery find() {	
 		return new BasicDBQuery(this); 
 	}
 
 	@Override
 	public DBQuery find(String query) {
-		// TODO Auto-generated method stub
-		return null;
+		return new BasicDBQuery(this, query);
 	}
 
 	@Override

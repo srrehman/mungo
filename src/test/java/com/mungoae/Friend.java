@@ -18,8 +18,14 @@ public class Friend {
 		public void setAddress(String address) {
 			this.address = address;
 		}
+		
+		@Override
+		public String toString() {
+			return "[" + address + "]";
+		}
 	}
 	
+	public String id;
 	public String name;
 	public Integer age;
 	public Address address;
@@ -53,5 +59,13 @@ public class Friend {
 
 	public void setAge(Integer age) {
 		this.age = age;
+	}
+	
+	@Override
+	public String toString() {
+		return "Friend id=" + id 
+				+" name="+name
+				+" age=" + age
+				+" address=" + address;
 	}
 }

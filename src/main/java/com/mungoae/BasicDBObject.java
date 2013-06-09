@@ -187,7 +187,7 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 			//}
 			return obj;
 		} catch (Exception e) {
-			LOG.error("Exception in getting DBObject as type=" + clazz.getName() + " : " + e.getMessage());
+			LOG.error("Exception in transform of DBObject as type=" + clazz.getName() + " : " + e.getMessage());
 			throw new RuntimeException(e);
 		}
 	}

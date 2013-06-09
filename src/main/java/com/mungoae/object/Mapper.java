@@ -23,6 +23,8 @@ import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.common.base.Preconditions;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
@@ -420,18 +422,25 @@ public class Mapper {
 	 * @param query
 	 * @return
 	 */
-	public static Map<String, Tuple<FilterOperator, Object>> createFilterOperatorObjectFrom(
-			DBObject query){ 
+	public static Map<String, Tuple<FilterOperator, Object>> createFilterOperatorObjectFrom(DBObject query){ 
 		Map<String, Tuple<FilterOperator, Object>> _ops = new HashMap<String, Tuple<FilterOperator, Object>>();
 		// Iterate over all the fields
 		for (String field : query.keySet()){
 			try {
-				Object operator = (Object) query.get(field);
-				LOG.debug("Operator="+operator);
-				for (String op : ((DBObject)operator).keySet()){
-					// e.g { "$gte" : 10 } 
-					Object compareValue = ((DBObject)operator).get(op);
-					_ops.put(field, new Tuple<Query.FilterOperator, Object>(OpDecode.parseFilterFrom(op), compareValue));   
+				Object operatorOrValue = (Object) query.get(field);
+				LOG.debug("Operator="+operatorOrValue);
+				if (operatorOrValue instanceof String 
+						|| operatorOrValue instanceof Boolean
+						|| operatorOrValue instanceof Number
+						|| operatorOrValue instanceof Date){
+					// then just do, equality operator
+					_ops.put(field, new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, operatorOrValue));   
+				} else if (operatorOrValue instanceof DBObject) {
+					for (String op : ((DBObject)operatorOrValue).keySet()){
+						// e.g { "$gte" : 10 } 
+						Object compareValue = ((DBObject)operatorOrValue).get(op);
+						_ops.put(field, new Tuple<Query.FilterOperator, Object>(OpDecode.parseFilterFrom(op), compareValue));   
+					}	
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -468,5 +477,30 @@ public class Mapper {
 	
 	private static Map<String,Object> replaceJSONwithDBOBject(Map<String,Object> obj){
 		return null;
+	}
+	
+	/**
+	 * Construct a new object of type T from a given <code>Map</code> 
+	 * 
+	 * @param clazz
+	 * @param toConvert
+	 * @return
+	 */
+	public static <T> T createTObject(Class<T> clazz, Map<String,Object> toConvert){
+		if (toConvert.get("_id")!=null){
+			Object id = toConvert.get("_id");
+			toConvert.remove("_id");
+			toConvert.put("id", id);
+		}
+		T obj = null;
+		Gson gson = new Gson();
+		try {
+			obj = gson.fromJson(gson.toJson(toConvert), clazz);
+		} catch (JsonSyntaxException e) {
+			LOG.error("Cannot create object because JSON string is malformed");
+		} catch(Exception e) {
+			LOG.error("Some other error occurred when trying to deserialize JSON string");
+		}
+		return obj;		
 	}
 }

@@ -5,9 +5,11 @@ import java.util.Iterator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.mungoae.BasicDBObject;
 import com.mungoae.DBObject;
 import com.mungoae.MungoCollection;
 import com.mungoae.collection.simple.DBApiLayer;
+import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.util.BoundedIterator;
 
@@ -26,6 +28,25 @@ public class BasicDBQuery extends DBQuery {
 	public BasicDBQuery(MungoCollection collection){
 		super(collection);
 		LOG.info("Inialize DBCollection: " + collection.getName());
+		
+		// initially set the iterator to 
+		// point to all object
+		_it = ObjectStore.get(_collection.getDatabaseName(), 
+				_collection.getName()).getObjects();
+
+	}
+	
+	/**
+	 * Build DBQuery from query string
+	 * 
+	 * @param collection
+	 * @param query
+	 */
+	public BasicDBQuery(MungoCollection collection, String query){
+		super(collection);
+		LOG.info("Inialize DBCollection: " + collection.getName());
+		BasicDBObject dbquery = new BasicDBObject(query);
+		_filters = Mapper.createFilterOperatorObjectFrom(dbquery);
 	}
 	
 	/**
@@ -35,16 +56,8 @@ public class BasicDBQuery extends DBQuery {
 	 */
 	@Override
 	public DBQuery now() {
-		Iterator<DBObject> it = ObjectStore.get(_collection.getDatabaseName(), _collection.getName()).queryObjects(_filters, _sorts); 
-		if (_max != null){
-			if (_numToSkip != null){
-				_it = new BoundedIterator<DBObject>(_numToSkip, _max, it);
-			} else {
-				_it = new BoundedIterator<DBObject>(0, _max, it); 
-			}
-		} else {
-			_it = it; 
-		}
+		_it = ObjectStore.get(_collection.getDatabaseName(), 
+				_collection.getName()).queryObjects(_filters, _sorts, _numToSkip, _max); 
 		return this;
 	}
 	
@@ -129,8 +142,33 @@ public class BasicDBQuery extends DBQuery {
 
 	@Override
 	public <T> Iterable<T> as(Class<T> clazz) {
+		_internalClass = clazz;
+		final Iterator<DBObject> it = ObjectStore.get(_collection.getDatabaseName(), 
+				_collection.getName()).queryObjects(_filters, _sorts); 
 		
-		return null;
+		final Iterator<T> copy = new Iterator<T>() {
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+			@Override
+			public T next() {
+				DBObject source = it.next();
+				return (T) Mapper.createTObject(_internalClass, source.toMap());
+			}
+			@Override
+			public void remove() {
+				it.remove();				
+			}
+		};
+		
+		Iterable<T> result = new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				return copy;
+			}
+		};
+		return result;
 	}
 
 	@Override

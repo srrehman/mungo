@@ -25,6 +25,8 @@ public abstract class DBQuery implements Iterable<DBObject>,
 	
 	protected Iterator<DBObject> _it = null;
 	
+	protected Class _internalClass;
+	
 	public enum SortDirection { 
 		ASCENDING(1), DESCENDING(-1);
 		private final int dir;
