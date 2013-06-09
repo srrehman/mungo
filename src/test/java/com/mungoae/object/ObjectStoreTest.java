@@ -119,7 +119,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow"));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").getObjectsLike(new BasicDBObject("hi", 
+			= ObjectStore.get("db", "coll").queryObjectsLike(new BasicDBObject("hi", 
 					new BasicDBObject("$gte", "there")));
 		
 		assertNotNull(it);
@@ -145,7 +145,7 @@ public class ObjectStoreTest {
 		DBObject query = new BasicDBObject("title", new BasicDBObject("$e", "sample1"))
 				.append("count", new BasicDBObject("$e", 1)); 
 		
-		Iterator<DBObject> it = ObjectStore.get("db", "coll").getObjectsLike(query);
+		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjectsLike(query);
 		
 		assertNotNull(it);
 		while(it.hasNext()){
@@ -167,7 +167,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("will not be", "fetched"));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").getSortedObjectsLike(
+			= ObjectStore.get("db", "coll").querySortedObjectsLike(
 					new BasicDBObject("count", new BasicDBObject("$gte", 2)),  
 					new BasicDBObject("count", -1));
 		
@@ -198,7 +198,7 @@ public class ObjectStoreTest {
 				.append("count", 1)); 
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").getSortedObjectsLike(
+			= ObjectStore.get("db", "coll").querySortedObjectsLike(
 					new BasicDBObject("count", new BasicDBObject("$gte", 2))
 						.append("number", new BasicDBObject("$gte", 1)),  
 					new BasicDBObject("count", -1).append("number", -1)); 
@@ -244,7 +244,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").getSortedObjects(new BasicDBObject("count", -1));
+			= ObjectStore.get("db", "coll").querySortedObjects(new BasicDBObject("count", -1));
 		assertNotNull(it);
 		while(it.hasNext()){
 			DBObject obj = it.next();

@@ -142,7 +142,7 @@ public class GAEObject {
 				}
 			} else {
 				Preconditions.checkNotNull(_query, "Query cannot be null");
-				Iterator<DBObject> it = store().getObjectsLike(_query);
+				Iterator<DBObject> it = store().queryObjectsLike(_query);
 				if (it.hasNext()){
 					//_curr = new DBCursor(it);
 				}

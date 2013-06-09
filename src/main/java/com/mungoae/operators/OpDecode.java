@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.object.ObjectStore;
+import com.mungoae.query.UpdateQuery.UpdateOperator;
 /**
  * Operator decoder. Decodes a given string operator (e.g. "$gte")
  * and returns the corresponding Datastore <code>FilterOperator</code>
@@ -15,7 +16,7 @@ import com.mungoae.object.ObjectStore;
 public class OpDecode {
 	private static Logger LOG = LogManager.getLogger(OpDecode.class.getName());
 
-	public static FilterOperator get(String filter) {
+	public static FilterOperator parseFilterFrom(String filter) {
 		LOG.debug("Get operator [" + filter + "]");
 //		if (filter.equals(Operator.GREATER_THAN_OR_EQUAL.toString())){
 //			return FilterOperator.GREATER_THAN_OR_EQUAL;
@@ -37,5 +38,24 @@ public class OpDecode {
 		}else {
 			throw new IllegalArgumentException("Invalid operator: " + filter);
 		}
+	}
+	
+	public static UpdateOperator parseUpdateFilterFrom(String filter){
+		LOG.debug("Get update operator [" + filter + "]");
+		if (filter.equals("$inc")){
+			return UpdateOperator.INCREMENT;
+		} else if (filter.equals("$dec")) {
+			return UpdateOperator.DECREMENT;
+		} else if (filter.equals("$set")) {
+			return UpdateOperator.SET;
+		} else if (filter.equals("$uset")) {
+			return UpdateOperator.UNSET;
+		} else if (filter.equals("$pre")) {
+			return UpdateOperator.PREFIX;
+		} else if (filter.equals("$suf")) {
+			return UpdateOperator.SUFFIX;
+		} else {
+			throw new IllegalArgumentException("Invalid operator: " + filter);
+		}		
 	}
 }

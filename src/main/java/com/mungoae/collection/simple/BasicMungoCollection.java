@@ -33,9 +33,8 @@ public class BasicMungoCollection extends MungoCollection {
 	}
 
 	@Override
-	public Result findOne(Object id) {
-		// TODO Auto-generated method stub
-		return null;
+	public DBObject findOne(Object id) {
+		return _store.getObjectById(id);
 	}
 
 	@Override
@@ -84,15 +83,14 @@ public class BasicMungoCollection extends MungoCollection {
 	}
 
 	@Override
-	public void remove(Object id) {
-		// TODO Auto-generated method stub
-		
+	public boolean remove(Object id) {
+		return _store.deleteObject(id);
 	}
 
 	@Override
-	public void remove(String query) {
+	public boolean remove(String query) {
 		// TODO Auto-generated method stub
-		
+		return false;
 	}
 
 

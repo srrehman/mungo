@@ -429,7 +429,7 @@ public class Mapper {
 				for (String op : ((DBObject)operator).keySet()){
 					// e.g { "$gte" : 10 } 
 					Object compareValue = ((DBObject)operator).get(op);
-					_ops.put(field, new Tuple<Query.FilterOperator, Object>(OpDecode.get(op), compareValue));   
+					_ops.put(field, new Tuple<Query.FilterOperator, Object>(OpDecode.parseFilterFrom(op), compareValue));   
 				}
 			} catch (Exception e) {
 				e.printStackTrace();

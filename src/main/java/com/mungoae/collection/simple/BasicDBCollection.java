@@ -175,14 +175,14 @@ public class BasicDBCollection extends DBCollection {
 			LOG.info("Query object=" + query);
 			if (orderby != null && orderby.toMap().size() != 0){
 				LOG.info("Sort object=" + orderby);
-				it = _store.getSortedObjectsLike(query, orderby);
+				it = _store.querySortedObjectsLike(query, orderby);
 			} else {
-				it = _store.getObjectsLike(query);
+				it = _store.queryObjectsLike(query);
 			}		
 		} else {
 			if (orderby != null && orderby.toMap().size() != 0){
 				LOG.info("Sort object=" + orderby);
-				it = _store.getSortedObjects(orderby);
+				it = _store.querySortedObjects(orderby);
 			} else { // query and orderby are both null
 				if (id != null){
 					// TODO

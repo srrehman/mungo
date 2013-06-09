@@ -35,8 +35,10 @@ import com.mungoae.DBObject;
 import com.mungoae.ParameterNames;
 import com.mungoae.collection.AbstractDBCollection;
 import com.mungoae.common.SerializationException;
+import com.mungoae.query.UpdateQuery.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
+import com.mungoae.util.BoundedIterator;
 import com.mungoae.util.Tuple;
 
 /**
@@ -161,6 +163,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
+	@Deprecated
 	public DBObject getObject(DBObject id){
 		Preconditions.checkNotNull(id, "Null id object");
 		Preconditions.checkNotNull(id.get("_id"), "ID cannot be null");
@@ -184,6 +187,29 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		LOG.debug("Returning null DBObject");
 		return obj;
 	}	
+	
+	public DBObject getObjectById(Object id){
+		Preconditions.checkNotNull(id, "Null id object");
+		
+		DBObject obj = null;
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		try {
+			Map<String, Object> map = getEntityBy(KeyStructure.createKey(_collName, 
+					createStringIdFromObject(id)));
+			if (map != null){
+				obj = new BasicDBObject(map);
+			}
+		} catch (Exception e) {
+			LOG.error("Error: " + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}		
+		LOG.debug("Returning null DBObject");
+		return obj;		
+	}
 
 	/**
 	 * Check if object exist
@@ -334,6 +360,19 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return it;				
 	}
 	
+	public Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters,
+			Map<String, Query.SortDirection> sorts, Integer _numToSkip, Integer _max){
+		Iterator<DBObject> _it = queryObjects(filters, sorts);
+		if (_max != null){
+			if (_numToSkip != null){
+				return new BoundedIterator<DBObject>(_numToSkip, _max, _it);
+			} else {
+				return new BoundedIterator<DBObject>(0, _max, _it); 
+			}
+		} 
+		return _it;
+	}
+	
 	/**
 	 * Get the <code>DBObject</code>s that matches all
 	 * of the fields in the object.
@@ -342,7 +381,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param collection
 	 * @return
 	 */
-	public Iterator<DBObject> getObjectsLike(DBObject query){
+	public Iterator<DBObject> queryObjectsLike(DBObject query){
 		Preconditions.checkNotNull(query, "Query object cannot be null");
 		if (query.keySet().isEmpty()){
 			LOG.debug("Empty query object");
@@ -408,7 +447,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param orderby
 	 * @return
 	 */
-	public Iterator<DBObject> getSortedObjectsLike(DBObject query, DBObject orderby){
+	public Iterator<DBObject> querySortedObjectsLike(DBObject query, DBObject orderby){
 		Preconditions.checkNotNull(query, "Reference object cannot be null");
 		validateQuery(query);
 		String oldNamespace = NamespaceManager.get();
@@ -455,9 +494,71 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	}	
 	
 	
+	public void updateObjects(Map<String, Tuple<FilterOperator, Object>> filters, // Object to get
+			Map<String, Tuple<UpdateOperator, Object>> updates){ // Updates to perform
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		try {
+			Iterator<Entity> it = getEntitiesLike(filters);
+			while(it.hasNext()){
+				Entity e = it.next();
+				Set<String> properties = e.getProperties().keySet();
+				for (String prop : properties){
+					if(updates.get(prop) != null){
+						// Perform the update
+						Object value = e.getProperty(prop);
+						e.setProperty(prop, doUpdateOperation(value, updates.get(prop))); 
+					}
+				}
+				_ds.put(e); // update
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}
+	}
+	
+	private Object doUpdateOperation(Object value, Tuple<UpdateOperator, Object> updateOp){
+		UpdateOperator op = updateOp.getFirst();
+		Object opValue = updateOp.getSecond();
+		if (op == UpdateOperator.INCREMENT){
+			if (value instanceof Number && opValue instanceof Number){
+				return (Long) value + (Long) opValue;
+			} else {
+				throw new IllegalArgumentException("Increment operation only allowed for numbers");
+			}
+		} else if (op == UpdateOperator.DECREMENT){
+			if (value instanceof Number && opValue instanceof Number){
+				return (Long) value - (Long) opValue;
+			} else {
+				throw new IllegalArgumentException("Increment operation only allowed for numbers");
+			}	
+		} else if (op == UpdateOperator.SET) {
+			return updateOp;
+		} else if (op == UpdateOperator.UNSET) {
+			return null;
+		} else if (op == UpdateOperator.PREFIX) {
+			if (value instanceof String && opValue instanceof String){
+				return  (String) opValue + (String) value;
+			} else {
+				throw new IllegalArgumentException("Prefix/Append operation is only allowed for strings");
+			}	
+		} else if (op == UpdateOperator.SUFFIX) {
+			if (value instanceof String && opValue instanceof String){
+				return  (String) value + (String) opValue;
+			} else {
+				throw new IllegalArgumentException("Prefix/Append operation is only allowed for strings");
+			}		
+		}
+		return null;
+	}
+	
+	
 	// Helper get method
 	public DBObject getFirstObjectLike(DBObject obj){
-		Iterator<DBObject> it = getObjectsLike(obj);
+		Iterator<DBObject> it = queryObjectsLike(obj);
 		if (it != null)
 			return it.next();
 		return null;
@@ -494,7 +595,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	}
 	
 	// FIXME - Method is returning null always
-	public Iterator<DBObject> getSortedObjects(DBObject orderby) {
+	public Iterator<DBObject> querySortedObjects(DBObject orderby) {
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		Iterator<DBObject> it = null;
@@ -540,22 +641,9 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return it;
 	}
 	
-	/**
-	 * Delete the object from this DB under the given collection
-	 * 
-	 * @param query
-	 * @param collection
-	 * @return
-	 */
-	public boolean deleteObject(DBObject query){
-		Preconditions.checkNotNull(query, "Reference object cannot be null");
-		if (query.get(ID) == null){
-			throw new IllegalArgumentException("Can't delete from query object without id");
-		} 
-		if (query.keySet().isEmpty()){
-			throw new IllegalArgumentException("Empty query object");
-		}
-		String id = createStringIdFromObject(query.get(ID));
+	public boolean deleteObject(Object _id){
+		Preconditions.checkNotNull(_id, "Null ID");
+		String id = createStringIdFromObject(_id);
 		LOG.debug("Deleting document with id="+ id);
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
@@ -569,8 +657,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);
 		}		
-		return false;
-	}	
+		return false;		
+	}
 
 	/**
 	 * Get a list of entities that matches the properties of a given 

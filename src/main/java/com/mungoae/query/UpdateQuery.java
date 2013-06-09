@@ -8,7 +8,9 @@ import com.mungoae.util.Tuple;
 public class UpdateQuery {
 
 	public enum UpdateOperator {
-		INCREMENT, DECREMENT
+		INCREMENT, DECREMENT,
+		SET, UNSET,
+		PREFIX, SUFFIX
 	}
 	
 	private boolean _multi = false;
