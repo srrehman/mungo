@@ -30,6 +30,7 @@ import org.json.simple.parser.JSONParser;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.mungoae.object.Mapper;
 import com.mungoae.serializer.XStreamGae;
 import com.mungoae.util.JSON;
 import com.thoughtworks.xstream.XStream;
@@ -87,6 +88,7 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	public BasicDBObject(String doc){
 		doc = doc.replaceAll("'", "\"");
 		try {
+//			Object obj = JSON.parse(doc);
 			Object obj = JSON.parse(doc);
 			if (obj != null){
 				if (obj instanceof DBObject){
@@ -175,16 +177,13 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	 * @param clazz
 	 * @return
 	 */
+	// For use as in:
+	// Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
+	// Friend one = friends.findOne("{name: 'Joe'}").as(Friend.class);
 	@Override
 	public <T> T as(Class<T> clazz){
-		// For use as in:
-		// Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
-		// Friend one = friends.findOne("{name: 'Joe'}").as(Friend.class);
 		try {
-			T obj = createTObject(clazz);
-			//if (obj == null){ // Try with XStream
-			//	obj = createTObjectWithXStream(clazz);
-			//}
+			T obj = (T) Mapper.createTObject(clazz, this.toMap());
 			return obj;
 		} catch (Exception e) {
 			LOG.error("Exception in transform of DBObject as type=" + clazz.getName() + " : " + e.getMessage());
@@ -241,12 +240,12 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 		_isPartialObject = true;		
 	}
 	
-	@Override
-	public String toString() {
-		Object id = get("_id");
-		if (id instanceof ObjectId){
-			put("_id", "ObjectId(" + ((ObjectId) id).toStringMongod() + ")");
-		}
-		return super.toString();
-	}
+//	@Override
+//	public String toString() {
+//		Object id = get("_id");
+//		if (id instanceof ObjectId){
+//			put("_id", "ObjectId(" + ((ObjectId) id).toStringMongod() + ")");
+//		}
+//		return super.toString();
+//	}
 }
