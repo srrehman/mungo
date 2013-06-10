@@ -423,6 +423,7 @@ public class Mapper {
 	 * @return
 	 */
 	public static Map<String, Tuple<FilterOperator, Object>> createFilterOperatorObjectFrom(DBObject query){ 
+		Preconditions.checkNotNull(query, "Cannot convert null query object to filter object");
 		Map<String, Tuple<FilterOperator, Object>> _ops = new HashMap<String, Tuple<FilterOperator, Object>>();
 		// Iterate over all the fields
 		for (String field : query.keySet()){

@@ -1,5 +1,6 @@
 package com.mungoae;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -8,6 +9,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.appengine.labs.repackaged.com.google.common.base.Preconditions;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.query.DBQueryFilter;
@@ -20,14 +22,18 @@ public class DBCursor implements Iterable<DBObject>,
 
 	
 	protected DBCollection _collection;
+	
+	// Filter and sorts used by wired query
 	protected Map<String, Tuple<FilterOperator, Object>> _filters;
 	protected Map<String, Tuple<FilterOperator, Object>> _orFilters;
 	protected Map<String, Tuple<FilterOperator, Object>> _andFilters;
-	
 	protected Map<String, com.google.appengine.api.datastore.Query.SortDirection> _sorts; 
+	
 	protected String _field = null;
 	protected Integer _max = null;
 	protected Integer _numToSkip = null;
+	protected Integer _fetchSize = null;
+	protected Integer _options = null;
 	
 	protected Iterator<DBObject> _it = null;
 	
@@ -43,18 +49,6 @@ public class DBCursor implements Iterable<DBObject>,
 			return dir;
 		}
 	}
-	
-//	public abstract DBCursor or(Object value);
-//	public abstract DBCursor and(Object value);
-//	public abstract DBQueryFilter filter(String field);
-//	public abstract DBCursor sort(DBCursor.SortDirection direction);
-//	public abstract DBCursor sort(DBObject sort);
-//	public abstract DBCursor sortAscending(String field);
-//	public abstract DBCursor sortDescending(String field);
-//	public abstract DBCursor sort(String field, DBCursor.SortDirection direction);
-//	public abstract DBCursor limit(int max);
-//	public abstract DBCursor skip(int numToSkip);
-//	public abstract DBCursor now();
 	
 	public DBCursor(DBCollection collection){
 		LOG.info("Inialize DBCollection: " + collection.getName());
@@ -79,6 +73,9 @@ public class DBCursor implements Iterable<DBObject>,
 	
 	public DBCursor(DBCollection coll, DBObject query, DBObject field) { 
 		LOG.info("Inialize DBCollection: " + coll.getName());
+		if (query == null){
+			query = new BasicDBObject();
+		} 
 		_collection = coll;
 		_filters = Mapper.createFilterOperatorObjectFrom(query);
 	}
@@ -150,12 +147,37 @@ public class DBCursor implements Iterable<DBObject>,
 	}
 	
 	public DBCursor sort(String field, DBCursor.SortDirection direction){
+		Preconditions.checkNotNull(field, "Cannot sort null document field");
+		Preconditions.checkNotNull(field, "Cannot sort null sort direction");
+		if (_sorts == null){
+			_sorts = new HashMap<String, com.google.appengine.api.datastore.Query.SortDirection>();
+		}
 		if (direction == DBCursor.SortDirection.ASCENDING){
 			_sorts.put(field, com.google.appengine.api.datastore.Query.SortDirection.ASCENDING);
 		} else if (direction == DBCursor.SortDirection.DESCENDING) {
 			_sorts.put(field, com.google.appengine.api.datastore.Query.SortDirection.DESCENDING);
 		}
 		return this;		
+	}
+	
+	public DBCursor sortAscending(String field) {
+		sort(field, SortDirection.ASCENDING);
+		return this;
+	}
+
+	
+	public DBCursor sortDescending(String field) {
+		sort(field, SortDirection.DESCENDING);
+		return this;
+	}
+
+	
+	public DBCursor sort(DBObject sort) {
+		//Map.Entry<String, String> entry = sort.entrySet().iterator().next();
+		String key = sort.keySet().iterator().next();
+		Object value = sort.get(key);
+		return sort(key, 
+				value == Integer.valueOf(1) ? SortDirection.ASCENDING : SortDirection.DESCENDING); 
 	}
 	
 	/**
@@ -230,30 +252,10 @@ public class DBCursor implements Iterable<DBObject>,
 
 	// If the iterator is null, create 
 	// a new iterator to all documents
-	
 	public void _check() {
 		if (_it == null){ 
-			_it = _collection.__find(null, null, 0, 0, 0, 0);
+			_it = _collection.__find(_filters, _sorts, _numToSkip, _max, _fetchSize, _options); 
 		}
 	}
-
-	
-	public DBCursor sortAscending(String field) {
-		sort(field, SortDirection.ASCENDING);
-		return this;
-	}
-
-	
-	public DBCursor sortDescending(String field) {
-		sort(field, SortDirection.DESCENDING);
-		return this;
-	}
-
-	
-	public DBCursor sort(DBObject sort) {
-		//sort(JSON.serialize(sort));
-		return null;
-	}
-
 
 }

@@ -4,7 +4,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.query.UpdateQuery;
+import com.mungoae.util.Tuple;
 
 public abstract class DBCollection {
 	
@@ -37,6 +39,11 @@ public abstract class DBCollection {
 	
 	public abstract Iterator<DBObject> __find(DBObject ref, DBObject fields, 
 			int numToSkip , int batchSize , int limit, int options);
+
+	protected abstract Iterator<DBObject> __find(
+			Map<String, Tuple<FilterOperator, Object>> filters, 
+			Map<String, com.google.appengine.api.datastore.Query.SortDirection> sorts,
+			Integer numToSkip , Integer batchSize , Integer limit, Integer options);
 	
 	
     /**

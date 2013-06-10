@@ -46,6 +46,8 @@ public class DBCursorTest {
 		DBCollection coll = mungo.getDB("TestDB").getCollection("DBCursorTest");
 		
 		persistTestData();
+		
+		assertNotNull(coll);
 
 		DBCursor cursor = new DBCursor(coll, 
 				null, // Reference object

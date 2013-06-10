@@ -11,6 +11,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.appengine.api.datastore.Query.SortDirection;
 import com.google.common.base.Preconditions;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DB;
@@ -243,6 +244,14 @@ public class BasicMungoCollection extends DBCollection {
 	private void dataCleansing(DBObject obj){
 		obj.removeField("$query");
 		obj.removeField("$orderby");
+	}
+
+	@Override
+	protected Iterator<DBObject> __find(
+			Map<String, Tuple<FilterOperator, Object>> filters,
+			Map<String, SortDirection> sorts, Integer numToSkip, Integer limit,
+			Integer batchSize, Integer options) {
+		return _store.queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
 	}
 
 
