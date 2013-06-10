@@ -1,4 +1,4 @@
-package com.mungoae;
+package com.mungoae.models;
 
 import com.mungoae.BasicDBObject;
 
