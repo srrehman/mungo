@@ -251,6 +251,7 @@ public class BasicMungoCollection extends DBCollection {
 			Map<String, Tuple<FilterOperator, Object>> filters,
 			Map<String, SortDirection> sorts, Integer numToSkip, Integer limit,
 			Integer batchSize, Integer options) {
+		LOG.debug("Applying filters to query="+filters);
 		return _store.queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
 	}
 

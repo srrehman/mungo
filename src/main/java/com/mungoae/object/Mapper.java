@@ -35,6 +35,7 @@ import com.mungoae.query.UpdateQuery;
 import com.mungoae.query.UpdateQuery.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
+import com.mungoae.util.JSON;
 import com.mungoae.util.Tuple;
 
 public class Mapper {
@@ -440,18 +441,23 @@ public class Mapper {
 						|| operatorOrValue instanceof Date){
 					// then just do, equality operator
 					_ops.put(field, new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, operatorOrValue));   
+				} else if (operatorOrValue instanceof ObjectId) {
+					String objectString = ((ObjectId)operatorOrValue).toStringMongod();
+					_ops.put(field, new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, objectString));   
 				} else if (operatorOrValue instanceof DBObject) {
 					for (String op : ((DBObject)operatorOrValue).keySet()){
 						// e.g { "$gte" : 10 } 
 						Object compareValue = ((DBObject)operatorOrValue).get(op);
 						_ops.put(field, new Tuple<Query.FilterOperator, Object>(OpDecode.parseFilterFrom(op), compareValue));   
 					}	
-				}
+				} 
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new IllegalArgumentException("Invalid query: " + query.get(field));
 			}
 		}
+		LOG.debug("Created filter object=" + _ops);
+		LOG.debug("Created from DBObject=" + JSON.serialize(query)); 
 		return _ops;
 	}
 	

@@ -3,10 +3,12 @@ package com.mungoae.object;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -643,12 +645,12 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	private Iterator<Entity> getEntitiesLike(Map<String, 
-			Tuple<FilterOperator, Object>> query){
-		Preconditions.checkNotNull(query, "Null query object");
-		
+			Tuple<FilterOperator, Object>> queryParam){
+		Preconditions.checkNotNull(queryParam, "Null query object");
+		Map<String,Tuple<FilterOperator, Object>> query = validateQuery(queryParam);
 		Query q = new Query(_collName);
 		for (String propName : query.keySet()){
-			Tuple<FilterOperator, Object> filterAndValue = query.get(propName);
+			Tuple<FilterOperator, Object> filterAndValue = query.get(propName);	
 			Filter filter = new FilterPredicate(propName, 
 					filterAndValue.getFirst(), filterAndValue.getSecond()); 
 			Filter prevFilter = q.getFilter();
@@ -657,6 +659,40 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		PreparedQuery pq = _ds.prepare(q);
 		return pq.asIterator();
 	}	
+	
+	/**
+	 * Validates a query before it gets passed into the GAE api.
+	 * Replace and/or transform an object into GAE Datastore supported type
+	 * 
+	 * @param query
+	 * @return the validated query object
+	 */
+	private Map<String, Tuple<FilterOperator, Object>> validateQuery(
+			Map<String, Tuple<FilterOperator, Object>> query) {
+		//LOG.debug("Query object type=" + query.getSecond().getClass().getName());	
+		Map<String,Object> toReplace = new HashMap<String,Object>();
+		Set<Map.Entry<String, Tuple<FilterOperator, Object>>> entrySet = query.entrySet();
+		for (Map.Entry<String, Tuple<FilterOperator, Object>> entry : entrySet){
+			String field = entry.getKey();
+			Tuple<FilterOperator, Object> value = entry.getValue();
+			if (value.getSecond() instanceof ObjectId){
+				Tuple<FilterOperator, Object> newValue 
+					= new Tuple<Query.FilterOperator, Object>(value.getFirst(), 
+							((ObjectId)value.getSecond()).toStringMongod());
+				toReplace.put(field, newValue);
+			} else if (!GAE_SUPPORTED_TYPES.contains(value.getClass())) {
+				throw new IllegalArgumentException("Unsupported filter compare value");
+			}
+		}
+		
+		Iterator<String> it = toReplace.keySet().iterator();
+		while(it.hasNext()){
+			String keyToReplace = it.next();
+			query.put(keyToReplace, (Tuple<FilterOperator, Object>) toReplace.get(keyToReplace));
+		}
+		
+		return query;
+	}
 
 	/**
 	 * Builds a query filter from the given <code>Entity</code> property names and values and add sorting from

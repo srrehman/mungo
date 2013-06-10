@@ -121,7 +121,7 @@ public class MungoTest {
     
     @Test
     public void testCreateFromJSONString(){
-    	BasicDBObject fromString = new BasicDBObject("{\"hello\" : \"world\"}");
+    	BasicDBObject fromString = new BasicDBObject("{'hello' : 'world'}");
     	assertNotNull(fromString);
     	assertEquals("world", (String) fromString.get("hello"));
     	l("Test create from JSON String=" + fromString);
@@ -165,7 +165,7 @@ public class MungoTest {
     	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection greetings = db.createCollection("Greetings");
-    	BasicDBObject fromString = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    	BasicDBObject fromString = new BasicDBObject("{'greeting' : 'good morning'}")
     		.append("_id", id); 
     	greetings.insert(fromString);
     	Greeting greeting = greetings.findOne(id).as(Greeting.class);
@@ -178,7 +178,7 @@ public class MungoTest {
     	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection greetings = db.createCollection("Greetings");
-    	BasicDBObject fromString = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    	BasicDBObject fromString = new BasicDBObject("{'greeting' : 'good morning'}")
     		.append("_id", id); 
     	greetings.insert(fromString);
     	GreetingWithId greeting = greetings.findOne(id).as(GreetingWithId.class);
@@ -193,11 +193,11 @@ public class MungoTest {
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection greetings = db.createCollection("Greetings");
     	
-    	BasicDBObject fromString = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    	BasicDBObject fromString = new BasicDBObject("{'greeting' : 'good morning'}")
     		.append("_id", id);  
-    	BasicDBObject fromString2 = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    	BasicDBObject fromString2 = new BasicDBObject("{'greeting' : 'good morning'}")
 			.append("_id", new ObjectId());  
-    	BasicDBObject fromString3 = new BasicDBObject("{\"moshimoshi\" : \"hello\"}")
+    	BasicDBObject fromString3 = new BasicDBObject("{'moshimoshi' : 'hello'}")
 			.append("_id", new ObjectId());      	
     	
     	greetings.insert(fromString);
@@ -211,7 +211,7 @@ public class MungoTest {
     		l("First Fetched DBOBject=" + toJSONString(obj));
     	}
     	
-    	BasicDBObject fromString4 = new BasicDBObject("{\"greeting\" : \"good morning\"}")
+    	BasicDBObject fromString4 = new BasicDBObject("{'greeting' : 'good morning'}")
     		.append("hello", "world");  
     	greetings.insert(fromString4);
     	
@@ -272,7 +272,7 @@ public class MungoTest {
     	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
-    	BasicDBObject numbers = new BasicDBObject("{\"numbers\" : [1,2,3,4,5]}");
+    	BasicDBObject numbers = new BasicDBObject("{'numbers' : [1,2,3,4,5]}");
     	numbers.put("_id", id);
     	coll.insert(numbers);
     	DBObject result = coll.findOne(id);
@@ -285,7 +285,7 @@ public class MungoTest {
     	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
-    	BasicDBObject numbers = new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\"]}");
+    	BasicDBObject numbers = new BasicDBObject("{'numbers' : [true,1,2,3,'hello world']}");
     	numbers.put("_id", id);
     	coll.insert(numbers);
     	DBObject result = coll.findOne(id);
@@ -299,7 +299,7 @@ public class MungoTest {
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 
-    		= new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\", { \"inner\": \"text\" }]}");
+    		= new BasicDBObject("{'numbers' : [true,1,2,3,'hello world', { 'inner': 'text' }]}");
     	complexObject.put("_id", id);
     	coll.insert(complexObject);
     	DBObject result = coll.findOne(id);
@@ -313,7 +313,7 @@ public class MungoTest {
     	Long id = new Long(1L);
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 
-    		= new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\", { \"inner\": \"text\" }]}");
+    		= new BasicDBObject("{'numbers' : [true,1,2,3,'hello world', { 'inner': 'text' }]}");
     	l("Put id to json="+id);
     	complexObject.put("_id", id);
     	coll.insert(complexObject);
@@ -328,7 +328,7 @@ public class MungoTest {
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 
-    		= new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\", { \"inner\": \"text\" }]}")
+    		= new BasicDBObject("{'numbers' : [true,1,2,3,'hello world', { 'inner': 'text' }]}")
     			.append("name", "test123"); 
     	complexObject.put("_id", id);
     	coll.insert(complexObject);
@@ -348,7 +348,7 @@ public class MungoTest {
     	Long id = new Long(1L);
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 
-    		= new BasicDBObject("{\"numbers\" : [true,1,2,3,\"hello world\", { \"inner\": \"text\" }]}");
+    		= new BasicDBObject("{'numbers' : [true,1,2,3,'hello world', { 'inner': 'text' }]}");
     	l("Put id to json="+id);
     	complexObject.put("_id", id);
     	coll.insert(complexObject);
