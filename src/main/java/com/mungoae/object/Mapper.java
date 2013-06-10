@@ -561,11 +561,12 @@ public class Mapper {
 	 * @return
 	 */
 	public static <T> T createTObject(Class<T> clazz, Map<String,Object> toConvert){
-		if (toConvert.get("_id")!=null){
-			Object id = toConvert.get("_id");
-			toConvert.remove("_id");
-			toConvert.put("id", id);
-		}
+		// Removed since pojo should have '_id' field
+//		if (toConvert.get("_id")!=null){
+//			Object id = toConvert.get("_id");
+//			toConvert.remove("_id");
+//			toConvert.put("id", id);
+//		}
 		T obj = null;
 		Gson gson = new Gson();
 		try {

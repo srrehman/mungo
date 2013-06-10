@@ -54,8 +54,24 @@ public class BasicMungoCollection extends DBCollection {
 	
 	@Override
 	public DBObject findOne() {
-		Iterator<DBObject> it = find();
-		return it.next(); 
+		try {
+			Iterator<DBObject> it = find();
+			return it.next(); 
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return null;
+	}
+	
+	@Override
+	public DBObject findOne(String query) {
+		try {
+			DBCursor curr = find(query);
+			return curr.next();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return null;
 	}
 
 	@Override

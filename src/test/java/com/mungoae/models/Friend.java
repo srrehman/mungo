@@ -25,7 +25,7 @@ public class Friend {
 		}
 	}
 	
-	public String id;
+	public String _id;
 	public String name;
 	public Integer age;
 	public Address address;
@@ -63,7 +63,7 @@ public class Friend {
 	
 	@Override
 	public String toString() {
-		return "Friend id=" + id 
+		return "Friend id=" + _id 
 				+" name="+name
 				+" age=" + age
 				+" address=" + address;

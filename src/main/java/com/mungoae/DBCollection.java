@@ -26,6 +26,7 @@ public abstract class DBCollection {
 	public abstract DBCursor find(String query);
 	public abstract DBCursor find(DBObject query);
 	public abstract DBObject findOne();
+	public abstract DBObject findOne(String query);
 	public abstract DBObject findOne(Object id);
 	public abstract DBObject findOne(DBObject query);
 	public abstract void insert(String doc);

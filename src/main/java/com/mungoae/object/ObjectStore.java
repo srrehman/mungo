@@ -680,8 +680,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 					= new Tuple<Query.FilterOperator, Object>(value.getFirst(), 
 							((ObjectId)value.getSecond()).toStringMongod());
 				toReplace.put(field, newValue);
-			} else if (!GAE_SUPPORTED_TYPES.contains(value.getClass())) {
-				throw new IllegalArgumentException("Unsupported filter compare value");
+			} else if (!GAE_SUPPORTED_TYPES.contains(value.getSecond().getClass())) {
+				throw new IllegalArgumentException("Unsupported filter compare value: " + value.getSecond().getClass());
 			}
 		}
 		
@@ -1110,7 +1110,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	private static String createStringIdFromObject(Object docId){
-		Preconditions.checkNotNull(docId, "Object doc id cannot be null");
+		Preconditions.checkNotNull(docId, "Object document id cannot be null");
 		if (docId instanceof ObjectId){
 			LOG.debug("Create ID String from ObjectID");
 			return ((ObjectId) docId).toStringMongod();
