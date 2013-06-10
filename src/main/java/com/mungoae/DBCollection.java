@@ -25,6 +25,7 @@ public abstract class DBCollection {
 	public abstract DBCursor find(DBObject query);
 	public abstract DBObject findOne();
 	public abstract DBObject findOne(Object id);
+	public abstract DBObject findOne(DBObject query);
 	public abstract void insert(String doc);
 	public abstract <T> void insert(T doc);
 	public abstract <T> void insert(T... docs); 
@@ -37,13 +38,6 @@ public abstract class DBCollection {
 	public abstract Iterator<DBObject> __find(DBObject ref, DBObject fields, 
 			int numToSkip , int batchSize , int limit, int options);
 	
-	public String getName(){
-		return _collectionName;
-	}
-	
-	public String getDatabaseName() {
-		return _databaseName;
-	}
 	
     /**
      * Check for invalid key names
@@ -104,6 +98,10 @@ public abstract class DBCollection {
     public void setObjectClass(Class clazz) {
     	_objectClass = clazz;
     }
+    
+	public String getName(){
+		return _collectionName;
+	}
     
     public DB getDB() {
     	return _db;

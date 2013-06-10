@@ -15,11 +15,9 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
-import com.mungoae.XDBCursor;
+import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
-import com.mungoae.object.GAEObject;
-import com.mungoae.object.ObjectStore;
 /**
  * A very crud test
  * 
@@ -49,7 +47,7 @@ public class DBCursorTest {
 		
 		persistTestData();
 
-		XDBCursor cursor = new XDBCursor(coll, 
+		DBCursor cursor = new DBCursor(coll, 
 				null, // Reference object
 				null);// Keys to include 
 		
@@ -59,21 +57,21 @@ public class DBCursorTest {
 		
 		
 		BasicDBObject query = new BasicDBObject("number", new BasicDBObject("$gte", 1));
-		cursor = new XDBCursor(coll, 
+		cursor = new DBCursor(coll, 
 				query, null).sort(new BasicDBObject("number", -1));  
 		list = copyIterator(cursor);
 		printList(list);
 		assertEquals(11, list.size());
 		
 		query = new BasicDBObject("number", new BasicDBObject("$gte", 5));
-		cursor = new XDBCursor(coll, 
+		cursor = new DBCursor(coll, 
 				query, null).sort(new BasicDBObject("number", -1));  
 		list = copyIterator(cursor);
 		printList(list);
 		assertEquals(7, list.size());
 
 		query = new BasicDBObject("hi", new BasicDBObject("$e", "dont exist"));
-		cursor = new XDBCursor(coll, 
+		cursor = new DBCursor(coll, 
 				query, null).sort(new BasicDBObject("hi", -1));  
 		list = copyIterator(cursor);
 		printList(list);
@@ -84,7 +82,7 @@ public class DBCursorTest {
 		 * Limit and skip tests
 		 */
 		
-		cursor = new XDBCursor(coll, 
+		cursor = new DBCursor(coll, 
 				new BasicDBObject("number", new BasicDBObject("$gte", 1)), 
 				null).sort(new BasicDBObject("number", -1)).limit(5).skip(1);  
 		
@@ -92,23 +90,23 @@ public class DBCursorTest {
 		printList(list);
 		//assertEquals(11, list.size());
 		
-		cursor = new XDBCursor(coll, null, null).sort(new BasicDBObject("number", 1)).limit(5).skip(1);
+		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", 1)).limit(5).skip(1);
 		list = copyIterator(cursor);
 		printList(list);
 		
-		cursor = new XDBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
+		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
 		list = copyIterator(cursor);
 		printList(list);
 		
 		coll.insert(new BasicDBObject("hi", "there").append("number", 12)); 
 		
-		cursor = new XDBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
+		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
 		list = copyIterator(cursor);
 		printList(list);
 		
 		// Query by string
 		
-		cursor = new XDBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
+		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
 		list = copyIterator(cursor);
 		printList(list);
 	}

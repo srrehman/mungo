@@ -59,7 +59,7 @@ public class UpdateQuery {
 	public void now() {
 		if (_filters == null || _updates == null)
 			return;
-		ObjectStore.get(_collection.getDatabaseName(), _collection.getName()).updateObjects(_filters, _updates, true, true); 
+		ObjectStore.get(_collection.getDB().getName(), _collection.getName()).updateObjects(_filters, _updates, true, true); 
 	}
 	
 	public UpdateQuery increment(String field, Object byValue) {

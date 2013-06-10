@@ -40,6 +40,7 @@ import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
 import com.mungoae.collection.WriteResult;
+import com.mungoae.models.Person;
 
 public class MungoTest {
 	
@@ -331,9 +332,9 @@ public class MungoTest {
     			.append("name", "test123"); 
     	complexObject.put("_id", id);
     	coll.insert(complexObject);
-    	DBObject result = coll.findOne(new BasicDBObject("name", new BasicDBObject("$eq", "test123"))); 
+    	DBObject result = coll.findOne(new BasicDBObject("name", new BasicDBObject("$e", "test123"))); 
     	DBObject result1 = coll.findOne(id); 
-    	DBObject result2 = coll.findOne(new BasicDBObject("_id", new BasicDBObject("$eq", id))); 
+    	DBObject result2 = coll.findOne(new BasicDBObject("_id", new BasicDBObject("$e", id))); 
     	assertNotNull(result);
     	
     	l("Complex JSON array and query result =" + toJSONString(result));
@@ -356,7 +357,6 @@ public class MungoTest {
     	
     	// delete
     	coll.remove(result);
-    	//assertTrue((Boolean)wr.getField("ok")); // <- This keeps on failing!
     	// should have been deleted
     	assertNull(coll.findOne(id));
     }

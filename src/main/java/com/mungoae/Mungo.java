@@ -48,7 +48,6 @@ import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Preconditions;
 import com.google.inject.Singleton;
 import com.mungoae.collection.simple.DBApiLayer;
-import com.mungoae.query.BasicDBCursor;
 /**
  * 
  * The "Mungo" class. Provides the interface to do <code>DB</code> operations.

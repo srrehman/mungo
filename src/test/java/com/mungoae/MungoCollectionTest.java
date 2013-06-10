@@ -15,6 +15,7 @@ import org.junit.runner.RunWith;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.collection.simple.BasicMungoCollection;
+import com.mungoae.models.Friend;
 
 public class MungoCollectionTest {
     private final LocalServiceTestHelper helper =
