@@ -134,7 +134,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	public Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters, // Objects to get
 			Map<String, Query.SortDirection> sorts, // Sorting 
 			Integer _numToSkip, Integer _max, Integer fetchSize, Integer options){
-		Iterator<DBObject> _it = queryObjects(filters, sorts);
+		Iterator<DBObject> _it = queryObjects(filters, sorts);;
 		if (_max != null){
 			if (_numToSkip != null){
 				return new BoundedIterator<DBObject>(_numToSkip, _max, _it);
@@ -277,6 +277,9 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
+			if (id instanceof DBObject){
+				
+			}
 			Map<String, Object> map = getEntityBy(KeyStructure.createKey(_collName, 
 					createStringIdFromObject(id)));
 			if (map != null){
@@ -538,6 +541,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		try {
 			Key key = KeyStructure.createKey(_collName, id);
 			deleteEntity(key);
+			LOG.debug("Object deleted: " + key.getName());
 			return containsEntityKey(key); 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -592,8 +596,10 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	
 	private Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters,
 			Map<String, Query.SortDirection> sorts){
-		Preconditions.checkNotNull(filters, "Null filter");
-		Preconditions.checkNotNull(sorts, "Null sort");
+		Preconditions.checkNotNull(filters, "Cannot perform query as filter object is null");
+		if (sorts == null){
+			return queryObjects(filters);
+		}
 		/**
 		 * Map of fields and its matching filter operator and compare value
 		 */
@@ -1072,6 +1078,10 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		if (docId instanceof ObjectId){
 			LOG.debug("Create ID String from ObjectID");
 			return ((ObjectId) docId).toStringMongod();
+		} else if (docId instanceof DBObject) {
+			LOG.debug("Get ID from DBObject '_id' property");
+			Object id = ((DBObject) docId).get("_id");
+			return createStringIdFromObject(id); // TODO - Review this, might cause Stackoverflow error
 		} else {
 			if (docId instanceof String
 					|| docId instanceof Long){
