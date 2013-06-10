@@ -79,7 +79,7 @@ public class DBApiLayer extends DB {
 			if (e == null) {
 				col = createCollection(collection);
 			} else {
-				col = new BasicDBCollection(this, collection);
+				col = new BasicMungoCollection(this, collection);
 			}
 			// extract the data from the datastore entity
 			// unused right now

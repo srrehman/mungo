@@ -8,9 +8,10 @@ import org.apache.log4j.Logger;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
-import com.mungoae.MungoCollection;
+import com.mungoae.DBCollection;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
+import com.mungoae.util.JSON;
 
 /**
  * Simple implementation of the <code>Query</code>
@@ -23,7 +24,7 @@ public class BasicDBCursor extends DBCursor {
 	
 	private static Logger LOG = LogManager.getLogger(BasicDBCursor.class.getName());
 
-	public BasicDBCursor(MungoCollection collection){
+	public BasicDBCursor(DBCollection collection){
 		super(collection);
 		LOG.info("Inialize DBCollection: " + collection.getName());
 	}
@@ -34,7 +35,7 @@ public class BasicDBCursor extends DBCursor {
 	 * @param collection
 	 * @param query
 	 */
-	public BasicDBCursor(MungoCollection collection, String query){
+	public BasicDBCursor(DBCollection collection, String query){
 		super(collection);
 		LOG.info("Inialize DBCollection: " + collection.getName());
 		BasicDBObject dbquery = new BasicDBObject(query);
@@ -182,6 +183,12 @@ public class BasicDBCursor extends DBCursor {
 	public DBCursor sortDescending(String field) {
 		sort(field, SortDirection.DESCENDING);
 		return this;
+	}
+
+	@Override
+	public DBCursor sort(DBObject sort) {
+		//sort(JSON.serialize(sort));
+		return null;
 	}
 	
 }

@@ -36,7 +36,7 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DB;
 import com.mungoae.DBCollection;
-import com.mungoae.XDBCursor;
+import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
 import com.mungoae.collection.WriteResult;
@@ -204,7 +204,7 @@ public class MungoTest {
     	greetings.insert(fromString3);
     	
     	BasicDBObject ref = new BasicDBObject("greeting", "good morning");
-    	XDBCursor objects = greetings.find(ref);
+    	DBCursor objects = greetings.find(ref);
 
     	for (DBObject obj : objects){
     		l("First Fetched DBOBject=" + toJSONString(obj));
@@ -217,7 +217,7 @@ public class MungoTest {
     	BasicDBObject ref2 = new BasicDBObject("greeting", "good morning")
     		.append("hello", "world");
     	
-    	XDBCursor objects2 = greetings.find(ref2);
+    	DBCursor objects2 = greetings.find(ref2);
     	
     	for (DBObject obj : objects2){
     		l("Second Fetched DBOBject=" + toJSONString(obj));
@@ -225,7 +225,7 @@ public class MungoTest {
     	
 
     	BasicDBObject ref3 = new BasicDBObject("non", "existent");
-    	XDBCursor curr = greetings.find(ref3);
+    	DBCursor curr = greetings.find(ref3);
     	assertNotNull(curr);
     	
     	BasicDBObject ref4 = new BasicDBObject("non", "existent")
@@ -355,7 +355,7 @@ public class MungoTest {
     	assertNotNull(result); 	
     	
     	// delete
-    	WriteResult wr = coll.remove(result);
+    	coll.remove(result);
     	//assertTrue((Boolean)wr.getField("ok")); // <- This keeps on failing!
     	// should have been deleted
     	assertNull(coll.findOne(id));

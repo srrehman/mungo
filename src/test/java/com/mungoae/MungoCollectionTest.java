@@ -21,9 +21,14 @@ public class MungoCollectionTest {
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
                 .setDefaultHighRepJobPolicyUnappliedJobPercentage(0)); 	   	
 
+    Mungo mungo;
+	DB db;
+    
     @Before
     public void setUp() {
         helper.setUp();
+        mungo = new Mungo();
+        db = mungo.getDB("db");
     }
 
     @After
@@ -34,7 +39,8 @@ public class MungoCollectionTest {
 	//@Test
 	public void test() {
 		Mungo mungo = new Mungo();
-		MungoCollection friends = new BasicMungoCollection("myapp", "friends");
+		DB db = mungo.getDB("db");
+		DBCollection friends = new BasicMungoCollection(db, "friends");
 		//friends.find().filter("username").equalTo("kite").now().as(String.class); 
 		
 		// Setup
@@ -74,7 +80,7 @@ public class MungoCollectionTest {
 		
 		persistTestData();
 		
-		MungoCollection friends = new BasicMungoCollection("myapp", "friends");
+		DBCollection friends = new BasicMungoCollection(db, "friends");
 		// Setup
 		Iterable<DBObject> _all = friends.find();
 		assertTrue(copyIterable(_all).isEmpty() == false);
@@ -88,7 +94,7 @@ public class MungoCollectionTest {
 	
 	private void persistTestData(){
 		Mungo mungo = new Mungo();
-		MungoCollection friends = new BasicMungoCollection("myapp", "friends");
+		DBCollection friends = new BasicMungoCollection(db, "friends");
 		friends.insert("{name: 'Joe'}");
 		friends.insert("{name: 'Kirby'}");
 		friends.insert("{name: 'Kirby', age: 27 }");

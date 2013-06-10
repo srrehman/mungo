@@ -17,7 +17,7 @@ import com.mungoae.DBCollection;
 import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
-import com.mungoae.MungoCollection;
+import com.mungoae.DBCollection;
 import com.mungoae.DBCursor.SortDirection;
 import com.mungoae.collection.simple.BasicMungoCollection;
 
@@ -26,13 +26,13 @@ public class QueryTest {
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
                 .setDefaultHighRepJobPolicyUnappliedJobPercentage(0)); 	   	
     Mungo mungo;
-    MungoCollection coll;
+    DBCollection coll;
     
     @Before
     public void setUp() {
         helper.setUp();
         mungo = new Mungo();
-        coll = new BasicMungoCollection("TestDB", "TestCollection");
+        coll = new BasicMungoCollection(mungo.getDB("db"), "TestCollection");
         persistTestData();
     }
 

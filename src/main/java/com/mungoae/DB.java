@@ -40,7 +40,7 @@ import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.common.base.Preconditions;
 import com.mungoae.collection.AbstractDBCollection;
-import com.mungoae.collection.simple.BasicDBCollection;
+import com.mungoae.collection.simple.BasicMungoCollection;
 import com.mungoae.collection.simple.BasicMungoCollection;
 import com.mungoae.object.KeyStructure;
 import com.mungoae.serializer.ObjectSerializer;
@@ -119,14 +119,14 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 				e.setProperty(DATABASE_NAME, this.getName());
 				e.setProperty(CREATED, new Date().getTime());
 				e.setProperty(UPDATED, new Date().getTime());
-				col = new BasicDBCollection(this, collection);
+				col = new BasicMungoCollection(this, collection);
 			} else {
 				e = getCollectionEntity(collection);
 				e.getProperty(DATABASE_NAME); // Sets where this collection belongs
 				e.getProperty(COLLECTION_NAME);
 				e.getProperty(CREATED);
 				e.getProperty(UPDATED);
-				col = new BasicDBCollection(this, collection);
+				col = new BasicMungoCollection(this, collection);
 			}
 			_ds.put(e);
 		} catch (Exception e) {
@@ -189,7 +189,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			PreparedQuery pq = _ds.prepare(q);
 			List<Entity> result = pq.asList(FetchOptions.Builder.withDefaults());
 			for (Entity e : result) {
-				cols.add(new BasicDBCollection(this, (String) e.getProperty(COLLECTION_NAME)));
+				cols.add(new BasicMungoCollection(this, (String) e.getProperty(COLLECTION_NAME)));
 			}			
 		} catch (Exception e) {
 			// TODO: handle exception

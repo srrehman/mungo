@@ -11,7 +11,7 @@ import com.mungoae.util.Tuple;
 public abstract class DBCursor implements Iterable<DBObject>, 
 	Iterator<DBObject> {
 	
-	protected MungoCollection _collection;
+	protected DBCollection _collection;
 	protected Map<String, Tuple<FilterOperator, Object>> _filters;
 	protected Map<String, Tuple<FilterOperator, Object>> _orFilters;
 	protected Map<String, Tuple<FilterOperator, Object>> _andFilters;
@@ -40,6 +40,7 @@ public abstract class DBCursor implements Iterable<DBObject>,
 	public abstract DBCursor and(Object value);
 	public abstract DBQueryFilter filter(String field);
 	public abstract DBCursor sort(DBCursor.SortDirection direction);
+	public abstract DBCursor sort(DBObject sort);
 	public abstract DBCursor sortAscending(String field);
 	public abstract DBCursor sortDescending(String field);
 	public abstract DBCursor sort(String field, DBCursor.SortDirection direction);
@@ -47,7 +48,7 @@ public abstract class DBCursor implements Iterable<DBObject>,
 	public abstract DBCursor skip(int numToSkip);
 	public abstract DBCursor now();
 	
-	public DBCursor(MungoCollection collection){
+	public DBCursor(DBCollection collection){
 		_collection = collection;
 		_filters = new LinkedHashMap<String, Tuple<FilterOperator, Object>>();
 		_sorts = new LinkedHashMap<String, com.google.appengine.api.datastore.Query.SortDirection>();

@@ -6,7 +6,7 @@ import java.util.Map;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.BasicDBObject;
-import com.mungoae.MungoCollection;
+import com.mungoae.DBCollection;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.util.Tuple;
@@ -25,12 +25,12 @@ public class UpdateQuery {
 	private Integer _by = 0;
 	private String _field = null;
 	
-	private MungoCollection _collection = null;
+	private DBCollection _collection = null;
 	
 	private Map<String, Tuple<UpdateOperator, Object>> _updates = new HashMap<String,Tuple<UpdateOperator, Object>>();
 	private Map<String, Tuple<FilterOperator, Object>> _filters = null; // set through query string or wired methods
 	
-	public UpdateQuery(MungoCollection collection, Map<String, Tuple<FilterOperator, Object>> filters){
+	public UpdateQuery(DBCollection collection, Map<String, Tuple<FilterOperator, Object>> filters){
 		_collection = collection;
 		_filters = filters;
 	}

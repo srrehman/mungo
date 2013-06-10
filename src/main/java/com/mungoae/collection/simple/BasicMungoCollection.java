@@ -8,24 +8,26 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.common.base.Preconditions;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DB;
 import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
-import com.mungoae.MungoCollection;
+import com.mungoae.DBCollection;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.query.BasicDBCursor;
 import com.mungoae.query.UpdateQuery;
+import com.mungoae.util.BoundedIterator;
 import com.mungoae.util.Tuple;
 
-public class BasicMungoCollection extends MungoCollection {
+public class BasicMungoCollection extends DBCollection {
 
 	private ObjectStore _store = null;
 	
-	public BasicMungoCollection(String database, String collection) {
-		super(database, collection);
-		_store = ObjectStore.get(database, collection);
+	public BasicMungoCollection(DB db, String collection) {
+		super(db, collection);
+		_store = ObjectStore.get(getDB().getName(), collection);
 	}
 
 	@Override
@@ -36,6 +38,12 @@ public class BasicMungoCollection extends MungoCollection {
 	@Override
 	public DBCursor find(String query) {
 		return new BasicDBCursor(this, query);
+	}
+	
+	@Override
+	public DBObject findOne() {
+		Iterator<DBObject> it = find();
+		return it.next(); 
 	}
 
 	@Override
@@ -118,6 +126,52 @@ public class BasicMungoCollection extends MungoCollection {
 		return null;
 	}
 
+	// JUST FOR REFERENCE:
+	
+//	public Iterator<DBObject> __find(DBObject ref, DBObject fields, 
+//			int numToSkip , int batchSize , int limit, int options){
+//		Preconditions.checkNotNull(ref, "Query object can't be null");
+//		
+//		LOG.info("Collection find with query object=" + ref);
+//		
+//		Object id = ref.get("_id");
+//		DBObject query = (DBObject) ref.get("$query");
+//		DBObject orderby = (DBObject) ref.get("$orderby");
+//		
+//		// Remove special fields
+//		dataCleansing(ref);
+//		
+//		Iterator<DBObject> it = null;
+//		if (query != null && query.toMap().size() != 0){
+//			LOG.info("Query object=" + query);
+//			if (orderby != null && orderby.toMap().size() != 0){
+//				LOG.info("Sort object=" + orderby);
+//				it = _store.queryAllObjectsLike(query, orderby);
+//			} else {
+//				it = _store.queryObjectsLike(query);
+//			}		
+//		} else {
+//			if (orderby != null && orderby.toMap().size() != 0){
+//				LOG.info("Sort object=" + orderby);
+//				it = _store.queryObjectsOrderBy(orderby);
+//			} else { // query and orderby are both null
+//				if (id != null){
+//					// TODO
+//					DBObject obj = _store.getObject(ref);
+//				}
+//				it = _store.getObjects();
+//			}	
+//		}
+//		if (limit > 0 && numToSkip > 0){
+//			return new BoundedIterator<DBObject>(numToSkip, limit, it);	
+//		} else if (limit > 0 && numToSkip == 0){
+//			return new BoundedIterator<DBObject>(0, limit, it);	
+//		} else if (limit == 0 && numToSkip > 0){
+//			return new BoundedIterator<DBObject>(numToSkip, 0, it);	
+//		}
+//		return it;
+//	}
+	
 	@Override
 	public Iterator<DBObject> __find(final DBObject ref, final DBObject fields,
 			int numToSkip, int batchSize, int limit, int options) {
@@ -169,5 +223,24 @@ public class BasicMungoCollection extends MungoCollection {
 		return ref;
 	}
 
+	
+	// TODO
+	// Must implement size check to validate if 
+	// object exceed maximum datastore entity 
+	// byte size
+	public void putSizeCheck(DBObject obj) {
+		
+	}
+	
+	private void dataCleansing(DBObject obj){
+		obj.removeField("$query");
+		obj.removeField("$orderby");
+	}
+
+	@Override
+	public DBCursor find(DBObject query) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }
