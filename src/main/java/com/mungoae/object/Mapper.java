@@ -426,6 +426,10 @@ public class Mapper {
 		Map<String, Tuple<FilterOperator, Object>> _ops = new HashMap<String, Tuple<FilterOperator, Object>>();
 		// Iterate over all the fields
 		for (String field : query.keySet()){
+			// Skip fields starting with '$' as its a query field
+			if (field.startsWith("$")){
+				continue;
+			}
 			try {
 				Object operatorOrValue = (Object) query.get(field);
 				LOG.debug("Operator="+operatorOrValue);
@@ -450,6 +454,16 @@ public class Mapper {
 		return _ops;
 	}
 	
+	/**
+	 * Transform a update query like:
+	 *  
+	 * {name: 'Joe'}").with("{$inc: {age: 1}}
+	 * 
+	 * into Map update query
+	 * 
+	 * @param query
+	 * @return
+	 */
 	@SuppressWarnings("unused")
 	public static Map<String, Tuple<UpdateOperator, Object>> createUpdateOperatorFrom(DBObject query) {
 		LOG.debug("Creating update operator from query: " + query);
@@ -461,6 +475,13 @@ public class Mapper {
 			}
 			String operatorField = it.next();
 			Object fieldValue = query.get(operatorField);
+			
+			// Skip fields that are not query fields, i.e
+			// starts with '$'
+			if (!operatorField.startsWith("$")){
+				continue;
+			}
+			
 			//System.out.println(fieldValue.getClass().getName());
 			if (fieldValue != null && fieldValue instanceof DBObject){
 				BasicDBObject dbo = (BasicDBObject) fieldValue;
@@ -475,8 +496,54 @@ public class Mapper {
 		return result;
 	}
 	
-	private static Map<String,Object> replaceJSONwithDBOBject(Map<String,Object> obj){
-		return null;
+	/**
+	 * Transform a order by object like:
+	 * 
+	 * into a field-SortDirection map 
+	 * 
+	 * @param orderby
+	 * @return
+	 */
+	public static Map<String, Query.SortDirection> createSortObjectFrom(DBObject orderby){
+		Map<String, Query.SortDirection> sorts = new LinkedHashMap<String,Query.SortDirection>();
+		Iterator<String> kit = orderby.keySet().iterator();
+		while (kit.hasNext()){
+			String key = kit.next();
+			int dir = (Integer) orderby.get(key);
+			Query.SortDirection direction =  dir == 1 ? 
+					Query.SortDirection.ASCENDING : null;
+			direction = dir == -1 ? 
+					Query.SortDirection.DESCENDING : direction;
+			LOG.debug("Adding sort key="+key + " direction=" + direction);
+			sorts.put(key, direction);
+		}
+		return sorts;
+	}
+	
+	/**
+	 * Creates a new DBObject from a update object
+	 * 
+	 * @param updates
+	 * @return
+	 */
+	public static DBObject createDBObjectFromUpdateFilter(Map<String, Tuple<UpdateOperator, Object>> updates){
+		BasicDBObject dbo = new BasicDBObject();
+		Iterator<String> it = updates.keySet().iterator();
+		while(it.hasNext()){
+			String field = it.next();
+			// '$set'
+			Tuple<UpdateOperator, Object> filterOp = updates.get(field);
+			if (filterOp.getFirst() == UpdateOperator.SET){
+				dbo.put(field, filterOp.getSecond());
+			} else if (filterOp.getFirst() == UpdateOperator.UNSET){
+				
+			} else if (filterOp.getFirst() == UpdateOperator.INCREMENT){
+				
+			} else if (filterOp.getFirst() == UpdateOperator.DECREMENT){
+				
+			}
+		}
+		return dbo;
 	}
 	
 	/**

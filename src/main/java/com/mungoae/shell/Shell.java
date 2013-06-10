@@ -1,6 +1,6 @@
 package com.mungoae.shell;
 
-import com.mungoae.DBCursor;
+import com.mungoae.XDBCursor;
 import com.mungoae.DBObject;
 /**
  * Shell interface to the GAE Datastore. It represents the "core" functions
@@ -28,7 +28,7 @@ public interface Shell {
 	 * @param query
 	 * @param projection defines which fields to return
 	 */
-	public DBCursor find(DBObject query, DBObject DBObject);
+	public XDBCursor find(DBObject query, DBObject DBObject);
 	public DBObject findOne(DBObject query, DBObject DBObject);
 	
 	public void remove(DBObject query, boolean justOne);

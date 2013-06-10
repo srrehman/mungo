@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
 import com.google.common.base.Preconditions;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
-import com.mungoae.DBCursor;
+import com.mungoae.XDBCursor;
 import com.mungoae.DBObject;
 /**
  * Executable object. 
@@ -49,7 +49,7 @@ public class GAEObject {
 	private boolean _justOne = true; 
 	private boolean _multi = false;
 	
-	private DBCursor _curr = null; 
+	private XDBCursor _curr = null; 
 	private DBObject _singleResult = null;
 	
 	private String _cmd; 
@@ -155,7 +155,7 @@ public class GAEObject {
 		}
 	}
 	
-	public DBCursor getResult(){
+	public XDBCursor getResult(){
 		if (_curr == null)
 			LOG.debug("Returning null cursor");
 		return _curr;

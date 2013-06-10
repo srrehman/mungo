@@ -16,7 +16,7 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
 import com.mungoae.BasicDBObjectBuilder;
-import com.mungoae.DBCursor;
+import com.mungoae.XDBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.object.ObjectStore;
 
@@ -167,7 +167,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("will not be", "fetched"));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").querySortedObjectsLike(
+			= ObjectStore.get("db", "coll").queryAllObjectsLike(
 					new BasicDBObject("count", new BasicDBObject("$gte", 2)),  
 					new BasicDBObject("count", -1));
 		
@@ -198,7 +198,7 @@ public class ObjectStoreTest {
 				.append("count", 1)); 
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").querySortedObjectsLike(
+			= ObjectStore.get("db", "coll").queryAllObjectsLike(
 					new BasicDBObject("count", new BasicDBObject("$gte", 2))
 						.append("number", new BasicDBObject("$gte", 1)),  
 					new BasicDBObject("count", -1).append("number", -1)); 
@@ -244,7 +244,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").querySortedObjects(new BasicDBObject("count", -1));
+			= ObjectStore.get("db", "coll").queryObjectsOrderBy(new BasicDBObject("count", -1));
 		assertNotNull(it);
 		while(it.hasNext()){
 			DBObject obj = it.next();

@@ -48,12 +48,12 @@ public class OpDecode {
 			return UpdateOperator.DECREMENT;
 		} else if (filter.equals("$set")) {
 			return UpdateOperator.SET;
-		} else if (filter.equals("$uset")) {
+		} else if (filter.equals("$unset")) {
 			return UpdateOperator.UNSET;
-		} else if (filter.equals("$pre")) {
-			return UpdateOperator.PREFIX;
-		} else if (filter.equals("$suf")) {
-			return UpdateOperator.SUFFIX;
+		} else if (filter.equals("$setOnInsert")) {
+			return UpdateOperator.SET_ON_INSERT;
+		} else if (filter.equals("$rename")) {
+			return UpdateOperator.RENAME;
 		} else {
 			throw new IllegalArgumentException("Invalid operator: " + filter);
 		}		

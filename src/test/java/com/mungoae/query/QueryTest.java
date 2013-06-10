@@ -14,11 +14,12 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
+import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
 import com.mungoae.MungoCollection;
+import com.mungoae.DBCursor.SortDirection;
 import com.mungoae.collection.simple.BasicMungoCollection;
-import com.mungoae.query.DBQuery.SortDirection;
 
 public class QueryTest {
     private final LocalServiceTestHelper helper =
@@ -43,7 +44,7 @@ public class QueryTest {
 	@Test
 	public void testQueryNumbers() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Number >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		DBQuery result = coll.find().filter("number").lessThanOrEqualTo(1).now();
+		DBCursor result = coll.find().filter("number").lessThanOrEqualTo(1).now();
 		while (result.hasNext()){
 			DBObject obj = result.next();
 			l(obj);
@@ -54,7 +55,7 @@ public class QueryTest {
 	@Test
 	public void testQueryStrings() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Strings >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		DBQuery result = coll.find()
+		DBCursor result = coll.find()
 				.filter("username").greaterThanOrEqualTo("a").sort(SortDirection.DESCENDING).limit(5).skip(1).now();  
 		while (result.hasNext()){
 			DBObject obj = result.next();
@@ -66,7 +67,7 @@ public class QueryTest {
 	@Test
 	public void testQueryDate() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Date >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		DBQuery result = coll.find().sort("created", SortDirection.DESCENDING).now();  
+		DBCursor result = coll.find().sort("created", SortDirection.DESCENDING).now();  
 		while (result.hasNext()){
 			DBObject obj = result.next();
 			l(obj);
@@ -77,7 +78,7 @@ public class QueryTest {
 	@Test
 	public void testQueryMuti() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Multi >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		DBQuery result = coll.find().filter("number").equalTo(11).now();
+		DBCursor result = coll.find().filter("number").equalTo(11).now();
 		while (result.hasNext()){
 			DBObject obj = result.next();
 			l(obj);
@@ -88,7 +89,7 @@ public class QueryTest {
 	@Test
 	public void testQueryByIntegerID() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query By ID >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		DBQuery result = coll.find().filter("_id").equalTo(123).now();
+		DBCursor result = coll.find().filter("_id").equalTo(123).now();
 		while (result.hasNext()){
 			DBObject obj = result.next();
 			l(obj);
@@ -99,7 +100,7 @@ public class QueryTest {
 	@Test
 	public void testQueryByStringID() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query By String ID >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		DBQuery result = coll.find().filter("_id").equalTo(456).now();
+		DBCursor result = coll.find().filter("_id").equalTo(456).now();
 		while (result.hasNext()){
 			DBObject obj = result.next();
 			l(obj);
@@ -111,7 +112,8 @@ public class QueryTest {
 	public void testUpdateQuery() {
 		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Update query >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		coll.update("{'username': 'kirby'}").with("{ '$set' : {'number': 123}}").now();
-		DBQuery result = coll.find().now();
+		coll.update("{'username': 'kirby'}").with("{ '$rename' : {'number': 'count'}}").now();
+		DBCursor result = coll.find().now();
 		while (result.hasNext()){
 			DBObject obj = result.next();
 			l(obj);

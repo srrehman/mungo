@@ -1,10 +1,9 @@
 package com.mungoae;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.mungoae.query.Result;
-import com.mungoae.query.DBQuery;
 import com.mungoae.query.UpdateQuery;
 
 public abstract class MungoCollection {
@@ -18,8 +17,8 @@ public abstract class MungoCollection {
 		_collectionName = collection;
 	}
 
-	public abstract DBQuery find();
-	public abstract DBQuery find(String query);
+	public abstract DBCursor find();
+	public abstract DBCursor find(String query);
 	public abstract DBObject findOne(Object id);
 	public abstract void insert(String doc);
 	public abstract <T> void insert(T doc);
@@ -30,7 +29,8 @@ public abstract class MungoCollection {
 	public abstract boolean remove(Object id);
 	public abstract boolean remove(String query);
 	
-	//public abstract DBQuery __find();
+	public abstract Iterator<DBObject> __find(DBObject ref, DBObject fields, 
+			int numToSkip , int batchSize , int limit, int options);
 	
 	public String getName(){
 		return _collectionName;

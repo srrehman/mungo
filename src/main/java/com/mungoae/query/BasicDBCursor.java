@@ -6,12 +6,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.mungoae.BasicDBObject;
+import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.MungoCollection;
-import com.mungoae.collection.simple.DBApiLayer;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
-import com.mungoae.util.BoundedIterator;
 
 /**
  * Simple implementation of the <code>Query</code>
@@ -20,20 +19,13 @@ import com.mungoae.util.BoundedIterator;
  * @author kerby
  *
  */
-public class BasicDBQuery extends DBQuery {
+public class BasicDBCursor extends DBCursor {
 	
-	private static Logger LOG = LogManager.getLogger(BasicDBQuery.class.getName());
+	private static Logger LOG = LogManager.getLogger(BasicDBCursor.class.getName());
 
-	
-	public BasicDBQuery(MungoCollection collection){
+	public BasicDBCursor(MungoCollection collection){
 		super(collection);
 		LOG.info("Inialize DBCollection: " + collection.getName());
-		
-		// initially set the iterator to 
-		// point to all object
-		_it = ObjectStore.get(_collection.getDatabaseName(), 
-				_collection.getName()).getObjects();
-
 	}
 	
 	/**
@@ -42,7 +34,7 @@ public class BasicDBQuery extends DBQuery {
 	 * @param collection
 	 * @param query
 	 */
-	public BasicDBQuery(MungoCollection collection, String query){
+	public BasicDBCursor(MungoCollection collection, String query){
 		super(collection);
 		LOG.info("Inialize DBCollection: " + collection.getName());
 		BasicDBObject dbquery = new BasicDBObject(query);
@@ -55,9 +47,9 @@ public class BasicDBQuery extends DBQuery {
 	 * @return
 	 */
 	@Override
-	public DBQuery now() {
+	public DBCursor now() {
 		_it = ObjectStore.get(_collection.getDatabaseName(), 
-				_collection.getName()).queryObjects(_filters, _sorts, _numToSkip, _max); 
+				_collection.getName()).queryObjects(_filters, _sorts, _numToSkip, _max, null, null); 
 		return this;
 	}
 	
@@ -80,22 +72,22 @@ public class BasicDBQuery extends DBQuery {
 	 * @return
 	 */
 	@Override
-	public BasicDBQuery sort(DBQuery.SortDirection direction){
+	public BasicDBCursor sort(DBCursor.SortDirection direction){
 		if (_filters.get(_field) == null){
 			throw new IllegalArgumentException("Cannot sort if there is no filter for the given field");
 		}
-		if (direction == DBQuery.SortDirection.ASCENDING){
+		if (direction == DBCursor.SortDirection.ASCENDING){
 			_sorts.put(_field, com.google.appengine.api.datastore.Query.SortDirection.ASCENDING);
-		} else if (direction == DBQuery.SortDirection.DESCENDING) {
+		} else if (direction == DBCursor.SortDirection.DESCENDING) {
 			_sorts.put(_field, com.google.appengine.api.datastore.Query.SortDirection.DESCENDING);
 		}
 		return this;
 	}
 	
-	public BasicDBQuery sort(String field, DBQuery.SortDirection direction){
-		if (direction == DBQuery.SortDirection.ASCENDING){
+	public BasicDBCursor sort(String field, DBCursor.SortDirection direction){
+		if (direction == DBCursor.SortDirection.ASCENDING){
 			_sorts.put(field, com.google.appengine.api.datastore.Query.SortDirection.ASCENDING);
-		} else if (direction == DBQuery.SortDirection.DESCENDING) {
+		} else if (direction == DBCursor.SortDirection.DESCENDING) {
 			_sorts.put(field, com.google.appengine.api.datastore.Query.SortDirection.DESCENDING);
 		}
 		return this;		
@@ -108,7 +100,7 @@ public class BasicDBQuery extends DBQuery {
 	 * @return
 	 */
 	@Override
-	public BasicDBQuery limit(int max){
+	public BasicDBCursor limit(int max){
 		_max = max;
 		return this;
 	}
@@ -120,7 +112,7 @@ public class BasicDBQuery extends DBQuery {
 	 * @return
 	 */
 	@Override
-	public BasicDBQuery skip(int numToSkip){
+	public BasicDBCursor skip(int numToSkip){
 		if (_max == null){
 			throw new IllegalArgumentException("Must limit the result before skip"); 
 		}
@@ -129,13 +121,13 @@ public class BasicDBQuery extends DBQuery {
 	}
 
 	@Override
-	public BasicDBQuery or(Object value) {
+	public BasicDBCursor or(Object value) {
 		_orFilters.put(_field, null);
 		return this;
 	}
 
 	@Override
-	public BasicDBQuery and(Object value) {
+	public BasicDBCursor and(Object value) {
 		_andFilters.put(_field, null);
 		return this;
 	}
@@ -144,7 +136,7 @@ public class BasicDBQuery extends DBQuery {
 	public <T> Iterable<T> as(Class<T> clazz) {
 		_internalClass = clazz;
 		final Iterator<DBObject> it = ObjectStore.get(_collection.getDatabaseName(), 
-				_collection.getName()).queryObjects(_filters, _sorts); 
+				_collection.getName()).queryObjects(_filters, _sorts, null, null, null, null); 
 		
 		final Iterator<T> copy = new Iterator<T>() {
 			@Override
@@ -171,20 +163,23 @@ public class BasicDBQuery extends DBQuery {
 		return result;
 	}
 
+	// If the iterator is null, create 
+	// a new iterator to all documents
 	@Override
 	public void _check() {
-		// TODO Auto-generated method stub
-		
+		if (_it == null){ 
+			_it = _collection.__find(null, null, 0, 0, 0, 0);
+		}
 	}
 
 	@Override
-	public DBQuery sortAscending(String field) {
+	public DBCursor sortAscending(String field) {
 		sort(field, SortDirection.ASCENDING);
 		return this;
 	}
 
 	@Override
-	public DBQuery sortDescending(String field) {
+	public DBCursor sortDescending(String field) {
 		sort(field, SortDirection.DESCENDING);
 		return this;
 	}

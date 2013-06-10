@@ -10,13 +10,12 @@ import java.util.Set;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DB;
+import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.MungoCollection;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
-import com.mungoae.query.BasicDBQuery;
-import com.mungoae.query.Result;
-import com.mungoae.query.DBQuery;
+import com.mungoae.query.BasicDBCursor;
 import com.mungoae.query.UpdateQuery;
 import com.mungoae.util.Tuple;
 
@@ -30,13 +29,13 @@ public class BasicMungoCollection extends MungoCollection {
 	}
 
 	@Override
-	public DBQuery find() {	
-		return new BasicDBQuery(this); 
+	public DBCursor find() {	
+		return new BasicDBCursor(this); 
 	}
 
 	@Override
-	public DBQuery find(String query) {
-		return new BasicDBQuery(this, query);
+	public DBCursor find(String query) {
+		return new BasicDBCursor(this, query);
 	}
 
 	@Override
@@ -119,7 +118,56 @@ public class BasicMungoCollection extends MungoCollection {
 		return null;
 	}
 
+	@Override
+	public Iterator<DBObject> __find(final DBObject ref, final DBObject fields,
+			int numToSkip, int batchSize, int limit, int options) {
+		if (ref == null){
+			final Iterator<DBObject> _it = _store.getObjects();
+			if (fields != null){
+				// Copy iterator to filter fields
+				Iterator<DBObject> copy = new Iterator<DBObject>() {
+					@Override
+					public void remove() {
+						_it.remove();
+					}
+					@Override
+					public DBObject next() {
+						return copyFields(_it.next(), fields); 
+					}
+					@Override
+					public boolean hasNext() {
+						return _it.hasNext();
+					}
+				};
+				return copy;
+			}
+			return _it; 	
+		}
+		DBObject query = (DBObject) ref.get("$query"); // filter w/c docs to get
+		DBObject orderBy = (DBObject) ref.get("$orderby"); // order 
+		
+		if (query == null){ // no query? return an iterator to all documents
+			return _store.getObjects();
+		}
+		
+		return null;
+	}
 
+	// Helper method to filter fields to be returned
+	// until the low-level can support Datastore projection queries
+	private DBObject copyFields(DBObject ref, DBObject fieldsToCopy){
+		Iterator<String> it = ref.keySet().iterator();
+		while (it.hasNext()){
+			String field = it.next();	
+			Object fieldToCopy = fieldsToCopy.get(field);
+			if (fieldToCopy != null && fieldToCopy == Integer.valueOf(1)){ 
+				// retain the field
+			} else {
+				ref.removeField(field);
+			}
+		}
+		return ref;
+	}
 
 
 }

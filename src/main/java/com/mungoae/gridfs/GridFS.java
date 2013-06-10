@@ -15,7 +15,7 @@ import com.google.appengine.api.files.FileServiceFactory;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DB;
 import com.mungoae.DBCollection;
-import com.mungoae.DBCursor;
+import com.mungoae.XDBCursor;
 import com.mungoae.DBObject;
 
 public class GridFS {
@@ -49,7 +49,7 @@ public class GridFS {
      *
      * @return cursor of file objects
      */
-    public DBCursor getFileList(){
+    public XDBCursor getFileList(){
         return _filesCollection.find().sort(new BasicDBObject("filename",1));
     }
 
@@ -59,7 +59,7 @@ public class GridFS {
      * @param query filter to apply
      * @return cursor of file objects
      */
-    public DBCursor getFileList( DBObject query ){
+    public XDBCursor getFileList( DBObject query ){
         return _filesCollection.find( query ).sort(new BasicDBObject("filename",1));
     }
 
@@ -87,7 +87,7 @@ public class GridFS {
     public List<GridFSDBFile> find( DBObject query ){
         List<GridFSDBFile> files = new ArrayList<GridFSDBFile>();
 
-        DBCursor c = _filesCollection.find( query );
+        XDBCursor c = _filesCollection.find( query );
         while ( c.hasNext() ){
             files.add( _fix( c.next() ) );
         }

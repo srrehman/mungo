@@ -45,7 +45,7 @@ import com.mungoae.util.Tuple;
  * Interface between DB and the GAE Datastore entities.
  * So DB doesn't have to deal with to/from Entity/Object marshalling
  * 
- * TODO - Remove depenency to AbstractDBCollection
+ * TODO - Remove dependency to AbstractDBCollection
  * 
  * @author Kerby Martino <kerbymart@gmail.com>
  *
@@ -72,40 +72,122 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		_serializer = new XStreamSerializer();
 	}
 	
-
+	//--------------------------------------------------------------------------------------------------
+	// Interface that should be visible to clients
+	//--------------------------------------------------------------------------------------------------	
 	
 	/**
-	 * Get <code>String</code> id from a <code>Object</code>
 	 * 
-	 * @param docId
+	 * Query like;
+	 * 
+	 * {name: 'Joe'}
+	 * 
+	 * {name: { $e, 'Joe'}, age: { $gte, 20 }}
+	 * 
+	 * Order by like:
+	 * 
+	 * { age : -1 }
+	 * 
+	 * @param query
+	 * @param fields
+	 * @param numToSkip
+	 * @param batchSize
+	 * @param limit
+	 * @param options
 	 * @return
 	 */
-	private static String createStringIdFromObject(Object docId){
-		Preconditions.checkNotNull(docId, "Object doc id cannot be null");
-		if (docId instanceof ObjectId){
-			LOG.debug("Create ID String from ObjectID");
-			return ((ObjectId) docId).toStringMongod();
-		} else {
-			if (docId instanceof String
-					|| docId instanceof Long){
-				return String.valueOf(docId);
+	public Iterator<DBObject> queryObjects(DBObject query, DBObject orderby, DBObject fields, 
+			int numToSkip , int batchSize , int limit, int options){
+		Map<String, Tuple<FilterOperator, Object>> filters = Mapper.createFilterOperatorObjectFrom(query); 
+		Map<String, Query.SortDirection> sorts = Mapper.createSortObjectFrom(orderby); 
+		return queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
+	}
+	
+	/**
+	 * Update objects matching the query.
+	 * 
+	 * Query like:
+	 * <br>
+	 * <br>
+	 * "{name: 'Joe', $inc: {age: 1}}"
+	 * <br>
+	 * <br>
+	 * @param query
+	 * @param upsert
+	 * @param multi
+	 */
+	public void updateObjects(DBObject query, boolean upsert, boolean multi){
+		Map<String, Tuple<FilterOperator, Object>> filters = Mapper.createFilterOperatorObjectFrom(query); 
+		Map<String, Tuple<UpdateOperator, Object>> updates = Mapper.createUpdateOperatorFrom(query); 
+		
+		updateObjects(filters, updates, upsert, multi);
+	}
+	
+	/**
+	 * 
+	 * @param filters
+	 * @param sorts
+	 * @param _numToSkip
+	 * @param _max
+	 * @return
+	 */
+	public Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters, // Objects to get
+			Map<String, Query.SortDirection> sorts, // Sorting 
+			Integer _numToSkip, Integer _max, Integer fetchSize, Integer options){
+		Iterator<DBObject> _it = queryObjects(filters, sorts);
+		if (_max != null){
+			if (_numToSkip != null){
+				return new BoundedIterator<DBObject>(_numToSkip, _max, _it);
 			} else {
-				return docId.toString(); // FIXME not safe
+				return new BoundedIterator<DBObject>(0, _max, _it); 
 			}
-//			try {
-//				LOG.debug("Create ID String from arbitrary Object");
-//				return serializer.serialize(id);
-//			} catch (SerializationException e) {
-//				e.printStackTrace();
-//			}
+		} 
+		return _it;
+	}
+	
+	public void updateObjects(Map<String, Tuple<FilterOperator, Object>> filters, // Objects to get
+			Map<String, Tuple<UpdateOperator, Object>> updates, // Updates to perform
+			boolean insertIfNotExist, boolean updateAllMaching){ 
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		try {
+			Iterator<Entity> it = getEntitiesLike(filters);
+			if (it != null){
+				while(it.hasNext()){
+					Entity e = it.next();
+					Set<String> properties = e.getProperties().keySet();
+					for (String prop : properties){
+						if(updates.get(prop) != null){
+							// Perform the update
+							Object value = e.getProperty(prop);
+							Tuple<UpdateOperator, Object> updateOp = updates.get(prop);
+							if (updateOp.getFirst() == UpdateOperator.RENAME
+									&& updateOp.getSecond() instanceof String) { // Rename field
+								Object v = e.getProperty(prop);
+								e.removeProperty(prop);
+								e.setProperty((String)updateOp.getSecond(), v);
+							}
+							e.setProperty(prop, doUpdateOperation(value, updateOp)); 
+						}
+					}
+					_ds.put(e); // update
+				}
+			} else if (insertIfNotExist) { 
+				
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
 		}
 	}
 	
+	//--------------------------------------------------------------------------------------------------
 
-	
 	/**
 	 * Persist a DBObject to this DB under the given collection
-	 * TODO - Rename to persistEntity
+	 * 
 	 * <br>
 	 * Use with: 
 	 * <br>
@@ -212,7 +294,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	}
 
 	/**
-	 * Check if object exist
+	 * Check if object exist with the given field values.
+	 * Compares object as-is, including "_id" field it it exist
 	 * 
 	 * @param object
 	 * @return
@@ -223,44 +306,12 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	}
 	
 	/**
-	 * Check whether entity with the given properties exist
+	 * Checks if an object exist with a given id object. Object can be
+	 * String, Number, or ObjectId
 	 * 
-	 * @param props
+	 * @param id
 	 * @return
 	 */
-	private boolean containsEntityWithAllFieldLike(Entity props){
-		Preconditions.checkNotNull(props, "Entity cannot be null");
-		boolean contains = false;
-		Map<String,Object> m = props.getProperties();
-		Transaction tx = _ds.beginTransaction();
-		try {
-			Iterator<String> it = m.keySet().iterator();
-			Query q = new Query(_collName);
-			while (it.hasNext()){ // build the query
-				String propName = it.next();
-				Filter filter = new FilterPredicate(propName, 
-					FilterOperator.EQUAL, m.get(propName));
-				Filter prevFilter = q.getFilter();
-				// Note that the Query object is immutable
-				q = new Query(_collName).setFilter(prevFilter).setFilter(filter);
-				q = q.setKeysOnly();
-			}
-			PreparedQuery pq = _ds.prepare(q);
-			int c = pq.countEntities(FetchOptions.Builder.withDefaults());
-			if (c != 0)
-				contains = true;
-			tx.commit();
-		} catch (Exception e) {
-			tx.rollback();
-		} finally {
-		    if (tx.isActive()) {
-		        tx.rollback();
-		    }
-		}		
-		return contains;
-	}
-	
-	
 	public boolean containsId(Object id){
 		Preconditions.checkNotNull(id, "Object id cannot be null");
 		boolean contains = false;
@@ -281,102 +332,18 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		}			
 		return contains;
 	}
+
 	
 	/**
-	 * Query for objects matching all the filters
-	 * 
-	 * @param filters
-	 * @return
-	 */
-	public Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters){
-		Preconditions.checkNotNull(filters, "Null query filter map");
-		/**
-		 * Map of fields and its matching filter operator and compare value
-		 */
-		String oldNamespace = NamespaceManager.get();
-		NamespaceManager.set(_dbName);
-		Iterator<DBObject> it = null;
-		try {
-			final Iterator<Entity> eit = getEntitiesLike(filters); 
-			it = new Iterator<DBObject>() {
-				public void remove() {
-					eit.remove();
-				}
-				public DBObject next() {
-					Entity e = eit.next();
-					return Mapper.createDBObjectFromEntity(e);
-				}
-				public boolean hasNext() {
-					return eit.hasNext();
-				}
-			};	
-		} catch (Exception e) {
-			e.printStackTrace();
-			it = null;
-		} finally {
-			if (oldNamespace != null)
-				NamespaceManager.set(oldNamespace);
-		}		
-		if (it == null){
-			LOG.debug("Returning null iterator");
-		}
-		return it;		
-	}
-	
-	public Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters,
-			Map<String, Query.SortDirection> sorts){
-		Preconditions.checkNotNull(filters, "Null filter");
-		Preconditions.checkNotNull(sorts, "Null sort");
-		/**
-		 * Map of fields and its matching filter operator and compare value
-		 */
-		String oldNamespace = NamespaceManager.get();
-		NamespaceManager.set(_dbName);
-		Iterator<DBObject> it = null;
-		try {
-			final Iterator<Entity> eit = getSortedEntitiesLike(filters, sorts); 
-			it = new Iterator<DBObject>() {
-				public void remove() {
-					eit.remove();
-				}
-				public DBObject next() {
-					Entity e = eit.next();
-					return Mapper.createDBObjectFromEntity(e);
-				}
-				public boolean hasNext() {
-					return eit.hasNext();
-				}
-			};	
-		} catch (Exception e) {
-			e.printStackTrace();
-			it = null;
-		} finally {
-			if (oldNamespace != null)
-				NamespaceManager.set(oldNamespace);
-		}		
-		if (it == null){
-			LOG.debug("Returning null iterator");
-		}
-		return it;				
-	}
-	
-	public Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters,
-			Map<String, Query.SortDirection> sorts, Integer _numToSkip, Integer _max){
-		Iterator<DBObject> _it = queryObjects(filters, sorts);
-		if (_max != null){
-			if (_numToSkip != null){
-				return new BoundedIterator<DBObject>(_numToSkip, _max, _it);
-			} else {
-				return new BoundedIterator<DBObject>(0, _max, _it); 
-			}
-		} 
-		return _it;
-	}
-	
-	/**
-	 * Get the <code>DBObject</code>s that matches all
-	 * of the fields in the object.
-	 * 
+	 * Iterator for objects matching the given query. 
+	 * Query in form: 
+	 * <br>
+	 * <br>
+	 * <code>
+	 * 		DBObject query = new BasicDBObject("type", new BasicDBObject("$e", "books")) 
+	 *			.append("pages", new BasicDBObject("$gte", 500));	 	 
+	 * </code>
+	 *
 	 * @param query
 	 * @param collection
 	 * @return
@@ -386,7 +353,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		if (query.keySet().isEmpty()){
 			LOG.debug("Empty query object");
 		}
-		
+		validateQuery(query);
 		/**
 		 * Map of fields and its matching filter operator and compare value
 		 */
@@ -424,22 +391,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return it;
 	}
 	
-	private void validateQuery(DBObject query){
-		if (query.keySet().isEmpty()){
-			throw new IllegalArgumentException("Empty query");
-		}
-		for (String field : query.keySet()){
-			Object operatorCompareValuePair = query.get(field);
-			if (!(operatorCompareValuePair instanceof DBObject)){
-				throw new IllegalArgumentException("Invalid query: " 
-							+ operatorCompareValuePair);
-			}
-			LOG.debug("Query reference field=" 
-					+ field 
-					+ " reference operator/value=" 
-					+ operatorCompareValuePair);
-		}
-	}
+
 	
 	/**
 	 * 
@@ -447,7 +399,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param orderby
 	 * @return
 	 */
-	public Iterator<DBObject> querySortedObjectsLike(DBObject query, DBObject orderby){
+	public Iterator<DBObject> queryAllObjectsLike(DBObject query, DBObject orderby){
 		Preconditions.checkNotNull(query, "Reference object cannot be null");
 		validateQuery(query);
 		String oldNamespace = NamespaceManager.get();
@@ -492,71 +444,13 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		}
 		return it;
 	}	
-	
-	
-	public void updateObjects(Map<String, Tuple<FilterOperator, Object>> filters, // Object to get
-			Map<String, Tuple<UpdateOperator, Object>> updates){ // Updates to perform
-		String oldNamespace = NamespaceManager.get();
-		NamespaceManager.set(_dbName);
-		try {
-			Iterator<Entity> it = getEntitiesLike(filters);
-			while(it.hasNext()){
-				Entity e = it.next();
-				Set<String> properties = e.getProperties().keySet();
-				for (String prop : properties){
-					if(updates.get(prop) != null){
-						// Perform the update
-						Object value = e.getProperty(prop);
-						e.setProperty(prop, doUpdateOperation(value, updates.get(prop))); 
-					}
-				}
-				_ds.put(e); // update
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (oldNamespace != null)
-				NamespaceManager.set(oldNamespace);
-		}
-	}
-	
-	private Object doUpdateOperation(Object value, Tuple<UpdateOperator, Object> updateOp){
-		UpdateOperator op = updateOp.getFirst();
-		Object opValue = updateOp.getSecond();
-		if (op == UpdateOperator.INCREMENT){
-			if (value instanceof Number && opValue instanceof Number){
-				return (Long) value + (Long) opValue;
-			} else {
-				throw new IllegalArgumentException("Increment operation only allowed for numbers");
-			}
-		} else if (op == UpdateOperator.DECREMENT){
-			if (value instanceof Number && opValue instanceof Number){
-				return (Long) value - (Long) opValue;
-			} else {
-				throw new IllegalArgumentException("Increment operation only allowed for numbers");
-			}	
-		} else if (op == UpdateOperator.SET) {
-			return updateOp.getSecond();
-		} else if (op == UpdateOperator.UNSET) {
-			return null;
-		} else if (op == UpdateOperator.PREFIX) {
-			if (value instanceof String && opValue instanceof String){
-				return  (String) opValue + (String) value;
-			} else {
-				throw new IllegalArgumentException("Prefix/Append operation is only allowed for strings");
-			}	
-		} else if (op == UpdateOperator.SUFFIX) {
-			if (value instanceof String && opValue instanceof String){
-				return  (String) value + (String) opValue;
-			} else {
-				throw new IllegalArgumentException("Prefix/Append operation is only allowed for strings");
-			}		
-		}
-		return null;
-	}
-	
-	
-	// Helper get method
+
+	/**
+	 * Helper method to get only the first object
+	 * 
+	 * @param obj
+	 * @return
+	 */
 	public DBObject getFirstObjectLike(DBObject obj){
 		Iterator<DBObject> it = queryObjectsLike(obj);
 		if (it != null)
@@ -564,6 +458,11 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return null;
 	}
 	
+	/**
+	 * Iterator for all objects in the datastore
+	 * 
+	 * @return
+	 */
 	public Iterator<DBObject> getObjects() {
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
@@ -595,25 +494,14 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	}
 	
 	// FIXME - Method is returning null always
-	public Iterator<DBObject> querySortedObjects(DBObject orderby) {
+	public Iterator<DBObject> queryObjectsOrderBy(DBObject orderby) {
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		Iterator<DBObject> it = null;
 		try {
 			
-			Map<String, Query.SortDirection> sorts = new LinkedHashMap<String,Query.SortDirection>();
-			Iterator<String> kit = orderby.keySet().iterator();
-			while (kit.hasNext()){
-				String key = kit.next();
-				int dir = (Integer) orderby.get(key);
-				Query.SortDirection direction =  dir == 1 ? 
-						Query.SortDirection.ASCENDING : null;
-				direction = dir == -1 ? 
-						Query.SortDirection.DESCENDING : direction;
-				LOG.debug("Adding sort key="+key + " direction=" + direction);
-				sorts.put(key, direction);
-			}
-			
+			Map<String, Query.SortDirection> sorts = Mapper.createSortObjectFrom(orderby);
+
 			final Iterator<Entity> eit = getSortedEntities(sorts);
 			
 			it = new Iterator<DBObject>() {
@@ -660,6 +548,85 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return false;		
 	}
 
+	
+	/**
+	 * Query for objects matching all the filters
+	 * 
+	 * @param filters
+	 * @return
+	 */
+	private Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters){
+		Preconditions.checkNotNull(filters, "Null query filter map");
+		/**
+		 * Map of fields and its matching filter operator and compare value
+		 */
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		Iterator<DBObject> it = null;
+		try {
+			final Iterator<Entity> eit = getEntitiesLike(filters); 
+			it = new Iterator<DBObject>() {
+				public void remove() {
+					eit.remove();
+				}
+				public DBObject next() {
+					Entity e = eit.next();
+					return Mapper.createDBObjectFromEntity(e);
+				}
+				public boolean hasNext() {
+					return eit.hasNext();
+				}
+			};	
+		} catch (Exception e) {
+			e.printStackTrace();
+			it = null;
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}		
+		if (it == null){
+			LOG.debug("Returning null iterator");
+		}
+		return it;		
+	}
+	
+	private Iterator<DBObject> queryObjects(Map<String, Tuple<FilterOperator, Object>> filters,
+			Map<String, Query.SortDirection> sorts){
+		Preconditions.checkNotNull(filters, "Null filter");
+		Preconditions.checkNotNull(sorts, "Null sort");
+		/**
+		 * Map of fields and its matching filter operator and compare value
+		 */
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		Iterator<DBObject> it = null;
+		try {
+			final Iterator<Entity> eit = getSortedEntitiesLike(filters, sorts); 
+			it = new Iterator<DBObject>() {
+				public void remove() {
+					eit.remove();
+				}
+				public DBObject next() {
+					Entity e = eit.next();
+					return Mapper.createDBObjectFromEntity(e);
+				}
+				public boolean hasNext() {
+					return eit.hasNext();
+				}
+			};	
+		} catch (Exception e) {
+			e.printStackTrace();
+			it = null;
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}		
+		if (it == null){
+			LOG.debug("Returning null iterator");
+		}
+		return it;				
+	}
+	
 	/**
 	 * Get a list of entities that matches the properties of a given 
 	 * <code>Entity</code>.
@@ -1093,6 +1060,135 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		}
 		return entityKey;
 	}	
+	
+	/**
+	 * Get <code>String</code> id from a <code>Object</code>
+	 * 
+	 * @param docId
+	 * @return
+	 */
+	private static String createStringIdFromObject(Object docId){
+		Preconditions.checkNotNull(docId, "Object doc id cannot be null");
+		if (docId instanceof ObjectId){
+			LOG.debug("Create ID String from ObjectID");
+			return ((ObjectId) docId).toStringMongod();
+		} else {
+			if (docId instanceof String
+					|| docId instanceof Long){
+				return String.valueOf(docId);
+			} else {
+				return docId.toString(); // FIXME not safe
+			}
+//			try {
+//				LOG.debug("Create ID String from arbitrary Object");
+//				return serializer.serialize(id);
+//			} catch (SerializationException e) {
+//				e.printStackTrace();
+//			}
+		}
+	}
+	
+	/**
+	 * Check whether entity with the given properties exist
+	 * 
+	 * @param props
+	 * @return
+	 */
+	private boolean containsEntityWithAllFieldLike(Entity props){
+		Preconditions.checkNotNull(props, "Entity cannot be null");
+		boolean contains = false;
+		Map<String,Object> m = props.getProperties();
+		Transaction tx = _ds.beginTransaction();
+		try {
+			Iterator<String> it = m.keySet().iterator();
+			Query q = new Query(_collName);
+			while (it.hasNext()){ // build the query
+				String propName = it.next();
+				Filter filter = new FilterPredicate(propName, 
+					FilterOperator.EQUAL, m.get(propName));
+				Filter prevFilter = q.getFilter();
+				// Note that the Query object is immutable
+				q = new Query(_collName).setFilter(prevFilter).setFilter(filter);
+				q = q.setKeysOnly();
+			}
+			PreparedQuery pq = _ds.prepare(q);
+			int c = pq.countEntities(FetchOptions.Builder.withDefaults());
+			if (c != 0)
+				contains = true;
+			tx.commit();
+		} catch (Exception e) {
+			tx.rollback();
+		} finally {
+		    if (tx.isActive()) {
+		        tx.rollback();
+		    }
+		}		
+		return contains;
+	}
+	
+	/**
+	 * Validates a given query object
+	 * 
+	 * @param query
+	 */
+	private void validateQuery(DBObject query){
+		if (query.keySet().isEmpty()){
+			throw new IllegalArgumentException("Empty query");
+		}
+		for (String field : query.keySet()){
+			Object operatorCompareValuePair = query.get(field);
+			if (!(operatorCompareValuePair instanceof DBObject)){
+				throw new IllegalArgumentException("Invalid query: " 
+							+ operatorCompareValuePair);
+			}
+			LOG.debug("Query reference field=" 
+					+ field 
+					+ " reference operator/value=" 
+					+ operatorCompareValuePair);
+		}
+	}
+	
+	private Object doUpdateOperation(Object value, Tuple<UpdateOperator, Object> updateOp){
+		UpdateOperator op = updateOp.getFirst();
+		Object opValue = updateOp.getSecond();
+		if (op == UpdateOperator.INCREMENT){
+			if (value instanceof Number && opValue instanceof Number){
+				return (Long) value + (Long) opValue;
+			} else {
+				throw new IllegalArgumentException("Increment operation only allowed for numbers");
+			}
+		} else if (op == UpdateOperator.DECREMENT){
+			if (value instanceof Number && opValue instanceof Number){
+				return (Long) value - (Long) opValue;
+			} else {
+				throw new IllegalArgumentException("Increment operation only allowed for numbers");
+			}	
+		} else if (op == UpdateOperator.SET) {
+			return updateOp.getSecond();
+		} else if (op == UpdateOperator.UNSET) {
+			return null;
+		} else if (op == UpdateOperator.RENAME) {
+			
+		} else if (op == UpdateOperator.SET_ON_INSERT) {
+			
+		}
+		
+ //		else if (op == UpdateOperator.PREFIX) {
+//			if (value instanceof String && opValue instanceof String){
+//				return  (String) opValue + (String) value;
+//			} else {
+//				throw new IllegalArgumentException("Prefix/Append operation is only allowed for strings");
+//			}	
+//		} else if (op == UpdateOperator.SUFFIX) {
+//			if (value instanceof String && opValue instanceof String){
+//				return  (String) value + (String) opValue;
+//			} else {
+//				throw new IllegalArgumentException("Prefix/Append operation is only allowed for strings");
+//			}		
+//		}
+		
+		return null;
+	}
 	
 	public static ObjectStore get(String namespace, String kind) {
 		return new ObjectStore(namespace, kind);

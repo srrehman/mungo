@@ -1,125 +1,85 @@
 package com.mungoae;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.mungoae.query.DBQueryFilter;
+import com.mungoae.util.Tuple;
 
-import com.google.common.base.Preconditions;
-import com.mungoae.common.MungoException;
-
-public class DBCursor implements Iterator<DBObject>,
-	Iterable<DBObject> {
+public abstract class DBCursor implements Iterable<DBObject>, 
+	Iterator<DBObject> {
 	
-	private static final int DEFAULT_FETCH_OFFSET = 0;
-	private static final int DEFAULT_FETCH_LIMIT = 1000;
+	protected MungoCollection _collection;
+	protected Map<String, Tuple<FilterOperator, Object>> _filters;
+	protected Map<String, Tuple<FilterOperator, Object>> _orFilters;
+	protected Map<String, Tuple<FilterOperator, Object>> _andFilters;
 	
-	private static Logger LOG = LogManager.getLogger(DBCursor.class.getName());
-
-	private DBCollection _collection;
-	private DBObject _query;
-	private DBObject _keysWanted;
+	protected Map<String, com.google.appengine.api.datastore.Query.SortDirection> _sorts; 
+	protected String _field = null;
+	protected Integer _max = null;
+	protected Integer _numToSkip = null;
 	
-    private Iterator<DBObject> _it = null;
-    private DBObject _orderBy = null;
-    
-    private int _batchSize = 5;
-    private int _skip = DEFAULT_FETCH_OFFSET;
-    private int _limit = DEFAULT_FETCH_LIMIT;
-    
-    public DBCursor(DBCollection coll, DBObject q, DBObject k){
-    	_collection = coll;
-    	_query = q == null ? new BasicDBObject() : q;
-    	_keysWanted = k;
-    }
-
+	protected Iterator<DBObject> _it = null;
+	
+	protected Class _internalClass;
+	
+	public enum SortDirection { 
+		ASCENDING(1), DESCENDING(-1);
+		private final int dir;
+		SortDirection(int dir){
+			this.dir = dir;
+		}
+		public int getValue() {
+			return dir;
+		}
+	}
+	
+	public abstract DBCursor or(Object value);
+	public abstract DBCursor and(Object value);
+	public abstract DBQueryFilter filter(String field);
+	public abstract DBCursor sort(DBCursor.SortDirection direction);
+	public abstract DBCursor sortAscending(String field);
+	public abstract DBCursor sortDescending(String field);
+	public abstract DBCursor sort(String field, DBCursor.SortDirection direction);
+	public abstract DBCursor limit(int max);
+	public abstract DBCursor skip(int numToSkip);
+	public abstract DBCursor now();
+	
+	public DBCursor(MungoCollection collection){
+		_collection = collection;
+		_filters = new LinkedHashMap<String, Tuple<FilterOperator, Object>>();
+		_sorts = new LinkedHashMap<String, com.google.appengine.api.datastore.Query.SortDirection>();
+	}
+	
+	@Override
 	public Iterator<DBObject> iterator() {
 		_check();
 		return _it;
 	}
 
+	@Override
 	public boolean hasNext() {
 		_check();
 		return _it.hasNext();
 	}
 
+	@Override
 	public DBObject next() {
 		_check();
 		return _it.next();
 	}
 
+	@Override
 	public void remove() {
 		_check();
-		_it.remove();
-	}
-	
-    /**
-     * Sorts this cursor's elements.
-     * This method must be called before getting any object from the cursor.
-     * <br>
-     * <br>
-     * <code>
-     * 	BasicDBObjectBuilder.start("points", 1).get()
-     * </code>
-     * <br>
-     * <br>
-     * Where 'points' is the field in the document and 1 = Ascending, -1 = Descending
-     * 
-     * @param orderBy the fields by which to sort
-     * 
-     * @return a cursor pointing to the first element of the sorted results
-     */
-    public DBCursor sort(DBObject orderBy){
-        if (_it != null)
-            throw new IllegalStateException( "Can't sort after executing query" );
-        _orderBy = orderBy;
-        return this;
-    }	
-    
-    // ----  internal stuff ------
-
-    private void _check()
-        throws MungoException {
-        if ( _it != null )
-            return;
-        
-        LOG.info("Raw Query="+_query);
-        LOG.info("Raw OrderBy="+_orderBy);
-        
-        QueryOpBuilder builder = new QueryOpBuilder()
-        	.addQuery(_query)
-        	.addOrderBy(_orderBy);
- 
-        LOG.info("Built Query="+builder.get().get("$query"));
-        LOG.info("Built OrderBy="+builder.get().get("$orderby"));
-        
-        _it = _collection.__find(builder.get(), _keysWanted, _skip, _batchSize, _limit, 0);
-        Preconditions.checkNotNull(_it, "Checked Iterator is null");
-    }    
-    
-    public DBCursor limit(Integer limit){
-    	this._limit = limit;
-    	return this;
-    }
-    
-    public DBCursor skip(Integer skip){
-    	this._skip = skip;
-    	return this;
-    }
-
-	public void hint(DBObject dbObject) {
-		
+		_it.remove();		
 	}	
 	
-	@Deprecated
-	private List<DBObject> copyIterator(Iterator<DBObject> it){
-		List<DBObject> copy = new ArrayList<DBObject>();
-		while (it.hasNext()){
-		    copy.add(it.next());
-		}
-		return copy;
-	}
+	public abstract <T> Iterable<T> as(Class<T> clazz);
 	
+	public abstract void _check();
+
+
 }

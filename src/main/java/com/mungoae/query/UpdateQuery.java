@@ -16,7 +16,7 @@ public class UpdateQuery {
 	public enum UpdateOperator {
 		INCREMENT, DECREMENT,
 		SET, UNSET,
-		PREFIX, SUFFIX
+		RENAME, SET_ON_INSERT
 	}
 	
 	private boolean _multi = false;
@@ -35,6 +35,22 @@ public class UpdateQuery {
 		_filters = filters;
 	}
 	
+	/**
+	 * Append query
+	 * 
+	 * Query string like:
+	 * 
+	 * { '$set' : {'number': 123}}"
+	 * 
+	 * Where valid operators are
+	 * <ul>
+	 * 	<li>$set<li>
+	 *  <li>$unset<li>
+	 * </ul>
+	 * 
+	 * @param query
+	 * @return
+	 */
 	public UpdateQuery with(String query){ 
 		_updates = Mapper.createUpdateOperatorFrom(new BasicDBObject(query));
 		return this;
@@ -43,7 +59,7 @@ public class UpdateQuery {
 	public void now() {
 		if (_filters == null || _updates == null)
 			return;
-		ObjectStore.get(_collection.getDatabaseName(), _collection.getName()).updateObjects(_filters, _updates);
+		ObjectStore.get(_collection.getDatabaseName(), _collection.getName()).updateObjects(_filters, _updates, true, true); 
 	}
 	
 	public UpdateQuery increment(String field, Object byValue) {

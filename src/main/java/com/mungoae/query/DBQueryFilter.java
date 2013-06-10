@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.mungoae.DBCursor;
 import com.mungoae.util.Tuple;
 
 public class DBQueryFilter {
@@ -11,10 +12,10 @@ public class DBQueryFilter {
 	// e.g "user" or "user.points"
 	private Map<String, Tuple<FilterOperator, Object>> _filters = null;
 	private Map<String, com.google.appengine.api.datastore.Query.SortDirection> _sorts;
-	private DBQuery _q = null; 
+	private DBCursor _q = null; 
 	private String _field; 
 	
-	public DBQueryFilter(DBQuery q, String field, Map<String, Tuple<FilterOperator, Object>> filters,
+	public DBQueryFilter(DBCursor q, String field, Map<String, Tuple<FilterOperator, Object>> filters,
 			Map<String, com.google.appengine.api.datastore.Query.SortDirection> sorts) {
 		_q = q;
 		_filters = filters;
@@ -22,45 +23,45 @@ public class DBQueryFilter {
 		_sorts = sorts;
 	}	
 	
-	public DBQuery or(Object value) {
+	public DBCursor or(Object value) {
 		return _q;
 	}
 	
-	public DBQuery and(Object value) {
+	public DBCursor and(Object value) {
 		return _q;
 	}
 	
-	public DBQuery equalTo(Object value){
+	public DBCursor equalTo(Object value){
 		if (_filters == null)
 			_filters = new HashMap<String, Tuple<FilterOperator, Object>>();
 		_filters.put(_field, new Tuple<FilterOperator, Object>(FilterOperator.EQUAL, value)); 
 		return _q;
 	}
-	public DBQuery notEqualTo(Object value){
+	public DBCursor notEqualTo(Object value){
 		if (_filters == null)
 			_filters = new HashMap<String, Tuple<FilterOperator, Object>>();
 		_filters.put(_field, new Tuple<FilterOperator, Object>(FilterOperator.NOT_EQUAL, value)); 
 		return _q;
 	}
-	public DBQuery greaterThan(Object value){
+	public DBCursor greaterThan(Object value){
 		if (_filters == null)
 			_filters = new HashMap<String, Tuple<FilterOperator, Object>>();
 		_filters.put(_field, new Tuple<FilterOperator, Object>(FilterOperator.GREATER_THAN, value)); 
 		return _q;
 	}
-	public DBQuery lessThan(Object value){
+	public DBCursor lessThan(Object value){
 		if (_filters == null)
 			_filters = new HashMap<String, Tuple<FilterOperator, Object>>();
 		_filters.put(_field, new Tuple<FilterOperator, Object>(FilterOperator.LESS_THAN, value)); 
 		return _q;
 	}
-	public DBQuery greaterThanOrEqualTo(Object value){
+	public DBCursor greaterThanOrEqualTo(Object value){
 		if (_filters == null)
 			_filters = new HashMap<String, Tuple<FilterOperator, Object>>();
 		_filters.put(_field, new Tuple<FilterOperator, Object>(FilterOperator.GREATER_THAN_OR_EQUAL, value)); 
 		return _q;
 	}
-	public DBQuery lessThanOrEqualTo(Object value){
+	public DBCursor lessThanOrEqualTo(Object value){
 		if (_filters == null)
 			_filters = new HashMap<String, Tuple<FilterOperator, Object>>();
 		_filters.put(_field, new Tuple<FilterOperator, Object>(FilterOperator.LESS_THAN_OR_EQUAL, value)); 

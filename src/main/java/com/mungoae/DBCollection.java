@@ -282,8 +282,8 @@ public abstract class DBCollection implements ParameterNames {
 	 * 
 	 * @return the DBCursor
 	 */
-	public DBCursor find() {
-		return new DBCursor(this, null, null);
+	public XDBCursor find() {
+		return new XDBCursor(this, null, null);
 	}
 
 	/**
@@ -292,14 +292,14 @@ public abstract class DBCollection implements ParameterNames {
 	 * @param ref
 	 * @return the DBCursor
 	 */
-	public DBCursor find(DBObject ref){
+	public XDBCursor find(DBObject ref){
 		// TODO - Right now the underlying find implementation
 		// builds a query based on all of the fields of 'ref'
 		// which more likely is a '$all' query.
 		// Need to add a way to deal with other query operators
 		if (ref == null)
 			return null;	
-		return new DBCursor(this, ref, null); 
+		return new XDBCursor(this, ref, null); 
 	}
 	
 	/**
@@ -309,15 +309,15 @@ public abstract class DBCollection implements ParameterNames {
 	 * @param keys
 	 * @return
 	 */
-	public DBCursor find(DBObject ref, DBObject keys){
+	public XDBCursor find(DBObject ref, DBObject keys){
 		throw new IllegalArgumentException("Not yet implemented");
 	}
 	
-	public DBCursor find(DBObject query, DBObject fields, int numToSkip, int batchSize){
+	public XDBCursor find(DBObject query, DBObject fields, int numToSkip, int batchSize){
 		throw new IllegalArgumentException("Not yet implemented");
 	}
 	
-	public DBCursor find(DBObject quer, DBObject fields, 
+	public XDBCursor find(DBObject quer, DBObject fields, 
 			int numToSkip, int batchSize, int options){
 		throw new IllegalArgumentException("Not yet implemented");
 	}	
