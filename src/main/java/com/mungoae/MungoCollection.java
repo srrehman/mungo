@@ -1,23 +1,36 @@
 package com.mungoae;
 
+import java.util.Calendar;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.google.appengine.api.datastore.DatastoreService;
+import com.google.appengine.api.datastore.TransactionOptions;
 import com.mungoae.query.Result;
 import com.mungoae.query.DBQuery;
 import com.mungoae.query.UpdateQuery;
-
-public abstract class MungoCollection {
+/**
+ * 
+ * @author Kerby Martino <kerbymart@gmail.com>
+ *
+ */
+public abstract class MungoCollection implements ParameterNames {
+		
+	protected static DatastoreService _ds;
+	protected static TransactionOptions options;
 	
 	private DB _db;
 	protected final String _databaseName;
 	protected final String _collectionName;
+	protected Calendar cal;	
 	
 	public MungoCollection(String database, String collection) {
 		_databaseName = database;
 		_collectionName = collection;
 	}
 
+	// TODO - Renmae DBQuery to DBCursor
 	public abstract DBQuery find();
 	public abstract DBQuery find(String query);
 	public abstract DBObject findOne(Object id);
@@ -38,6 +51,10 @@ public abstract class MungoCollection {
 	
 	public String getDatabaseName() {
 		return _databaseName;
+	}
+	
+	public DB getDB(){
+		return _db;
 	}
 	
     /**
@@ -95,4 +112,17 @@ public abstract class MungoCollection {
             }
         }
     }	
+    
+	/**
+	 * Find objects
+	 * 
+	 * @param ref reference object
+	 * @param fields fields to include in the result
+	 * @param numToSkip 
+	 * @param batchSize 
+	 * @param limit 
+	 * @param options
+	 * @return
+	 */
+    public abstract Iterator<DBObject> __find(DBObject ref , DBObject fields , int numToSkip , int batchSize , int limit, int options);
 }

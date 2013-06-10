@@ -72,6 +72,14 @@ public class BasicMungoCollection extends MungoCollection {
 		}
 	}
 	
+	/**
+	 * e.g
+	 * <br>
+	 * <code>
+	 * coll.update("{'name':'joe'}").with("{'$set':{'points': 123}}")
+	 * coll.update("{'name': { '$gte' : 'joe' } }").with("{'$set':{'points': 123}}")
+	 * </code>
+	 */
 	@SuppressWarnings("unused")
 	@Override
 	public UpdateQuery update(String query) {
@@ -112,10 +120,23 @@ public class BasicMungoCollection extends MungoCollection {
 		return false;
 	}
 	
+	/**
+	 * Creates a DBObject from a POJO
+	 * 
+	 * @param obj
+	 * @return
+	 */
 	private <T> DBObject createFromObject(T obj){
 		// Process annotations
 		// Get the id
 		// Get the fields
+		return null;
+	}
+
+	@Override
+	public Iterator<DBObject> __find(DBObject ref, DBObject fields,
+			int numToSkip, int batchSize, int limit, int options) {
+		// TODO Auto-generated method stub
 		return null;
 	}
 
