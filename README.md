@@ -16,11 +16,16 @@ deep stored embedded documents (Work in progress).
 
 >    	Mungo mungo = new Mungo(); 
 >    	DB testDB = mungo.getDB("testDB");
->		DBCollection messages = testDB.createCollection("Message");
->    	BasicDBObject obj = new BasicDBObject("{\"hello\" : \"world\"}");
->    	obj.put("hi", "there");
-> 		WriteResult wr = messages.insert(obj); // Done!
-> 		DBObject result = messages.findOne(obj.getId()); // Get it
+>		DBCollection greetings = testDB.createCollection("Message");
+>    	BasicDBObject obj = new BasicDBObject("{'username' : 'jack'}");
+>			obj.put("greeting", "Hello world")
+>    		obj.put("created", new Date());
+> 		WriteResult wr = greetings.insert(obj); // Done!
+> 		DBObject greeting = greetings.findOne("{'username' : 'jack'}"); // Get it
+
+Or
+
+>		Greeting greeting = greetings.findOne("{'username' : 'jack'}").as(Greeting.class);
 
 It's that easy!
 Version
