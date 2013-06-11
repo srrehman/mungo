@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.bson.types.ObjectId;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.datastore.Query.SortDirection;
@@ -76,6 +77,11 @@ public class BasicMungoCollection extends DBCollection {
 
 	@Override
 	public DBObject findOne(Object id) {
+		return _store.getObjectById(id);
+	}
+	
+	@Override
+	public DBObject findOne(ObjectId id) {
 		return _store.getObjectById(id);
 	}
 	

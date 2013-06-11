@@ -12,7 +12,7 @@ import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.labs.repackaged.com.google.common.base.Preconditions;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
-import com.mungoae.query.DBQueryFilter;
+import com.mungoae.query.DBFilter;
 import com.mungoae.util.Tuple;
 
 public class DBCursor implements Iterable<DBObject>, 
@@ -122,9 +122,9 @@ public class DBCursor implements Iterable<DBObject>,
 	 * @return
 	 */
 	
-	public DBQueryFilter filter(String field) {
+	public DBFilter filter(String field) {
 		_field = field;
-		return new DBQueryFilter(this, field, _filters, _sorts); 
+		return new DBFilter(this, field, _filters, _sorts); 
 	}
 	
 	/**

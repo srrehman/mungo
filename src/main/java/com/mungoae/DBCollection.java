@@ -4,6 +4,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.bson.types.ObjectId;
+
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.query.UpdateQuery;
 import com.mungoae.util.Tuple;
@@ -28,6 +30,7 @@ public abstract class DBCollection {
 	public abstract DBObject findOne();
 	public abstract DBObject findOne(String query);
 	public abstract DBObject findOne(Object id);
+	public abstract DBObject findOne(ObjectId id);
 	public abstract DBObject findOne(DBObject query);
 	public abstract void insert(String doc);
 	public abstract <T> void insert(T doc);
