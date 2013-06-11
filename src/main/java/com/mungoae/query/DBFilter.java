@@ -7,7 +7,7 @@ import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.DBCursor;
 import com.mungoae.util.Tuple;
 
-public class DBQueryFilter {
+public class DBFilter {
 	
 	// e.g "user" or "user.points"
 	private Map<String, Tuple<FilterOperator, Object>> _filters = null;
@@ -15,7 +15,7 @@ public class DBQueryFilter {
 	private DBCursor _q = null; 
 	private String _field; 
 	
-	public DBQueryFilter(DBCursor q, String field, Map<String, Tuple<FilterOperator, Object>> filters,
+	public DBFilter(DBCursor q, String field, Map<String, Tuple<FilterOperator, Object>> filters,
 			Map<String, com.google.appengine.api.datastore.Query.SortDirection> sorts) {
 		_q = q;
 		_filters = filters;
@@ -68,7 +68,7 @@ public class DBQueryFilter {
 		return _q;
 	}
 	
-	public DBQueryFilter filter(String innerField){
+	public DBFilter filter(String innerField){
 		return this;
 	}
 	

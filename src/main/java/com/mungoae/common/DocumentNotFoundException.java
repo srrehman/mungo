@@ -18,11 +18,11 @@
 package com.mungoae.common;
 
 @SuppressWarnings("serial")
-public class EntityNotFoundException extends MungoException {
-	public EntityNotFoundException() {
+public class DocumentNotFoundException extends MungoException {
+	public DocumentNotFoundException() {
 		super();
 	}
-	public EntityNotFoundException(String doc) {
-		super("Entity " + doc + " not exist");  
+	public DocumentNotFoundException(String doc) {
+		super("Document " + doc + " not exist");  
 	}
 }

@@ -18,11 +18,11 @@
 package com.mungoae.common;
 
 @SuppressWarnings("serial")
-public class KindExistException extends MungoException {
-	public KindExistException() {
+public class CollectionExistException extends MungoException {
+	public CollectionExistException() {
 		super();
 	}
-	public KindExistException(String kind) {
-		super("Kind " + kind + " already exist"); 
+	public CollectionExistException(String kind) {
+		super("Collection " + kind + " already exist"); 
 	}
 }

@@ -18,11 +18,11 @@
 package com.mungoae.common;
 
 @SuppressWarnings("serial")
-public class EntityExistException extends MungoException {
-	public EntityExistException() {
+public class CollectionNotFoundException extends MungoException {
+	public CollectionNotFoundException() {
 		super();
 	}
-	public EntityExistException(String doc) {
-		super("Entity " + doc + " already exist");  
+	public CollectionNotFoundException(String kind) {
+		super("Collection " + kind + " not exist"); 
 	}
 }

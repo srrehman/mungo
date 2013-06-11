@@ -18,11 +18,11 @@
 package com.mungoae.common;
 
 @SuppressWarnings("serial")
-public class KindNotFoundException extends MungoException {
-	public KindNotFoundException() {
+public class DocumentExistException extends MungoException {
+	public DocumentExistException() {
 		super();
 	}
-	public KindNotFoundException(String kind) {
-		super("Kind " + kind + " not exist"); 
+	public DocumentExistException(String doc) {
+		super("Document " + doc + " already exist");  
 	}
 }
