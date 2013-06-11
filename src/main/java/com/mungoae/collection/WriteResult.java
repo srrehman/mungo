@@ -2,7 +2,15 @@ package com.mungoae.collection;
 
 import com.mungoae.CommandResult;
 import com.mungoae.DB;
-
+/**
+ * This class lets you access the results of the previous write. 
+ * if you have STRICT mode on, this just stores the result of that 
+ * getLastError call if you don't, then this will actually do the getlasterror call. 
+ * if another operation has been done on this connection in the interim, calls will fail
+ *  
+ * @author kerby
+ *
+ */
 public class WriteResult {
 	
 	private DB _db;

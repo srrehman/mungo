@@ -7,13 +7,18 @@ import java.util.Map;
 import org.bson.types.ObjectId;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.mungoae.collection.WriteConcern;
+import com.mungoae.collection.WriteResult;
 import com.mungoae.query.Update;
 import com.mungoae.util.Tuple;
 
 public abstract class DBCollection {
 	
 	public static final String MUNGO_DOCUMENT_ID_NAME = "_id";
-	
+	public static final String MUNGO_QUERY_OID = "$oid";
+    protected static final Object[] NO_PARAMETERS = {};
+    protected static final String ALL = "{}";
+    
 	private DB _db;
 	protected final String _databaseName;
 	protected final String _collectionName;
@@ -34,14 +39,14 @@ public abstract class DBCollection {
 	public abstract DBObject findOne(Object id);
 	public abstract DBObject findOne(ObjectId id);
 	public abstract DBObject findOne(DBObject query);
-	public abstract void insert(String doc);
-	public abstract <T> void insert(T doc);
-	public abstract <T> void insert(T... docs); 
-	public abstract <T> void insert(List<T> docs); 
+	public abstract WriteResult insert(String doc);
+	public abstract <T> WriteResult insert(T doc);
+	public abstract <T> WriteResult insert(T... docs); 
+	public abstract <T> WriteResult insert(List<T> docs); 
 	public abstract Update update(String query);
 	public abstract <T> T save(T doc);
-	public abstract boolean remove(Object id);
-	public abstract boolean remove(String query);
+	public abstract WriteResult remove(Object id);
+	public abstract WriteResult remove(String query);
 	
 	public abstract Iterator<DBObject> __find(DBObject ref, DBObject fields, 
 			int numToSkip , int batchSize , int limit, int options);
@@ -51,6 +56,7 @@ public abstract class DBCollection {
 			Map<String, com.google.appengine.api.datastore.Query.SortDirection> sorts,
 			Integer numToSkip , Integer batchSize , Integer limit, Integer options);
 	
+	protected abstract <T> WriteResult __insert(List<T> list, boolean shouldApply , WriteConcern concern);
 	
     /**
      * Check for invalid key names

@@ -12,7 +12,7 @@ import java.io.Serializable;
  *  <li> 1 = Wait for datastore to be consistent, until timeout</li>
  *  <li> 2+= Wait for datastore to be consistent, indefinitely </li>
  * </ul>
- * <b>wtimeout</b> how long to wait for slaves before failing
+ * <b>wtimeout</b> how long to wait for eventual consistency before failing
  * <ul>
  *   <li>0: indefinite </li>
  *   <li>greater than 0: ms to wait </li>
@@ -20,7 +20,7 @@ import java.io.Serializable;
  * </p>
  * <p>
  * 
- * @author Kerby Martino<kerbymart@gmail.com>
+ * @author Kerby Martino <kerbymart@gmail.com>
  *
  */
 public class WriteConcern implements Serializable {
@@ -31,11 +31,7 @@ public class WriteConcern implements Serializable {
 	public final static WriteConcern ERRORS_IGNORED = new WriteConcern(-1);
 
 	public final static WriteConcern NONE = new WriteConcern(0);
-	
-	public final static WriteConcern WAIT_UNTIL_TIMETOUT = new WriteConcern(1);
-	
-	public final static WriteConcern WAIT_UNTIL_PERSISTED = new WriteConcern(2);
-
+		
     public WriteConcern(){
         this(0, 0, false, false);
     }

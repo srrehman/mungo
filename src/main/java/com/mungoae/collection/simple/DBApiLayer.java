@@ -54,22 +54,6 @@ public class DBApiLayer extends DB {
 	}
 
 	@Override
-	public CommandResult command(DBObject cmd) { 
-		LOG.debug("Mungo got command: " + cmd);
-	    if (cmd.containsKey("getlasterror")) {
-	    	return okResult();
-	    } else if (cmd.containsKey("drop")) {
-	    	return okResult();
-	    } else if(cmd.containsKey("create")) {
-	    	String collectionName = (String) cmd.get("create");
-	        return okResult();
-	    }		
-	    CommandResult errorResult = new CommandResult();
-	    errorResult.put("err", "undefined command: " + cmd);
-	    return errorResult;
-	}
-
-	@Override
 	protected DBCollection doGetCollection(String collection) {
 		DBCollection col = null; 
 		String oldNamespace = NamespaceManager.get();
@@ -95,4 +79,26 @@ public class DBApiLayer extends DB {
 		}
 		return col;
 	}
+	
+	@Override
+	public CommandResult command(DBObject cmd) { 
+		return command(cmd, 0);
+	}
+
+	@Override
+	public CommandResult command(DBObject cmd, int options) {
+		LOG.debug("Mungo got command: " + cmd);
+	    if (cmd.containsKey("getlasterror")) {
+	    	return okResult();
+	    } else if (cmd.containsKey("drop")) {
+	    	return okResult();
+	    } else if(cmd.containsKey("create")) {
+	    	String collectionName = (String) cmd.get("create");
+	        return okResult();
+	    }		
+	    CommandResult errorResult = new CommandResult();
+	    errorResult.put("err", "undefined command: " + cmd);
+	    return errorResult;
+	}
+	
 }

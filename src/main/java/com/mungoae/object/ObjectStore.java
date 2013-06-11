@@ -37,6 +37,7 @@ import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.ParameterNames;
 import com.mungoae.collection.AbstractDBCollection;
+import com.mungoae.collection.WriteResult;
 import com.mungoae.common.SerializationException;
 import com.mungoae.query.Update.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
@@ -78,6 +79,56 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	//--------------------------------------------------------------------------------------------------
 	// Interface that should be visible to clients
 	//--------------------------------------------------------------------------------------------------	
+
+	/**
+	 * Persist a DBObject to this DB under the given collection
+	 * 
+	 * <br>
+	 * Use with: 
+	 * <br>
+	 * <br>
+	 * <code>
+	 * Object id = persistEntity(objStore.createObject(dbo));
+	 * </code>
+	 * @param object
+	 * @param collection
+	 * @return
+	 */
+	public Object persistObject(DBObject object){
+		Preconditions.checkNotNull(object, "Cannot persist null object");
+		Object id = null;
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		try {
+			String _id = null;
+			// Pre-process, the Datastore does not accept ObjectId as is
+			Object oid = object.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
+			if (oid == null){
+				LOG.debug("No id object found in the object, creating new");
+				_id = new ObjectId().toStringMongod();
+			} else {
+				LOG.debug("ObjectId found, getting string id");
+//				if (oid instanceof ObjectId){
+//					_id = ((ObjectId)oid).toStringMongod();
+//				} else {
+//					_id = serializer.serialize(oid);
+//				}	
+				_id = createStringIdFromObject(oid);
+			}
+			object.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, _id);
+			// Persist to datastore, get back the Key
+			Key key = createEntity(null, Mapper.convertToMap(object)); 
+			if (key != null){
+				id = createIdObjectFromString(key.getName());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}		
+		return id;
+	}	
 	
 	/**
 	 * 
@@ -188,55 +239,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	
 	//--------------------------------------------------------------------------------------------------
 
-	/**
-	 * Persist a DBObject to this DB under the given collection
-	 * 
-	 * <br>
-	 * Use with: 
-	 * <br>
-	 * <br>
-	 * <code>
-	 * Object id = persistEntity(objStore.createObject(dbo));
-	 * </code>
-	 * @param object
-	 * @param collection
-	 * @return
-	 */
-	public Object persistObject(DBObject object){
-		Preconditions.checkNotNull(object, "Cannot persist null object");
-		Object id = null;
-		String oldNamespace = NamespaceManager.get();
-		NamespaceManager.set(_dbName);
-		try {
-			String _id = null;
-			// Pre-process, the Datastore does not accept ObjectId as is
-			Object oid = object.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
-			if (oid == null){
-				LOG.debug("No id object found in the object, creating new");
-				_id = new ObjectId().toStringMongod();
-			} else {
-				LOG.debug("ObjectId found, getting string id");
-//				if (oid instanceof ObjectId){
-//					_id = ((ObjectId)oid).toStringMongod();
-//				} else {
-//					_id = serializer.serialize(oid);
-//				}	
-				_id = createStringIdFromObject(oid);
-			}
-			object.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, _id);
-			// Persist to datastore, get back the Key
-			Key key = createEntity(null, Mapper.convertToMap(object)); 
-			if (key != null){
-				id = createIdObjectFromString(key.getName());
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (oldNamespace != null)
-				NamespaceManager.set(oldNamespace);
-		}		
-		return id;
-	}
+
 	
 	/**
 	 * Get a DBObject from this DB and from the given collection.

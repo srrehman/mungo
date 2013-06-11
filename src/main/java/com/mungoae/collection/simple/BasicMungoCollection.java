@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -13,14 +12,14 @@ import org.bson.types.ObjectId;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.datastore.Query.SortDirection;
-import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DB;
 import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.DBCollection;
-import com.mungoae.Mungo;
-import com.mungoae.object.Mapper;
+import com.mungoae.collection.WriteConcern;
+import com.mungoae.collection.WriteResult;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.query.Update;
 import com.mungoae.util.BoundedIterator;
@@ -95,31 +94,24 @@ public class BasicMungoCollection extends DBCollection {
 	}
 
 	@Override
-	public void insert(String doc) {
+	public WriteResult insert(String doc) {
 		BasicDBObject o = new BasicDBObject(doc);
-		insert(o);
+		return insert(o);
 	}
 
 	@Override
-	public <T> void insert(T doc) {
-		if (doc instanceof DBObject){
-			_checkObject((DBObject)doc, false, false);
-			_store.persistObject((DBObject)doc);
-		} else {
-			insert(createFromObject(doc));
-		}		
+	public <T> WriteResult insert(T doc) {
+		return insert(Lists.newArrayList(doc));
 	}
 
 	@Override
-	public <T> void insert(T... docs) {
-		insert(Arrays.asList(docs));
+	public <T> WriteResult insert(T... docs) {
+		return insert(Arrays.asList(docs));
 	}
 
 	@Override
-	public <T> void insert(List<T> docs) {
-		for (T doc : docs){
-			insert(doc);
-		}
+	public <T> WriteResult insert(List<T> docs) {
+		return __insert(docs, true, null);
 	}
 	
 	@SuppressWarnings("unused")
@@ -152,14 +144,19 @@ public class BasicMungoCollection extends DBCollection {
 	}
 
 	@Override
-	public boolean remove(Object id) {
-		return _store.deleteObject(id);
+	public WriteResult remove(Object id) {
+		if(_store.deleteObject(id)){
+			return new WriteResult(getDB().okResult(), null);
+		} else {
+			
+		}
+		return null;
 	}
 
 	@Override
-	public boolean remove(String query) {
+	public WriteResult remove(String query) {
 		// TODO Auto-generated method stub
-		return false;
+		return null;
 	}
 	
 	private <T> DBObject createFromObject(T obj){
@@ -275,6 +272,23 @@ public class BasicMungoCollection extends DBCollection {
 			Integer batchSize, Integer options) {
 		LOG.debug("Applying filters to query="+filters);
 		return _store.queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
+	}
+
+	// TODO - Make this run in transaction
+	@Override
+	protected <T> WriteResult __insert(List<T> list, boolean shouldApply,
+			WriteConcern concern) {
+		for (Object doc : list){
+			if (doc instanceof DBObject){
+				_checkObject((DBObject)doc, false, false);
+				if (_store.persistObject((DBObject)doc) != null){
+					return new WriteResult(getDB().okResult(), null);
+				}
+			} else {
+				return insert(createFromObject(doc));
+			}
+		}
+		return null; 
 	}
 
 

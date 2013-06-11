@@ -61,9 +61,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 
 	protected final String _dbName;
 	protected final ObjectSerializer serializer; 
-	
-	public abstract CommandResult command(DBObject cmd);
-	
+		
 	protected final Set<DBCollection> _seenCollections = new HashSet<DBCollection>();
 	
 	protected Key _dbkey;
@@ -315,4 +313,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
     protected abstract DBCollection doGetCollection( String name );	
     
     
+	public abstract CommandResult command(DBObject cmd);
+	public abstract CommandResult command(DBObject cmd, int options);
+
 }
