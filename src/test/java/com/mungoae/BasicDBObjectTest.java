@@ -46,6 +46,7 @@ public class BasicDBObjectTest {
 		
 		BasicDBObject newObj = new BasicDBObject("{ '_id' : { '$oid' : '51b6125923185d39fe416f94'}}");
 		assertNotNull(newObj);
+		assertTrue(newObj.get("_id") instanceof ObjectId);
 		l(JSON.serialize(newObj));
 		
 		newObj = new BasicDBObject("{'name': 'Kirby', age: 25, 'address' : { 'address': 'somewhere over the rainbow' } }")

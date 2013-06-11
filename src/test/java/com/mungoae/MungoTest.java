@@ -315,11 +315,21 @@ public class MungoTest {
     	coll.insert(doc);
     	
     	DBObject oid = coll.findOne(id);
-    	//DBObject oid1 = coll.findOne("{ '_id' : { '$oid' : '51b6cb8623185501bd24c036' } }");
-    	DBObject name = coll.findOne("{ 'name' : { '$e' : 'kiji8889' }}"); 
     	assertNotNull(oid);
-    	//assertNotNull(oid1);
+    	assertEquals("kiji8889", oid.get("name"));
+    	
+//    	DBObject oid1 = coll.findOne("{ '_id' : { '$oid' : '51b6cb8623185501bd24c036' } }");
+    	
+    	//Iterable<DBObject> oids = coll.find("{ '_id' : { '$oid' : '51b6cb8623185501bd24c036' } }");
+    	//assertNotNull(oids);
+    	//List<DBObject> oidList = Lists.newArrayList(oids);
+    	//assertEquals(1, oidList.size());
+    	
+    	DBObject name = coll.findOne("{ 'name' : { '$e' : 'kiji8889' }}"); 
     	assertNotNull(name);
+    	
+    	//assertNotNull(oid1);
+    	
     	
     	assertNotNull(coll.findOne(new BasicDBObject("name", new BasicDBObject("$e", "kiji8889"))));
     	//assertNotNull(coll.findOne(new BasicDBObject("_id", new BasicDBObject("$e", id))));
