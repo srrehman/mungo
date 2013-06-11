@@ -3,6 +3,7 @@ package com.mungoae.collection.simple;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -67,21 +68,28 @@ public class BasicMungoCollection extends DBCollection {
 	public DBObject findOne(String query) {
 		try {
 			DBCursor curr = find(query);
-			return curr.next();
+			if (curr.hasNext()){
+				return curr.next();
+			}
 		} catch (Exception e) {
 			// TODO: handle exception
+			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
 	public DBObject findOne(Object id) {
-		return _store.getObjectById(id);
+		// TODO - move direct access to _store
+		// into the __insert method
+		return _store.queryObjectById(id);
 	}
 	
 	@Override
 	public DBObject findOne(ObjectId id) {
-		return _store.getObjectById(id);
+		// TODO - move direct access to _store
+		// into the __insert method
+		return _store.queryObjectById(id);
 	}
 	
 	@Override
@@ -159,6 +167,12 @@ public class BasicMungoCollection extends DBCollection {
 		return null;
 	}
 	
+	/**
+	 * Construct a DBObject from a given POJO
+	 * 
+	 * @param obj
+	 * @return
+	 */
 	private <T> DBObject createFromObject(T obj){
 		// Process annotations
 		// Get the id
@@ -167,10 +181,22 @@ public class BasicMungoCollection extends DBCollection {
 	}
 	
 	@Override
+	protected Iterator<DBObject> __find(
+			Map<String, Tuple<FilterOperator, Object>> filters,
+			Map<String, SortDirection> sorts, Integer numToSkip, Integer limit,
+			Integer batchSize, Integer options) {
+		LOG.debug("Applying filters to query="+filters);
+		if (filters.size() == 1 && filters.get("id") != null){
+			return Lists.newArrayList(_store.queryObjectById(filters.get("id").getSecond())).iterator();
+		}
+		return _store.queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
+	}
+	
+	@Override
 	public Iterator<DBObject> __find(final DBObject ref, final DBObject fields,
 			int numToSkip, int batchSize, int limit, int options) {
 		if (ref == null){
-			final Iterator<DBObject> _it = _store.getObjects();
+			final Iterator<DBObject> _it = _store.queryObjects();
 			if (fields != null){
 				// Copy iterator to filter fields
 				Iterator<DBObject> copy = new Iterator<DBObject>() {
@@ -190,6 +216,13 @@ public class BasicMungoCollection extends DBCollection {
 				return copy;
 			}
 			return _it; 	
+		} else {
+			// TODO - Right now this only process the ID and ignores
+			// other fields, fix this!
+			Object id = ref.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
+			if (id != null){
+				return Lists.newArrayList(_store.queryObjectById(id)).iterator();					
+			}
 		}
 
 		//---------------------------------------------------------------------
@@ -202,7 +235,7 @@ public class BasicMungoCollection extends DBCollection {
 		dataCleansing(ref);
 
 		if (query == null){ // no query? return an iterator to all documents
-			return _store.getObjects();
+			return _store.queryObjects();
 		}
 		
 		Iterator<DBObject> it = null;
@@ -220,9 +253,9 @@ public class BasicMungoCollection extends DBCollection {
 				it = _store.queryObjectsOrderBy(orderby);
 			} else { // query and orderby are both null
 				if (ref.get(MUNGO_DOCUMENT_ID_NAME) != null){ 
-					DBObject obj = _store.getObjectById(ref.get(MUNGO_DOCUMENT_ID_NAME));
+					DBObject obj = _store.queryObjectById(ref.get(MUNGO_DOCUMENT_ID_NAME));
 				}
-				it = _store.getObjects();
+				it = _store.queryObjects();
 			}	
 		}
 		if (limit > 0 && numToSkip > 0){
@@ -256,7 +289,7 @@ public class BasicMungoCollection extends DBCollection {
 	// Must implement size check to validate if 
 	// object exceed maximum datastore entity 
 	// byte size
-	public void putSizeCheck(DBObject obj) {
+	public void putSizeCheck(Object obj) {
 		
 	}
 	
@@ -265,32 +298,42 @@ public class BasicMungoCollection extends DBCollection {
 		obj.removeField("$orderby");
 	}
 
-	@Override
-	protected Iterator<DBObject> __find(
-			Map<String, Tuple<FilterOperator, Object>> filters,
-			Map<String, SortDirection> sorts, Integer numToSkip, Integer limit,
-			Integer batchSize, Integer options) {
-		LOG.debug("Applying filters to query="+filters);
-		return _store.queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
-	}
+
 
 	// TODO - Make this run in transaction
 	@Override
 	protected <T> WriteResult __insert(List<T> list, boolean shouldApply,
 			WriteConcern concern) {
-		for (Object doc : list){
-			if (doc instanceof DBObject){
-				_checkObject((DBObject)doc, false, false);
-				if (_store.persistObject((DBObject)doc) != null){
-					return new WriteResult(getDB().okResult(), null);
-				}
-			} else {
-				return insert(createFromObject(doc));
-			}
+		if (_store.persistObjects(convertList(list)) != null){
+			return new WriteResult(getDB().okResult(), concern);
 		}
-		return null; 
+		return new WriteResult(getDB().errorResult(), concern);  
 	}
 
-
+	/**
+	 * Transform a list
+	 * 
+	 * @param from
+	 * @return
+	 */
+	private <T> List<DBObject> convertList(List<T> from){
+		// Group
+		List<DBObject> dbObjects = null;
+		for (Object doc : from){
+			putSizeCheck(doc);
+			if (dbObjects == null){
+				dbObjects = new LinkedList<DBObject>();
+			}
+			if (doc instanceof DBObject){
+				_checkObject((DBObject)doc, false, false);
+				dbObjects.add((DBObject)doc); // nothing to do
+			} else {
+				DBObject newObj = createFromObject(doc);
+				_checkObject(newObj, false, false);
+				dbObjects.add(newObj);
+			}
+		}
+		return dbObjects;
+	}
 
 }

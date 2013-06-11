@@ -303,7 +303,8 @@ public class MungoTest {
     }    
     
     // TODO - Query by ObjectId in a DBObject query or shell query does not work!
-    @Test
+    @SuppressWarnings("unused")
+	@Test
     public void testPersistComplexObjectQueryByProperty(){
     	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId("51b6cb8623185501bd24c036"); // for test reference
@@ -318,7 +319,10 @@ public class MungoTest {
     	assertNotNull(oid);
     	assertEquals("kiji8889", oid.get("name"));
     	
-//    	DBObject oid1 = coll.findOne("{ '_id' : { '$oid' : '51b6cb8623185501bd24c036' } }");
+    	DBObject oid1 = coll.findOne("{ '_id' : { '$oid' : '51b6cb8623185501bd24c036' } }");
+    	assertNotNull(oid1);
+    	assertEquals("kiji8889", oid1.get("name"));
+
     	
     	//Iterable<DBObject> oids = coll.find("{ '_id' : { '$oid' : '51b6cb8623185501bd24c036' } }");
     	//assertNotNull(oids);

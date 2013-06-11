@@ -1,3 +1,20 @@
+/**
+ * 	
+ * Copyright 2013 Pagecrumb
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * 	   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *  
+ */
 package com.mungoae.object;
 
 import java.util.ArrayList;
@@ -37,11 +54,17 @@ import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
 import com.mungoae.util.JSON;
 import com.mungoae.util.Tuple;
-
+/**
+ * Mapper class to construct DBObject from GAE Entities and vice versa
+ * 
+ * @author kerby
+ *
+ */
 public class Mapper {
 	
 	private static Logger LOG = LogManager.getLogger(Mapper.class.getName());
 	
+	public static final String GAE_ENTITY_ID_NAME = "id";
 	/**
 	 * Process <code>EmbeddedEntity</code> and inner <code>EmbeddedEntity</code>
 	 * of this entity. 
@@ -443,7 +466,10 @@ public class Mapper {
 					_ops.put(field, new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, operatorOrValue));   
 				} else if (operatorOrValue instanceof ObjectId) {
 					String objectString = ((ObjectId)operatorOrValue).toStringMongod();
-					_ops.put(field, new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, objectString));   
+					if (field == DBCollection.MUNGO_DOCUMENT_ID_NAME){ // make the ID field compatible with GAE datastore entity
+						field = GAE_ENTITY_ID_NAME;
+					}
+					_ops.put(GAE_ENTITY_ID_NAME, new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, objectString));   
 				} else if (operatorOrValue instanceof DBObject) {
 					for (String op : ((DBObject)operatorOrValue).keySet()){
 						// e.g { "$gte" : 10 } 
@@ -585,5 +611,21 @@ public class Mapper {
 			copy.put(key, obj.get(key));
 		}
 		return copy;
+	}
+	
+	/**
+	 * Helper method to convert a list of <code>Entity</code> to
+	 * list of <code>Map</code>.
+	 * 
+	 * @param entities
+	 * @return
+	 */
+	public static List<Map<String,Object>> entitiesToMap(List<Entity> entities){
+		List<Map<String,Object>> list = new ArrayList<Map<String,Object>>();
+		for (Entity e : entities){
+			Map<String,Object> m = e.getProperties();
+			list.add(m);
+		}
+		return list;
 	}
 }

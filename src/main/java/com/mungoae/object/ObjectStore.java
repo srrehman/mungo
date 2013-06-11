@@ -1,3 +1,20 @@
+/**
+ * 	
+ * Copyright 2013 Pagecrumb
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * 	   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *  
+ */
 package com.mungoae.object;
 
 import java.util.ArrayList;
@@ -8,7 +25,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -31,13 +47,13 @@ import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.Query.Filter;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.datastore.Query.FilterPredicate;
+import com.google.appengine.api.users.User;
 import com.google.common.base.Preconditions;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.ParameterNames;
 import com.mungoae.collection.AbstractDBCollection;
-import com.mungoae.collection.WriteResult;
 import com.mungoae.common.SerializationException;
 import com.mungoae.query.Update.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
@@ -80,6 +96,49 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	// Interface that should be visible to clients
 	//--------------------------------------------------------------------------------------------------	
 
+	public List<Object> persistObjects(List<DBObject> objects){
+		Preconditions.checkNotNull(objects, "Cannot persist null object list");
+		List<Object> ids = null;
+		String oldNamespace = NamespaceManager.get();
+		NamespaceManager.set(_dbName);
+		Transaction tx = _ds.beginTransaction();
+		try {
+			for (DBObject o : objects){
+				if (ids == null){
+					ids = new ArrayList<Object>();
+				}
+				Object id = null;
+				String _id = null;
+				// Pre-process, the datastore does not accept ObjectId as-is
+				Object oid = o.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
+				if (oid == null){
+					LOG.debug("No id object found in the object, creating new");
+					_id = new ObjectId().toStringMongod();
+				} else {
+					LOG.debug("ID object found, getting string id");	
+					_id = createStringIdFromObject(oid);
+				}
+				o.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, _id);
+				// Persist to datastore, get back the Key
+				Key key = persistEntity(null, Mapper.convertToMap(o)); 
+				if (key != null){
+					id = createIdObjectFromString(key.getName());
+					ids.add(id);
+				}				
+			}
+			tx.commit();
+		} catch (Exception e) {
+			tx.rollback();
+			e.printStackTrace();
+		} finally {
+			if (tx.isActive())
+				tx.rollback();
+			if (oldNamespace != null)
+				NamespaceManager.set(oldNamespace);
+		}		
+		return ids;
+	}
+	
 	/**
 	 * Persist a DBObject to this DB under the given collection
 	 * 
@@ -117,7 +176,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			}
 			object.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, _id);
 			// Persist to datastore, get back the Key
-			Key key = createEntity(null, Mapper.convertToMap(object)); 
+			Key key = persistEntity(null, Mapper.convertToMap(object)); 
 			if (key != null){
 				id = createIdObjectFromString(key.getName());
 			}
@@ -205,7 +264,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			Iterator<Entity> it = getEntitiesLike(filters);
+			Iterator<Entity> it = queryEntitiesLike(filters);
 			if (it != null){
 				while(it.hasNext()){
 					Entity e = it.next();
@@ -221,7 +280,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 								e.removeProperty(prop);
 								e.setProperty((String)updateOp.getSecond(), v);
 							}
-							e.setProperty(prop, doUpdateOperation(value, updateOp)); 
+							e.setProperty(prop, evalUpdateOperation(value, updateOp)); 
 						}
 					}
 					_ds.put(e); // update
@@ -252,7 +311,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 */
 	@SuppressWarnings("unchecked")
 	@Deprecated
-	public DBObject getObject(DBObject id){
+	public DBObject queryObject(DBObject id){
 		Preconditions.checkNotNull(id, "Null id object");
 		Preconditions.checkNotNull(id.get(DBCollection.MUNGO_DOCUMENT_ID_NAME), "ID cannot be null");
 		
@@ -260,7 +319,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			Map<String, Object> map = getEntityBy(KeyStructure.createKey(_collName, 
+			Map<String, Object> map = queryEntityBy(KeyStructure.createKey(_collName, 
 					buildStringIdFromObject(id)));
 			if (map != null){
 				obj = new BasicDBObject(map);
@@ -276,14 +335,14 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		return obj;
 	}	
 	
-	public DBObject getObjectById(Object id){
+	public DBObject queryObjectById(Object id){
 		Preconditions.checkNotNull(id, "Null id object");
 		
 		DBObject obj = null;
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			Map<String, Object> map = getEntityBy(KeyStructure.createKey(_collName, 
+			Map<String, Object> map = queryEntityBy(KeyStructure.createKey(_collName, 
 					createStringIdFromObject(id)));
 			if (map != null){
 				obj = new BasicDBObject(map);
@@ -371,7 +430,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		Iterator<DBObject> it = null;
 		try {
 			Entity mapped = Mapper.createEntityFromDBObject(query, _collName);
-			final Iterator<Entity> eit = getEntitiesLike(filters); 
+			final Iterator<Entity> eit = queryEntitiesLike(filters); 
 			it = new Iterator<DBObject>() {
 				public void remove() {
 					eit.remove();
@@ -425,7 +484,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				sorts.put(key, direction);
 			}
 			final Iterator<Entity> eit  
-				= getSortedEntitiesLike(Mapper.createFilterOperatorObjectFrom(query), sorts); 
+				= querySortedEntitiesLike(Mapper.createFilterOperatorObjectFrom(query), sorts); 
 			it = new Iterator<DBObject>() {
 				public void remove() {
 					eit.remove();
@@ -457,7 +516,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param obj
 	 * @return
 	 */
-	public DBObject getFirstObjectLike(DBObject obj){
+	public DBObject queryFirstObjectLike(DBObject obj){
 		Iterator<DBObject> it = queryObjectsLike(obj);
 		if (it != null)
 			return it.next();
@@ -469,12 +528,12 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * 
 	 * @return
 	 */
-	public Iterator<DBObject> getObjects() {
+	public Iterator<DBObject> queryObjects() {
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		Iterator<DBObject> it = null;
 		try {
-			final Iterator<Entity> eit = getEntities();
+			final Iterator<Entity> eit = queryEntities();
 			it = new Iterator<DBObject>() {
 				public void remove() {
 					eit.remove();
@@ -508,7 +567,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			
 			Map<String, Query.SortDirection> sorts = Mapper.createSortObjectFrom(orderby);
 
-			final Iterator<Entity> eit = getSortedEntities(sorts);
+			final Iterator<Entity> eit = querySortedEntities(sorts);
 			
 			it = new Iterator<DBObject>() {
 				public void remove() {
@@ -571,7 +630,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		NamespaceManager.set(_dbName);
 		Iterator<DBObject> it = null;
 		try {
-			final Iterator<Entity> eit = getEntitiesLike(filters); 
+			final Iterator<Entity> eit = queryEntitiesLike(filters); 
 			it = new Iterator<DBObject>() {
 				public void remove() {
 					eit.remove();
@@ -610,7 +669,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		NamespaceManager.set(_dbName);
 		Iterator<DBObject> it = null;
 		try {
-			final Iterator<Entity> eit = getSortedEntitiesLike(filters, sorts); 
+			final Iterator<Entity> eit = querySortedEntitiesLike(filters, sorts); 
 			it = new Iterator<DBObject>() {
 				public void remove() {
 					eit.remove();
@@ -645,7 +704,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param kind
 	 * @return
 	 */
-	private Iterator<Entity> getEntitiesLike(Map<String, 
+	private Iterator<Entity> queryEntitiesLike(Map<String, 
 			Tuple<FilterOperator, Object>> queryParam){
 		Preconditions.checkNotNull(queryParam, "Null query object");
 		Map<String,Tuple<FilterOperator, Object>> query = validateQuery(queryParam);
@@ -710,7 +769,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param sorts
 	 * @return
 	 */
-	private Iterator<Entity> getSortedEntitiesLike(
+	private Iterator<Entity> querySortedEntitiesLike(
 			Map<String, Tuple<FilterOperator, Object>> query, Map<String, SortDirection> sorts){
 		Preconditions.checkNotNull(query, "Query object can't be null");
 		Preconditions.checkNotNull(sorts, "Sort can't be null");
@@ -762,13 +821,18 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	}
 	
 	
-	private Iterator<Entity> getEntities(){
+	/**
+	 * Query all entities on a given collection
+	 * 
+	 * @return
+	 */
+	private Iterator<Entity> queryEntities(){
 		Query q = new Query(_collName);
 		PreparedQuery pq = _ds.prepare(q);
 		return pq.asIterator();
 	}
 	
-	private Iterator<Entity> getSortedEntities(Map<String,Query.SortDirection> sorts){
+	private Iterator<Entity> querySortedEntities(Map<String,Query.SortDirection> sorts){
 		PreparedQuery pq = null;
 		Iterator<Map.Entry<String, Query.SortDirection>> it = sorts.entrySet().iterator();
 		Query q = new Query(_collName);
@@ -789,7 +853,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @return
 	 */
 	// FIXME - not returning null for non existing entity
-	private Map<String,Object> getEntityBy(Key k){
+	private Map<String,Object> queryEntityBy(Key k){
 		Preconditions.checkNotNull(k, "Entity key cannot be null");
 		
 		if (!containsEntityKey(k)){
@@ -1019,40 +1083,33 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		} 
 		return id;
 	}
-	
-	/**
-	 * Helper method to convert a list of <code>Entity</code> to
-	 * list of <code>Map</code>.
-	 * 
-	 * @param entities
-	 * @return
-	 */
-	private static List<Map<String,Object>> entitiesToMap(List<Entity> entities){
-		List<Map<String,Object>> list = new ArrayList<Map<String,Object>>();
-		for (Entity e : entities){
-			Map<String,Object> m = e.getProperties();
-			list.add(m);
-		}
-		return list;
-	}
 
 	
 	/**
+	 * <p>
 	 * Create an entity for a a <code>Map</code>
+	 * <br>
+	 * <br>
 	 * Note that this method does not enforce any rule in persisting an entity. 
 	 * It however may call subsequent datastore <code>put</code>s as necessary when
-	 * dealing with embedded documents. It also does not restrict the operation on 
-	 * a spefic Namespace, it is however should be managed by that method that calls this method.
-	 * 
+	 * dealing with "reference" documents. 
+	 * <br>
+	 * <br>
+	 * It also does not restrict the operation on a specific namespace, 
+	 * it is however should be managed by that method that calls this method.
+	 * <br>
+	 * <br>
 	 * This method expects the id of the Entity to be in the Map with key "_id"
-	 * 
+	 * <br>
+	 * <br>
 	 * This method also expects that the <code>Map</code> entries are already pre-processed to 
 	 * GAE types, otherwise those properties will get thrown out. 
+	 * </p>
 	 * 
 	 * @param parent when provided becomes the parent key of the created Entity, can be set to null
 	 * @param obj
 	 */
-	private Key createEntity(Key parent, Map obj){	
+	private Key persistEntity(Key parent, Map<String,Object> obj) {	 
 		Key entityKey = null;
 		try {
 			Object id = obj.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
@@ -1061,9 +1118,9 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			// Clean up the objectId (since the DS have ID field)
 			// and since it is already 'copied' into the Entity
 			obj.remove(DBCollection.MUNGO_DOCUMENT_ID_NAME);
-			Iterator it = obj.keySet().iterator();
+			Iterator<String> it = obj.keySet().iterator();
 			while (it.hasNext()){
-				String key = (String) it.next();
+				String key = it.next();
 				Object value = obj.get(key);
 				if (value == null){
 					e.setProperty(key, null);
@@ -1077,6 +1134,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				} else if(value instanceof Boolean) {
 					setProperty(e, key, value);
 				} else if(value instanceof Date) {
+					setProperty(e, key, value);
+				} else if(value instanceof User) { // GAE support this type
 					setProperty(e, key, value);
 				} else if(value instanceof List) {
 					LOG.debug( "Processing List value");
@@ -1195,7 +1254,14 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		}
 	}
 	
-	private Object doUpdateOperation(Object value, Tuple<UpdateOperator, Object> updateOp){
+	/**
+	 * Evaluates the operation and return the resulting value
+	 * 
+	 * @param value
+	 * @param updateOp
+	 * @return
+	 */
+	private Object evalUpdateOperation(Object value, Tuple<UpdateOperator, Object> updateOp){
 		UpdateOperator op = updateOp.getFirst();
 		Object opValue = updateOp.getSecond();
 		if (op == UpdateOperator.INCREMENT){
@@ -1208,7 +1274,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			if (value instanceof Number && opValue instanceof Number){
 				return (Long) value - (Long) opValue;
 			} else {
-				throw new IllegalArgumentException("Increment operation only allowed for numbers");
+				throw new IllegalArgumentException("Decrement operation only allowed for numbers");
 			}	
 		} else if (op == UpdateOperator.SET) {
 			return updateOp.getSecond();
@@ -1219,21 +1285,6 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		} else if (op == UpdateOperator.SET_ON_INSERT) {
 			
 		}
-		
- //		else if (op == UpdateOperator.PREFIX) {
-//			if (value instanceof String && opValue instanceof String){
-//				return  (String) opValue + (String) value;
-//			} else {
-//				throw new IllegalArgumentException("Prefix/Append operation is only allowed for strings");
-//			}	
-//		} else if (op == UpdateOperator.SUFFIX) {
-//			if (value instanceof String && opValue instanceof String){
-//				return  (String) value + (String) opValue;
-//			} else {
-//				throw new IllegalArgumentException("Prefix/Append operation is only allowed for strings");
-//			}		
-//		}
-		
 		return null;
 	}
 	

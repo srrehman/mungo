@@ -68,6 +68,7 @@ public class DBCursor implements Iterable<DBObject>,
 		BasicDBObject dbquery = new BasicDBObject(query);
 		_filters = Mapper.createFilterOperatorObjectFrom(dbquery);
 		_collection = collection;
+		_check();
 	}
 	
 	
@@ -78,6 +79,7 @@ public class DBCursor implements Iterable<DBObject>,
 		} 
 		_collection = coll;
 		_filters = Mapper.createFilterOperatorObjectFrom(query);
+		_check();
 	}
 
 	public Iterator<DBObject> iterator() {

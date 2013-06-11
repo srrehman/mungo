@@ -299,6 +299,12 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 		result.put("ok", true);
 		return result;
 	}
+	
+	public CommandResult errorResult(){
+		CommandResult result = new CommandResult();
+		result.put("err", "Error");
+		return result;	
+	}
 
 	public DBCollection getCollectionFromString(String _ns) {
 		throw new IllegalArgumentException("Not yet implemented");

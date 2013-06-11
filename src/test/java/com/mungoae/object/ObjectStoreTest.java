@@ -94,7 +94,7 @@ public class ObjectStoreTest {
 	public void testGetObjectById(){
 		// Get for non existent object
 		// Should return null
-		DBObject helloWorld = ObjectStore.get("db", "coll").getObject(
+		DBObject helloWorld = ObjectStore.get("db", "coll").queryObject(
 				new BasicDBObject("_id", "123")); 
 		assertNull(helloWorld);
 		
@@ -103,7 +103,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("hi", "there")
 				.append("how","are you?")); 
 		
-		helloWorld = ObjectStore.get("db", "coll").getObject(new BasicDBObject("_id", "123"));
+		helloWorld = ObjectStore.get("db", "coll").queryObject(new BasicDBObject("_id", "123"));
 		assertNotNull(helloWorld);
 		assertEquals("world", helloWorld.get("hello"));
 	}	
@@ -222,7 +222,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").getObjects();
+			= ObjectStore.get("db", "coll").queryObjects();
 		
 		assertNotNull(it);
 		while(it.hasNext()){
@@ -263,7 +263,7 @@ public class ObjectStoreTest {
 	public void testDeleteObject(){
 		ObjectStore.get("db", "coll").persistObject(
 				new BasicDBObject("username", "jack").append("points", 100)); 
-		DBObject result = ObjectStore.get("db", "coll").getFirstObjectLike(
+		DBObject result = ObjectStore.get("db", "coll").queryFirstObjectLike(
 				new BasicDBObject("points", 
 				new BasicDBObject("$gte", 100)));
 		assertNotNull(result);
