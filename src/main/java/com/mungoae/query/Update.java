@@ -11,7 +11,7 @@ import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.util.Tuple;
 
-public class UpdateQuery {
+public class Update {
 
 	public enum UpdateOperator {
 		INCREMENT, DECREMENT,
@@ -30,7 +30,7 @@ public class UpdateQuery {
 	private Map<String, Tuple<UpdateOperator, Object>> _updates = new HashMap<String,Tuple<UpdateOperator, Object>>();
 	private Map<String, Tuple<FilterOperator, Object>> _filters = null; // set through query string or wired methods
 	
-	public UpdateQuery(DBCollection collection, Map<String, Tuple<FilterOperator, Object>> filters){
+	public Update(DBCollection collection, Map<String, Tuple<FilterOperator, Object>> filters){
 		_collection = collection;
 		_filters = filters;
 	}
@@ -51,7 +51,7 @@ public class UpdateQuery {
 	 * @param query
 	 * @return
 	 */
-	public UpdateQuery with(String query){ 
+	public Update with(String query){ 
 		_updates = Mapper.createUpdateOperatorFrom(new BasicDBObject(query));
 		return this;
 	}
@@ -62,15 +62,15 @@ public class UpdateQuery {
 		ObjectStore.get(_collection.getDB().getName(), _collection.getName()).updateObjects(_filters, _updates, true, true); 
 	}
 	
-	public UpdateQuery increment(String field, Object byValue) {
+	public Update increment(String field, Object byValue) {
 		_field = field;
-		_updates.put(_field, new Tuple<UpdateQuery.UpdateOperator, Object>(UpdateOperator.INCREMENT, byValue));
+		_updates.put(_field, new Tuple<Update.UpdateOperator, Object>(UpdateOperator.INCREMENT, byValue));
 		return this;
 	}
 	
-	public UpdateQuery decrement(String field, Object byValue) {
+	public Update decrement(String field, Object byValue) {
 		_field = field;
-		_updates.put(_field, new Tuple<UpdateQuery.UpdateOperator, Object>(UpdateOperator.DECREMENT, byValue));
+		_updates.put(_field, new Tuple<Update.UpdateOperator, Object>(UpdateOperator.DECREMENT, byValue));
 		return this;
 	}
 	
@@ -80,11 +80,11 @@ public class UpdateQuery {
 	}
 
 	
-	public UpdateQuery upsert() {
+	public Update upsert() {
 		_upsert = true;
 		return this;
 	}
-	public UpdateQuery multi() {
+	public Update multi() {
 		_multi = true;
 		return this;
 	}

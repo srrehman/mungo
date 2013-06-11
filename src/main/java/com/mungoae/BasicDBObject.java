@@ -140,7 +140,7 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	}
 	
 	public Object getId(){
-		return get(ID); 
+		return get(DBCollection.MUNGO_DOCUMENT_ID_NAME); 
 	}
 		
 	public Object copy() {
@@ -239,13 +239,5 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	public void markAsPartialObject() {
 		_isPartialObject = true;		
 	}
-	
-//	@Override
-//	public String toString() {
-//		Object id = get("_id");
-//		if (id instanceof ObjectId){
-//			put("_id", "ObjectId(" + ((ObjectId) id).toStringMongod() + ")");
-//		}
-//		return super.toString();
-//	}
+
 }

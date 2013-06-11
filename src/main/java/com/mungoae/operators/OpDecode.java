@@ -5,7 +5,7 @@ import org.apache.log4j.Logger;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.object.ObjectStore;
-import com.mungoae.query.UpdateQuery.UpdateOperator;
+import com.mungoae.query.Update.UpdateOperator;
 /**
  * Operator decoder. Decodes a given string operator (e.g. "$gte")
  * and returns the corresponding Datastore <code>FilterOperator</code>

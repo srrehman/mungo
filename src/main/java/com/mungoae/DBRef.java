@@ -41,7 +41,7 @@ public class DBRef extends DBRefBase {
         Object id;
 
         if ((ns = (String)ref.get("$ref")) != null && (id = ref.get("$id")) != null) {
-            return db.getCollection(ns).findOne(new BasicDBObject("_id", id));
+            return db.getCollection(ns).findOne(new BasicDBObject(DBCollection.MUNGO_DOCUMENT_ID_NAME, id));
         }
         return null;
     }

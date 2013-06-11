@@ -22,7 +22,7 @@ import com.mungoae.DBCollection;
 import com.mungoae.Mungo;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
-import com.mungoae.query.UpdateQuery;
+import com.mungoae.query.Update;
 import com.mungoae.util.BoundedIterator;
 import com.mungoae.util.JSON;
 import com.mungoae.util.Tuple;
@@ -124,7 +124,7 @@ public class BasicMungoCollection extends DBCollection {
 	
 	@SuppressWarnings("unused")
 	@Override
-	public UpdateQuery update(String query) {
+	public Update update(String query) {
 		Map<String, Tuple<FilterOperator, Object>> filters = null;
 		try {
 			BasicDBObject queryObject = new BasicDBObject(query);
@@ -138,7 +138,7 @@ public class BasicMungoCollection extends DBCollection {
 				//filters = Mapper.createFilterOperatorObjectFrom(filter);
 				filters.put(field, new Tuple<FilterOperator, Object>(FilterOperator.EQUAL, value)); 
 			}
-			return new UpdateQuery(this, filters);
+			return new Update(this, filters);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -222,8 +222,8 @@ public class BasicMungoCollection extends DBCollection {
 				LOG.info("Sort object=" + orderby);
 				it = _store.queryObjectsOrderBy(orderby);
 			} else { // query and orderby are both null
-				if (ref.get("_id") != null){ 
-					DBObject obj = _store.getObjectById(ref.get("_id"));
+				if (ref.get(MUNGO_DOCUMENT_ID_NAME) != null){ 
+					DBObject obj = _store.getObjectById(ref.get(MUNGO_DOCUMENT_ID_NAME));
 				}
 				it = _store.getObjects();
 			}	

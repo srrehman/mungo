@@ -31,8 +31,8 @@ import com.mungoae.DBObject;
 import com.mungoae.common.SerializationException;
 import com.mungoae.operators.OpDecode;
 import com.mungoae.operators.Operator;
-import com.mungoae.query.UpdateQuery;
-import com.mungoae.query.UpdateQuery.UpdateOperator;
+import com.mungoae.query.Update;
+import com.mungoae.query.Update.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
 import com.mungoae.util.JSON;
@@ -41,8 +41,7 @@ import com.mungoae.util.Tuple;
 public class Mapper {
 	
 	private static Logger LOG = LogManager.getLogger(Mapper.class.getName());
-
-	private static final String ID = "_id";
+	
 	/**
 	 * Process <code>EmbeddedEntity</code> and inner <code>EmbeddedEntity</code>
 	 * of this entity. 
@@ -248,9 +247,9 @@ public class Mapper {
 		Preconditions.checkNotNull(kind, "Entity kind cannot be null");
 		Entity e = null;
 		// Pre-process object id
-		if (object.get(ID) != null){
-			LOG.debug("Constructing Entity from DBObject with id="+object.get(ID));
-			Object oid = object.get(ID);
+		if (object.get(DBCollection.MUNGO_DOCUMENT_ID_NAME) != null){
+			LOG.debug("Constructing Entity from DBObject with id="+object.get(DBCollection.MUNGO_DOCUMENT_ID_NAME));
+			Object oid = object.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
 			if (oid instanceof ObjectId){
 				e = new Entity(KeyStructure.createKey(((ObjectId) oid).toStringMongod(), kind));
 			} else if (oid instanceof String){
@@ -278,7 +277,7 @@ public class Mapper {
 				Object key = mapEntry.getKey();
 				Object value = mapEntry.getValue();
 				if (key instanceof String
-						&& !((String) key).equals(ID)){ // skip the object id
+						&& !((String) key).equals(DBCollection.MUNGO_DOCUMENT_ID_NAME)){ // skip the object id
 					if (value instanceof Map){
 						e.setProperty((String)key, createEmbeddedEntityFromMap(null, (Map)value));
 					} else if (value instanceof List){
@@ -331,7 +330,7 @@ public class Mapper {
 					map.put(key, ee);
 				} 
 			}
-			map.put(ID, e.getKey().getName());
+			map.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, e.getKey().getName());
 		} catch (Exception ex) {
 			// Just return null
 		} finally {
@@ -407,8 +406,9 @@ public class Mapper {
 	}
 	
 	private static void _checkId(DBObject obj) {
-		if (obj.get("_id") != null && obj.get("_id") instanceof ObjectId){
-			((ObjectId)obj.get("_id")).notNew();
+		if (obj.get(DBCollection.MUNGO_DOCUMENT_ID_NAME) != null 
+				&& obj.get(DBCollection.MUNGO_DOCUMENT_ID_NAME) instanceof ObjectId){
+			((ObjectId)obj.get(DBCollection.MUNGO_DOCUMENT_ID_NAME)).notNew();
 		}
 	}
 	
@@ -496,7 +496,7 @@ public class Mapper {
 				while (_it.hasNext()){ // Get the field and value for this current operation
 					String field = _it.next();
 					Object value = dbo.get(field);
-					result.put(field, new Tuple<UpdateQuery.UpdateOperator, Object>(OpDecode.parseUpdateFilterFrom(operatorField), value));
+					result.put(field, new Tuple<Update.UpdateOperator, Object>(OpDecode.parseUpdateFilterFrom(operatorField), value));
 				}
 			}
 		}
@@ -561,12 +561,6 @@ public class Mapper {
 	 * @return
 	 */
 	public static <T> T createTObject(Class<T> clazz, Map<String,Object> toConvert){
-		// Removed since pojo should have '_id' field
-//		if (toConvert.get("_id")!=null){
-//			Object id = toConvert.get("_id");
-//			toConvert.remove("_id");
-//			toConvert.put("id", id);
-//		}
 		T obj = null;
 		Gson gson = new Gson();
 		try {

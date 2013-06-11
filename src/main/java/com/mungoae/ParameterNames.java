@@ -37,7 +37,7 @@ public interface ParameterNames {
 	public static final String COLLECTION_NAME = "_colName";
 	
 	// internal attributes & keywords for collecction
-	public static final String ID = "_id";
+	//public static final String ID = "_id";
 	public static final String DOC_COUNT = "_count";
 	public static final String UPDATES = "_updates";
 	public static final String REVISION = "_rev";
@@ -50,5 +50,4 @@ public interface ParameterNames {
 	public static final String ROWS = "rows";
 	
 	
-	//public static final String OBJECT_ID = "_id";
 }

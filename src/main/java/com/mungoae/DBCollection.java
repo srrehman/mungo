@@ -7,10 +7,12 @@ import java.util.Map;
 import org.bson.types.ObjectId;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
-import com.mungoae.query.UpdateQuery;
+import com.mungoae.query.Update;
 import com.mungoae.util.Tuple;
 
 public abstract class DBCollection {
+	
+	public static final String MUNGO_DOCUMENT_ID_NAME = "_id";
 	
 	private DB _db;
 	protected final String _databaseName;
@@ -36,7 +38,7 @@ public abstract class DBCollection {
 	public abstract <T> void insert(T doc);
 	public abstract <T> void insert(T... docs); 
 	public abstract <T> void insert(List<T> docs); 
-	public abstract UpdateQuery update(String query);
+	public abstract Update update(String query);
 	public abstract <T> T save(T doc);
 	public abstract boolean remove(Object id);
 	public abstract boolean remove(String query);

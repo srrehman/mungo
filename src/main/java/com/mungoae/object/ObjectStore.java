@@ -33,11 +33,12 @@ import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.datastore.Query.FilterPredicate;
 import com.google.common.base.Preconditions;
 import com.mungoae.BasicDBObject;
+import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.ParameterNames;
 import com.mungoae.collection.AbstractDBCollection;
 import com.mungoae.common.SerializationException;
-import com.mungoae.query.UpdateQuery.UpdateOperator;
+import com.mungoae.query.Update.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
 import com.mungoae.util.BoundedIterator;
@@ -209,7 +210,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		try {
 			String _id = null;
 			// Pre-process, the Datastore does not accept ObjectId as is
-			Object oid = object.get(ID);
+			Object oid = object.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
 			if (oid == null){
 				LOG.debug("No id object found in the object, creating new");
 				_id = new ObjectId().toStringMongod();
@@ -222,7 +223,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 //				}	
 				_id = createStringIdFromObject(oid);
 			}
-			object.put(ID, _id);
+			object.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, _id);
 			// Persist to datastore, get back the Key
 			Key key = createEntity(null, Mapper.convertToMap(object)); 
 			if (key != null){
@@ -250,7 +251,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	@Deprecated
 	public DBObject getObject(DBObject id){
 		Preconditions.checkNotNull(id, "Null id object");
-		Preconditions.checkNotNull(id.get("_id"), "ID cannot be null");
+		Preconditions.checkNotNull(id.get(DBCollection.MUNGO_DOCUMENT_ID_NAME), "ID cannot be null");
 		
 		DBObject obj = null;
 		String oldNamespace = NamespaceManager.get();
@@ -729,7 +730,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			FilterOperator operator = filterAndValue.getFirst();
 			Object value = filterAndValue.getSecond();
 			Filter filter = null;
-			if (propName.equals("_id")){
+			if (propName.equals(DBCollection.MUNGO_DOCUMENT_ID_NAME)){
 				filter = new FilterPredicate(Entity.KEY_RESERVED_PROPERTY, operator, 
 						KeyStructure.createKey(_collName, String.valueOf(value)));
  			} else {
@@ -834,11 +835,11 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			//json.put(ID, e.getKey().getName());
 			Object _id = createIdObjectFromString(e.getKey().getName());
 			if (_id instanceof ObjectId){
-				doc.put(ID, ((ObjectId)_id).toStringMongod()); 
+				doc.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, ((ObjectId)_id).toStringMongod()); 
 			} else if (_id instanceof Long) {
-				doc.put(ID, (Long)_id);
+				doc.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, (Long)_id);
 			} else {
-				doc.put(ID, _id); 
+				doc.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, _id); 
 			}
 			
 		} catch (EntityNotFoundException e) {
@@ -1051,12 +1052,12 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	private Key createEntity(Key parent, Map obj){	
 		Key entityKey = null;
 		try {
-			Object id = obj.get(ID);
+			Object id = obj.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
 			Entity e = new Entity(
 					parent == null ? KeyStructure.createKey(_collName, createStringIdFromObject(id)) : parent);  
 			// Clean up the objectId (since the DS have ID field)
 			// and since it is already 'copied' into the Entity
-			obj.remove(ID);
+			obj.remove(DBCollection.MUNGO_DOCUMENT_ID_NAME);
 			Iterator it = obj.keySet().iterator();
 			while (it.hasNext()){
 				String key = (String) it.next();
@@ -1113,7 +1114,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 			return ((ObjectId) docId).toStringMongod();
 		} else if (docId instanceof DBObject) {
 			LOG.debug("Get ID from DBObject '_id' property");
-			Object id = ((DBObject) docId).get("_id");
+			Object id = ((DBObject) docId).get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
 			return createStringIdFromObject(id); // TODO - Review this, might cause Stackoverflow error
 		} else {
 			if (docId instanceof String
@@ -1239,7 +1240,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	
 	// Helper method
 	private static String buildStringIdFromObject(DBObject obj){
-		return createStringIdFromObject(obj.get(ID));
+		return createStringIdFromObject(obj.get(DBCollection.MUNGO_DOCUMENT_ID_NAME));
 	}
 	
 }
