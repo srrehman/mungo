@@ -334,7 +334,6 @@ public class MungoTest {
     	
     	//assertNotNull(oid1);
     	
-    	
     	assertNotNull(coll.findOne(new BasicDBObject("name", new BasicDBObject("$e", "kiji8889"))));
     	//assertNotNull(coll.findOne(new BasicDBObject("_id", new BasicDBObject("$e", id))));
     }     

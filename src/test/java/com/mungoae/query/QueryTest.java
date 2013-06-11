@@ -74,6 +74,18 @@ public class QueryTest {
 		}
 		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query Date <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 	}	
+	
+	@Test
+	public void testQueryNumber() {
+		l(">>>>>>>>>>>>>>>>>>>>>>>>> Test Query Number >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+		DBCollection coll = mungo.getDB("db").getCollection("DateQueryCollection");
+		DBCursor result = coll.find().filter("numeber").greaterThanOrEqualTo(1).sort("number", SortDirection.DESCENDING).now();  
+		while (result.hasNext()){ 
+			DBObject obj = result.next();
+			l(obj);
+		}
+		l("<<<<<<<<<<<<<<<<<<<<<<<<< Test Query Number <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+	}
 
 	@Test
 	public void testQueryMuti() {

@@ -42,6 +42,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.PreparedQuery;
 import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Query.SortDirection;
+import com.google.appengine.api.datastore.Query.SortPredicate;
 import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.datastore.Query.Filter;
@@ -779,34 +780,48 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	
 		// Sort
 		Iterator<Map.Entry<String, Query.SortDirection>> sortIterator = sorts.entrySet().iterator(); 
-		while(sortIterator.hasNext()){
-			Map.Entry<String, Query.SortDirection> dir = sortIterator.next();
-			LOG.debug("Sort propName="+dir.getKey() + " direction="+dir.getValue());
-		}
+		// Dont execute the while-loop it will clear the iterator
+//		while(sortIterator.hasNext()){
+//			Map.Entry<String, Query.SortDirection> dir = sortIterator.next();
+//			LOG.debug("Sort propName="+dir.getKey() + " direction="+dir.getValue());
+//		}
 		Query q = new Query(_collName);
-		Filter compositeFilter = null;
 		List<Filter> subFilters = new ArrayList<Filter>();
-		for (String propName : query.keySet()){
-			LOG.debug("Filter Property name="+propName);
-			Tuple<FilterOperator, Object> filterAndValue = query.get(propName);
-			FilterOperator operator = filterAndValue.getFirst();
-			Object value = filterAndValue.getSecond();
-			Filter filter = null;
-			if (propName.equals(DBCollection.MUNGO_DOCUMENT_ID_NAME)){
-				filter = new FilterPredicate(Entity.KEY_RESERVED_PROPERTY, operator, 
-						KeyStructure.createKey(_collName, String.valueOf(value)));
- 			} else {
- 				filter = new FilterPredicate(propName, operator, value); 
- 			}
-			Filter prevFilter = q.getFilter();
-			if (sorts.get(propName) != null){
-				q = new Query(_collName).setFilter(prevFilter).setFilter(filter)
-						.addSort(propName, sorts.get(propName));
-				sorts.remove(propName); // remove it
-			} else {
-				q = new Query(_collName).setFilter(prevFilter).setFilter(filter);
+		if (!query.isEmpty()){
+			// Apply filters and sorting for fields given in the filter query
+			for (String propName : query.keySet()){
+				LOG.debug("Filter Property name="+propName);
+				Tuple<FilterOperator, Object> filterAndValue = query.get(propName);
+				FilterOperator operator = filterAndValue.getFirst();
+				Object value = filterAndValue.getSecond();
+				Filter filter = null;
+				if (propName.equals(DBCollection.MUNGO_DOCUMENT_ID_NAME)){
+					filter = new FilterPredicate(Entity.KEY_RESERVED_PROPERTY, operator, 
+							KeyStructure.createKey(_collName, String.valueOf(value)));
+	 			} else {
+	 				filter = new FilterPredicate(propName, operator, value); 
+	 			}
+				Filter prevFilter = q.getFilter();
+				if (sorts.get(propName) != null){
+					q = new Query(_collName).setFilter(prevFilter).setFilter(filter)
+							.addSort(propName, sorts.get(propName));
+					sorts.remove(propName); // remove it
+				} else {
+					q = new Query(_collName).setFilter(prevFilter).setFilter(filter);
+				}
+				subFilters.add(filter);			
 			}
-			subFilters.add(filter);			
+		} else if (query == null || query.isEmpty()){
+			while(sortIterator.hasNext()){
+//				Map.Entry<String, SortDirection> sort = sortIterator.next();
+//				SortPredicate prevSort = q.getSortPredicates().get(q.getSortPredicates().size()-1); // Unsafe
+//				if (prevSort != null){
+//					q = new Query(_collName).addSort(prevSort.getPropertyName(), prevSort.getDirection())
+//							.addSort(sort.getKey(), sort.getValue());	
+//				}
+				Map.Entry<String, SortDirection> sort = sortIterator.next();
+				q = new Query(_collName).addSort(sort.getKey(), sort.getValue());				
+			}
 		}		
 		pq = _ds.prepare(q);
 		return pq.asIterator();

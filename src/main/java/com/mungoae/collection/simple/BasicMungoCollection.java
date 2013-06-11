@@ -190,6 +190,7 @@ public class BasicMungoCollection extends DBCollection {
 			return Lists.newArrayList(_store.queryObjectById(filters.get("id").getSecond())).iterator();
 		}
 		return _store.queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
+		//_store.queryAllObjectsLike(query, orderby); <-- update queryObjects from this one
 	}
 	
 	@Override

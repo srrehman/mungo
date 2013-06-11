@@ -54,7 +54,7 @@ public abstract class DBCollection {
 	protected abstract Iterator<DBObject> __find(
 			Map<String, Tuple<FilterOperator, Object>> filters, 
 			Map<String, com.google.appengine.api.datastore.Query.SortDirection> sorts,
-			Integer numToSkip , Integer batchSize , Integer limit, Integer options);
+			Integer numToSkip , Integer limit , Integer batchSize, Integer options);
 	
 	protected abstract <T> WriteResult __insert(List<T> list, boolean shouldApply , WriteConcern concern);
 	

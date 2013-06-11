@@ -60,7 +60,7 @@ public class DBCursorTest {
 		
 		BasicDBObject query = new BasicDBObject("number", new BasicDBObject("$gte", 1));
 		cursor = new DBCursor(coll, 
-				query, null).sort(new BasicDBObject("number", -1));  
+				query, null).sort(new BasicDBObject("number", 1));  
 		list = copyIterator(cursor);
 		printList(list);
 		assertEquals(11, list.size());
@@ -118,17 +118,17 @@ public class DBCursorTest {
 		Mungo mungo = new Mungo();
 		DBCollection coll = mungo.getDB("TestDB").getCollection("DBCursorTest");
 		
-		coll.insert(new BasicDBObject("hi", "there").append("number", 1)); 
-		coll.insert(new BasicDBObject("hi", "there").append("number", 2));
-		coll.insert(new BasicDBObject("hi", "there").append("number", 3));
-		coll.insert(new BasicDBObject("hi", "there").append("number", 4));
-		coll.insert(new BasicDBObject("hi", "there").append("number", 5));
-		coll.insert(new BasicDBObject("hi", "there").append("number", 6));
-		coll.insert(new BasicDBObject("hi", "there").append("number", 7));
-		coll.insert(new BasicDBObject("hi", "there").append("number", 8));
-		coll.insert(new BasicDBObject("hi", "there").append("number", 9));
-		coll.insert(new BasicDBObject("hi", "there").append("number", 10));
-		coll.insert(new BasicDBObject("whats", "up").append("number", 11));
+		coll.insert(new BasicDBObject("username", "abby").append("number", 1)); 
+		coll.insert(new BasicDBObject("username", "bobby").append("number", 2));
+		coll.insert(new BasicDBObject("username", "cubby").append("number", 3));
+		coll.insert(new BasicDBObject("username", "dubby").append("number", 4));
+		coll.insert(new BasicDBObject("username", "fubby").append("number", 5));
+		coll.insert(new BasicDBObject("username", "gubby").append("number", 6));
+		coll.insert(new BasicDBObject("username", "hubby").append("number", 7));
+		coll.insert(new BasicDBObject("username", "ibby").append("number", 8));
+		coll.insert(new BasicDBObject("username", "jibby").append("number", 9));
+		coll.insert(new BasicDBObject("username", "kibby").append("number", 10));
+		coll.insert(new BasicDBObject("username", "libby").append("number", 11));
 	}
 	
 	List<DBObject> copyIterator(Iterator<DBObject> it){

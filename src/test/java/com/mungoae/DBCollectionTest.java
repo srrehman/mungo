@@ -3,14 +3,18 @@ package com.mungoae;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.appengine.api.datastore.Query.SortDirection;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
@@ -19,6 +23,7 @@ import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
 import com.mungoae.QueryOpBuilder;
+import com.mungoae.util.Tuple;
 
 public class DBCollectionTest {
     private final LocalServiceTestHelper helper =
@@ -60,6 +65,38 @@ public class DBCollectionTest {
 		assertFalse(list.isEmpty());
 		assertEquals(11L, list.get(0).get("number"));
 		printList(list);
+	
+	}
+	
+	@Test
+	public void testFindSortDescending2() { 
+		
+		Map<String, Tuple<FilterOperator, Object>> filters = new HashMap<String, Tuple<FilterOperator,Object>>();
+		Map<String, SortDirection> sorts = new HashMap<String, SortDirection>();
+		sorts.put("number", SortDirection.DESCENDING);
+		
+		Iterator<DBObject> it = coll.__find(filters, sorts, null, 5, null, null);
+		assertNotNull(it);
+		
+		List<DBObject> list = copyIterator(it);
+		assertFalse(list.isEmpty());
+		assertEquals(11L, list.get(0).get("number"));
+		printList(list);
+		
+		coll.insert(new BasicDBObject("hi", "there").append("number", 11));
+		it = coll.__find(filters, sorts, null, 5, null, null);
+		assertNotNull(it);
+		list = copyIterator(it);
+		assertFalse(list.isEmpty());
+		assertEquals(11L, list.get(0).get("number"));
+		printList(list);
+		
+		DBCursor curr1 = coll.find().sort("number", DBCursor.SortDirection.DESCENDING).limit(3).now(); 
+		assertNotNull(curr1);
+		list = copyIterator(curr1);
+		assertFalse(list.isEmpty());
+		assertEquals(11L, list.get(0).get("number"));
+		printList(list);		
 	}
 	
 	@Test
