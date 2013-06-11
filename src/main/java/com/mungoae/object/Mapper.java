@@ -578,4 +578,18 @@ public class Mapper {
 		}
 		return obj;		
 	}
+	
+	// TODO - Check if obj has "_id" as it is required
+	public DBObject copyFieldsOnly(DBObject obj, DBObject fields){
+		DBObject copy = null;
+		Iterator<String> it = fields.keySet().iterator();
+		while (it.hasNext()){
+			if (copy == null){
+				copy = new BasicDBObject();
+			}
+			String key = it.next();
+			copy.put(key, obj.get(key));
+		}
+		return copy;
+	}
 }

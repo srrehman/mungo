@@ -279,9 +279,6 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
 		try {
-			if (id instanceof DBObject){
-				
-			}
 			Map<String, Object> map = getEntityBy(KeyStructure.createKey(_collName, 
 					createStringIdFromObject(id)));
 			if (map != null){

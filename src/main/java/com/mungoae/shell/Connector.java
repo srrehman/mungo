@@ -14,7 +14,6 @@ import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.inject.Singleton;
-import com.mungoae.object.GAEObjectFactory;
 
 /**
  * Connector encapsulates database operations to the datastore. 
@@ -51,10 +50,6 @@ public class Connector {
 			LOG.debug("Create a new DatastoreService instance");
 		}
 		cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));				
-	}
-	
-	public GAEObjectFactory getFactory(){
-		return new GAEObjectFactory();
 	}
 	
 	public Shell getLocal(){
