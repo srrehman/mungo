@@ -9,7 +9,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
-import com.google.appengine.labs.repackaged.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.query.DBFilter;
@@ -173,11 +173,11 @@ public class DBCursor implements Iterable<DBObject>,
 
 	
 	public DBCursor sort(DBObject sort) {
-		//Map.Entry<String, String> entry = sort.entrySet().iterator().next();
 		String key = sort.keySet().iterator().next();
 		Object value = sort.get(key);
 		return sort(key, 
-				value == Integer.valueOf(1) ? SortDirection.ASCENDING : SortDirection.DESCENDING); 
+				value == Integer.valueOf(1) ? 
+						SortDirection.ASCENDING : SortDirection.DESCENDING); 
 	}
 	
 	/**

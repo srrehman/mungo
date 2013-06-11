@@ -19,18 +19,17 @@ package com.mungoae;
 
 import static org.junit.Assert.*;
 
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.bson.types.ObjectId;
-import org.json.simple.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
@@ -39,16 +38,39 @@ import com.mungoae.DBCollection;
 import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
-import com.mungoae.collection.WriteResult;
 import com.mungoae.models.Person;
+import com.mungoae.util.JSON;
 
 public class MungoTest {
 	
     private final LocalServiceTestHelper helper =
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
                 .setDefaultHighRepJobPolicyUnappliedJobPercentage(0)); 	   
-
+    
     private Mungo mungo;
+    
+    public class Greeting {
+    	
+    	private String _id;
+    	private String greeting;
+
+		public String getGreeting() {
+			return greeting;
+		}
+
+		public void setGreeting(String greeting) {
+			this.greeting = greeting;
+		}
+
+		public String getId() {
+			return _id;
+		}
+
+		public void setId(String id) {
+			this._id = id;
+		}
+    }
+    
     
     @Before
     public void setUp() {
@@ -62,10 +84,6 @@ public class MungoTest {
     }	
     
     @Test
-    public void test() {
-    	doTest();    	
-    }
-    
     public void doTest() {
     	DB db1 = mungo.getDB("db1");
     	DB db2 = mungo.getDB("db2");
@@ -114,8 +132,8 @@ public class MungoTest {
     	assertNotNull(result);
     	assertNotNull(result2);
     	
-    	l("Using fineOne(): " + toJSONString(result));
-    	l("Using fineOne(): " + toJSONString(result));
+    	l("Using findOne(): " + toJSONString(result));
+    	l("Using findOne(): " + toJSONString(result));
     
     }
     
@@ -126,113 +144,62 @@ public class MungoTest {
     	assertEquals("world", (String) fromString.get("hello"));
     	l("Test create from JSON String=" + fromString);
     }
-    
-    public class Greeting {
-    	private String greeting;
-
-		public String getGreeting() {
-			return greeting;
-		}
-
-		public void setGreeting(String greeting) {
-			this.greeting = greeting;
-		}
-    }
-    
-    public class GreetingWithId {
-    	private Long id;
-    	private String greeting;
-
-		public String getGreeting() {
-			return greeting;
-		}
-
-		public void setGreeting(String greeting) {
-			this.greeting = greeting;
-		}
-
-		public Long getId() {
-			return id;
-		}
-
-		public void setId(Long id) {
-			this.id = id;
-		}
-    }
-    
+ 
     @Test
     public void testAsObject() {
     	DB db = mungo.getDB("db1");
-    	ObjectId id = new ObjectId(); // for test reference
+    	ObjectId id = new ObjectId(); // for test reference, not necessary for actuall app
     	DBCollection greetings = db.createCollection("Greetings");
     	BasicDBObject fromString = new BasicDBObject("{'greeting' : 'good morning'}")
     		.append("_id", id); 
     	greetings.insert(fromString);
     	Greeting greeting = greetings.findOne(id).as(Greeting.class);
     	assertNotNull(greeting);
+    	assertEquals("good morning", greeting.greeting);
+    	assertEquals(id.toStringMongod(), greeting.getId());
     	l("Greeting greeting=" + greeting.getGreeting());
-    }
-    
-    //@Test
-    public void testAsObjectWithObjectId() {
-    	DB db = mungo.getDB("db1");
-    	ObjectId id = new ObjectId(); // for test reference
-    	DBCollection greetings = db.createCollection("Greetings");
-    	BasicDBObject fromString = new BasicDBObject("{'greeting' : 'good morning'}")
-    		.append("_id", id); 
-    	greetings.insert(fromString);
-    	GreetingWithId greeting = greetings.findOne(id).as(GreetingWithId.class);
-    	assertNotNull(greeting);
-    	l("Greeting id=" + greeting.getId() + " greeting=" + greeting.getGreeting());
-    }    
+    }   
     
     @Test
     public void testDBCursor() {
     	
     	DB db = mungo.getDB("db1");
-    	ObjectId id = new ObjectId(); // for test reference
     	DBCollection greetings = db.createCollection("Greetings");
     	
-    	BasicDBObject fromString = new BasicDBObject("{'greeting' : 'good morning'}")
+    	ObjectId id = new ObjectId(); // for test reference
+    	
+    	BasicDBObject greet1 = new BasicDBObject("{'greeting' : 'kamusta ka'}")
     		.append("_id", id);  
-    	BasicDBObject fromString2 = new BasicDBObject("{'greeting' : 'good morning'}")
+    	BasicDBObject greet2 = new BasicDBObject("{'greeting' : 'good morning'}")
 			.append("_id", new ObjectId());  
-    	BasicDBObject fromString3 = new BasicDBObject("{'moshimoshi' : 'hello'}")
+    	BasicDBObject greet3 = new BasicDBObject("{'greeting' : 'moshi moshi'}")
 			.append("_id", new ObjectId());      	
     	
-    	greetings.insert(fromString);
-    	greetings.insert(fromString2);
-    	greetings.insert(fromString3);
+    	greetings.insert(greet1);
+    	greetings.insert(greet2);
+    	greetings.insert(greet3);
     	
-    	BasicDBObject ref = new BasicDBObject("greeting", "good morning");
-    	DBCursor objects = greetings.find(ref);
+    	// Query all
+    	Iterable<DBObject> all = greetings.find();
+    	List<DBObject> allList = Lists.newArrayList(all);
+    	assertEquals("kamusta ka", allList.get(0).get("greeting"));    
+    	assertEquals("good morning", allList.get(1).get("greeting"));
+    	assertEquals("moshi moshi", allList.get(2).get("greeting"));
+    	
+    	// Query single
+    	BasicDBObject query = new BasicDBObject("greeting", "good morning");
+    	Iterable<DBObject> result = greetings.find(query);
+    	List<DBObject> list = Lists.newArrayList(result);
+    	assertEquals("good morning", list.get(0).get("greeting"));
+    	
+    	BasicDBObject greet4 = new BasicDBObject("{'greeting' : 'good morning'}")
+    		.append("created", new Date(8889));  	
+    	greetings.insert(greet4);
+    	
+    	Iterable<DBObject> created = greetings.find(new BasicDBObject("created", new Date(8889)));  
+    	List<DBObject> createdList = Lists.newArrayList(created);
+    	assertEquals("good morning", createdList.get(0).get("greeting"));
 
-    	for (DBObject obj : objects){
-    		l("First Fetched DBOBject=" + toJSONString(obj));
-    	}
-    	
-    	BasicDBObject fromString4 = new BasicDBObject("{'greeting' : 'good morning'}")
-    		.append("hello", "world");  
-    	greetings.insert(fromString4);
-    	
-    	BasicDBObject ref2 = new BasicDBObject("greeting", "good morning")
-    		.append("hello", "world");
-    	
-    	DBCursor objects2 = greetings.find(ref2);
-    	
-    	for (DBObject obj : objects2){
-    		l("Second Fetched DBOBject=" + toJSONString(obj));
-    	}
-    	
-
-    	BasicDBObject ref3 = new BasicDBObject("non", "existent");
-    	DBCursor curr = greetings.find(ref3);
-    	assertNotNull(curr);
-    	
-    	BasicDBObject ref4 = new BasicDBObject("non", "existent")
-    		.append("hello", "world"); 
-    	//assertNull(greetings.find(ref4)); 	
-    	
     	DBCollection mixedCollection = db.createCollection("Mixed");
     	BasicDBObject numberValue1 = new BasicDBObject("count", 123);
     	BasicDBObject numberValue2 = new BasicDBObject("count", 123);
@@ -244,68 +211,11 @@ public class MungoTest {
     	mixedCollection.insert(numberValue3);
     	mixedCollection.insert(booleanValue);
     	
-    	BasicDBObject ref5 = new BasicDBObject("count", 123);
-
-    	assertTrue(mixedCollection.find(ref5).hasNext());
-    	
-    	for (DBObject o : mixedCollection.find(ref5)){
-    		l("From mixedCollection query for 'count'=123 fetch=" + toJSONString(o));
-    	}
+    	BasicDBObject count = new BasicDBObject("count", 123);
+    	assertTrue(mixedCollection.find(count).hasNext());
+    	List countList = Lists.newArrayList((Iterable<DBObject>)mixedCollection.find(count));
+    	assertTrue(countList.size() == 2);
     }
-    
-    @Test
-    public void testParseBasicDBObjectType(){
-    	DB db = mungo.getDB("db1");
-    	ObjectId id = new ObjectId(); // for test reference
-    	DBCollection coll = db.createCollection("Collection");    	
-    	
-    	Person person = new Person("Some", "One");
-    	person.append("_id", id);
-    	
-    	coll.insert(person);
-    	BasicDBObject foundPerson = (BasicDBObject) coll.findOne(id); 
-    	assertNotNull(foundPerson);
-    }
-    
-    @Test
-    public void testPersistJSONArrayList(){
-    	DB db = mungo.getDB("db1");
-    	ObjectId id = new ObjectId(); // for test reference
-    	DBCollection coll = db.createCollection("Collection");      
-    	BasicDBObject numbers = new BasicDBObject("{'numbers' : [1,2,3,4,5]}");
-    	numbers.put("_id", id);
-    	coll.insert(numbers);
-    	DBObject result = coll.findOne(id);
-    	assertNotNull(result);
-    	l("JSON array =" + toJSONString(numbers));
-    } 
-    
-    @Test
-    public void testPersistJSONArrayListWithAnyObject(){
-    	DB db = mungo.getDB("db1");
-    	ObjectId id = new ObjectId(); // for test reference
-    	DBCollection coll = db.createCollection("Collection");      
-    	BasicDBObject numbers = new BasicDBObject("{'numbers' : [true,1,2,3,'hello world']}");
-    	numbers.put("_id", id);
-    	coll.insert(numbers);
-    	DBObject result = coll.findOne(id);
-    	assertNotNull(result);
-    	l("JSON array =" + toJSONString(result));
-    }   
-    
-    @Test
-    public void testPersistJSONArrayListWithEmbeddedObject(){
-    	DB db = mungo.getDB("db1");
-    	ObjectId id = new ObjectId(); // for test reference
-    	DBCollection coll = db.createCollection("Collection");      
-    	BasicDBObject complexObject 
-    		= new BasicDBObject("{'numbers' : [true,1,2,3,'hello world', { 'inner': 'text' }]}");
-    	complexObject.put("_id", id);
-    	coll.insert(complexObject);
-    	DBObject result = coll.findOne(id);
-    	assertNotNull(result);
-    	l("Complex JSON array =" + toJSONString(result));
-    }    
     
     @Test
     public void testPersistAndGetWithLongId(){
@@ -314,38 +224,105 @@ public class MungoTest {
     	DBCollection coll = db.createCollection("Collection");      
     	BasicDBObject complexObject 
     		= new BasicDBObject("{'numbers' : [true,1,2,3,'hello world', { 'inner': 'text' }]}");
-    	l("Put id to json="+id);
     	complexObject.put("_id", id);
-    	coll.insert(complexObject);
+    	coll.insert(new BasicDBObject("_id", id)); 
     	DBObject result = coll.findOne(id);
     	assertNotNull(result);
-    	l("Complex JSON array with Long id =" + toJSONString(result));    	
+    }    
+    
+    @Test
+    public void testQueryDocNotExist(){
+    	DB db = mungo.getDB("db1");
+    	DBCollection greetings = db.createCollection("Greetings");
+    	
+    	BasicDBObject notExist = new BasicDBObject("greeting", "that does not exist");
+    	Iterable<DBObject> curr = greetings.find(notExist);
+    	assertTrue(Lists.newArrayList(curr).size() == 0);
     }
     
     @Test
-    public void testPersistComplexObjectQueryByProperty(){
+    public void testParseBasicDBObjectType(){
+    	DB db = mungo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection coll = db.createCollection("people");    	
+    	
+    	Person person = new Person("Feng", "Zhu");
+    	person.append("_id", id);
+    	coll.insert(person);
+    	
+    	BasicDBObject foundPerson = (BasicDBObject) coll.findOne(id); 
+    	assertNotNull(foundPerson);
+    }
+    
+    @Test
+    public void testPersistJSONArrayNumberList(){
+    	DB db = mungo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection coll = db.createCollection("todo-list");      
+    	BasicDBObject numbers = new BasicDBObject("{'numbers' : [1,2,3,4,5]}");
+    	numbers.put("_id", id);
+    	coll.insert(numbers);
+    	DBObject result = coll.findOne(id);
+    	assertNotNull(result);
+    } 
+    
+    @Test
+    public void testPersistJSONArrayListWithAnyObject(){
+    	DB db = mungo.getDB("db1");
+    	ObjectId id = new ObjectId(); // for test reference
+    	DBCollection coll = db.createCollection("todo-list");      
+    	BasicDBObject any = new BasicDBObject("{'any' : [true,1,2,3,'hello world']}");
+    	any.put("_id", id);
+    	coll.insert(any);
+    	DBObject result = coll.findOne(id);
+    	assertNotNull(result);
+    }   
+    
+    @Test
+    public void testPersistJSONArrayListWithEmbeddedObject(){
     	DB db = mungo.getDB("db1");
     	ObjectId id = new ObjectId(); // for test reference
     	DBCollection coll = db.createCollection("Collection");      
-    	BasicDBObject complexObject 
+    	BasicDBObject any 
+    		= new BasicDBObject("{'any' : [true,1,2,3,4,'hello world', { 'inner': 'text' }]}");
+    	any.put("_id", id);
+    	coll.insert(any);
+    	DBObject complex = coll.findOne(id);
+    	assertNotNull(complex);
+    	assertTrue(complex.get("any") instanceof List);
+    	List<Object> list = (List<Object>) complex.get("any");
+    	assertEquals(7, list.size()); 
+    	assertTrue((Boolean)list.get(0)); 
+    	assertEquals(1L, list.get(1)); 
+    	assertEquals(2L, list.get(2)); 
+    	assertEquals(3L, list.get(3)); 
+    	assertEquals(4L, list.get(4)); 
+    	assertEquals("hello world", list.get(5));
+    	assertTrue(list.get(6) instanceof Map);
+    	assertEquals("text", ((Map)list.get(6)).get("inner"));
+    }    
+    
+    // TODO - Query by ObjectId in a DBObject query or shell query does not work!
+    @Test
+    public void testPersistComplexObjectQueryByProperty(){
+    	DB db = mungo.getDB("db1");
+    	ObjectId id = new ObjectId("51b6cb8623185501bd24c036"); // for test reference
+    	DBCollection coll = db.createCollection("Collection");       
+    	BasicDBObject doc 
     		= new BasicDBObject("{'numbers' : [true,1,2,3,'hello world', { 'inner': 'text' }]}")
-    			.append("name", "test123"); 
-    	complexObject.put("_id", id);
-    	coll.insert(complexObject);
+    			.append("name", "kiji8889"); 
+    	doc.put("_id", id);
+    	coll.insert(doc);
     	
-//    	DBObject result = coll.findOne(new BasicDBObject("name", new BasicDBObject("$e", "test123"))); 
-//    	DBObject result1 = coll.findOne(id); 
-//    	DBObject result2 = coll.findOne(new BasicDBObject("_id", new BasicDBObject("$e", id))); 
+    	DBObject oid = coll.findOne(id);
+    	//DBObject oid1 = coll.findOne("{ '_id' : { '$oid' : '51b6cb8623185501bd24c036' } }");
+    	DBObject name = coll.findOne("{ 'name' : { '$e' : 'kiji8889' }}"); 
+    	assertNotNull(oid);
+    	//assertNotNull(oid1);
+    	assertNotNull(name);
     	
-    	DBObject result1 = coll.findOne(id);
-    	DBObject result = coll.findOne("{ 'name' : { '$e' : 'test123' }}"); 
-//    	DBObject result2 = coll.findOne("{ '_id' : { '$e' : '" + id.toStringMongod() +"' }}"); 
-    	
-    	assertNotNull(result);
-    	
-    	l("Complex JSON array and query result =" + toJSONString(result));
-    	l("Complex JSON array and query result1 =" + toJSONString(result1));
-//    	l("Complex JSON array and query result2 =" + toJSONString(result2));
+    	assertNotNull(coll.findOne(new BasicDBObject("name", new BasicDBObject("$e", "kiji8889"))));
+    	//assertNotNull(coll.findOne(new BasicDBObject("_id", new BasicDBObject("$e", id))));
     }     
     
     @Test
@@ -353,14 +330,9 @@ public class MungoTest {
     	DB db = mungo.getDB("db1");
     	Long id = new Long(1L);
     	DBCollection coll = db.createCollection("Collection");      
-    	BasicDBObject complexObject 
-    		= new BasicDBObject("{'numbers' : [true,1,2,3,'hello world', { 'inner': 'text' }]}");
-    	l("Put id to json="+id);
-    	complexObject.put("_id", id);
-    	coll.insert(complexObject);
+    	coll.insert(new BasicDBObject("_id", id));
     	DBObject result = coll.findOne(id);
     	assertNotNull(result); 	
-    	
     	// delete
     	coll.remove(result);
     	// should have been deleted
@@ -372,9 +344,7 @@ public class MungoTest {
 	}
 	
 	private String toJSONString(DBObject o){
-		JSONObject jso = new JSONObject();
-		jso.putAll(o.toMap());
-		return jso.toJSONString();
+		return JSON.serialize(o); 
 	}
 	
 }
