@@ -39,6 +39,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.appengine.api.users.User;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -135,7 +136,9 @@ public class Mapper {
 				if (value instanceof String
 						|| value instanceof Boolean
 						|| value instanceof Number
-						|| value instanceof Date){
+						|| value instanceof Date
+						|| value instanceof User) // GAE supported type
+				{
 					arr[i] = value;
 					indexToRemove.remove(i);
 				} else if (value instanceof EmbeddedEntity){
@@ -190,7 +193,8 @@ public class Mapper {
 				if (o instanceof String
 						|| o instanceof Boolean
 						|| o instanceof Number
-						|| o instanceof Date){
+						|| o instanceof Date
+						|| o instanceof User){
 					ee.setProperty(String.valueOf(index), o); 
 				} else if (o instanceof List){
 					ee.setProperty(String.valueOf(index), 
@@ -254,6 +258,8 @@ public class Mapper {
 				ee.setProperty(key, value);
 			} else if(value instanceof Date) {
 				ee.setProperty(key, value);
+			} else if(value instanceof User) {
+				ee.setProperty(key, value);
 			} else if(value instanceof List) {
 				ee.setProperty(key, createEmbeddedEntityFromList(ee.getKey(), (List)value));
 			} else if(value instanceof Map){
@@ -308,7 +314,8 @@ public class Mapper {
 					} else if (value instanceof String 
 							|| value instanceof Number
 							|| value instanceof Boolean
-							|| value instanceof Date) {
+							|| value instanceof Date
+							|| value instanceof User) {
 						e.setProperty((String)key, value);
 					} else {
 						throw new RuntimeException("Unsupported DBObject property type");
@@ -342,7 +349,8 @@ public class Mapper {
 				} else if (val instanceof String
 						|| val instanceof Number
 						|| val instanceof Boolean
-						|| val instanceof Date) {
+						|| val instanceof Date
+						|| val instanceof User) {
 					map.put(key, val);
 				} else if (val instanceof Text) {
 					map.put(key, ((Text) val).getValue());
@@ -461,7 +469,8 @@ public class Mapper {
 				if (operatorOrValue instanceof String 
 						|| operatorOrValue instanceof Boolean
 						|| operatorOrValue instanceof Number
-						|| operatorOrValue instanceof Date){
+						|| operatorOrValue instanceof Date
+						|| operatorOrValue instanceof User){
 					// then just do, equality operator
 					_ops.put(field, new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, operatorOrValue));   
 				} else if (operatorOrValue instanceof ObjectId) {

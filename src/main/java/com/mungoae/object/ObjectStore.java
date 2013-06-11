@@ -877,7 +877,8 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 				} else if (val instanceof String
 						|| val instanceof Number
 						|| val instanceof Boolean
-						|| val instanceof Date) {
+						|| val instanceof Date
+						|| val instanceof User) {
 					// TODO - Check if String is a serialized object
 					if (val instanceof String){
 						// Try to deserialize
