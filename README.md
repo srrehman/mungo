@@ -17,7 +17,7 @@ deep stored embedded documents (Work in progress).
 >    	Mungo mungo = new Mungo(); 
 >    	DB testDB = mungo.getDB("testDB");
 >		DBCollection greetings = testDB.createCollection("Message");
->    	BasicDBObject obj = new BasicDBObject("{'username' : 'jack'}");
+>    	BasicDBObject obj = new BasicDBObject("{'username' : 'jack'}")
 >			obj.put("greeting", "Hello world")
 >    		obj.put("created", new Date());
 > 		WriteResult wr = greetings.insert(obj); // Done!
