@@ -3,18 +3,25 @@ package com.mungoae;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.google.common.base.Preconditions;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.query.DBFilter;
 import com.mungoae.util.Tuple;
-
+/**
+ * Cursor to the database 
+ * 
+ * @author Kerby Martino <kerbymart@gmail.com>
+ *
+ */
 public class DBCursor implements Iterable<DBObject>, 
 	Iterator<DBObject> {
 	
@@ -35,6 +42,15 @@ public class DBCursor implements Iterable<DBObject>,
 	protected Integer _fetchSize = null;
 	protected Integer _options = null;
 	
+	// from old DBCursor class
+	private DBObject _query = null;
+	private DBObject _keysWanted = null;
+    private DBObject _orderBy = null;
+    
+//    private Integer _batchSize = null;
+//    private Integer _skip = null;
+//    private Integer _limit = null;
+    
 	protected Iterator<DBObject> _it = null;
 	
 	protected Class _internalClass;
@@ -68,7 +84,6 @@ public class DBCursor implements Iterable<DBObject>,
 		BasicDBObject dbquery = new BasicDBObject(query);
 		_filters = Mapper.createFilterOperatorObjectFrom(dbquery);
 		_collection = collection;
-		//_check();
 	}
 	
 	
@@ -79,7 +94,6 @@ public class DBCursor implements Iterable<DBObject>,
 		} 
 		_collection = coll;
 		_filters = Mapper.createFilterOperatorObjectFrom(query);
-		//_check();
 	}
 
 	public Iterator<DBObject> iterator() {
@@ -112,8 +126,10 @@ public class DBCursor implements Iterable<DBObject>,
 	 */
 	
 	public DBCursor now() {
-		_it = ObjectStore.get(_collection.getDB().getName(), 
-				_collection.getName()).queryObjects(_filters, _sorts, _numToSkip, _max, null, null); 
+//		_it = ObjectStore.get(_collection.getDB().getName(), 
+//				_collection.getName()).queryObjects(_filters, _sorts, _numToSkip, _max, null, null); 
+		_it = _collection.__find(Mapper.createDBObjectQueryFrom(_filters), 
+				Mapper.createDBObjectOrderByFrom(_sorts), _numToSkip, _max, _fetchSize, _options);
 		return this;
 	}
 	
@@ -224,8 +240,9 @@ public class DBCursor implements Iterable<DBObject>,
 	
 	public <T> Iterable<T> as(Class<T> clazz) {
 		_internalClass = clazz;
-		final Iterator<DBObject> it = ObjectStore.get(_collection.getDB().getName(), 
-				_collection.getName()).queryObjects(_filters, _sorts, null, null, null, null); 
+		final Iterator<DBObject> it =_collection.__find(Mapper.createDBObjectQueryFrom(_filters), 
+				Mapper.createDBObjectOrderByFrom(_sorts), 
+				null, null, null, null);
 		
 		final Iterator<T> copy = new Iterator<T>() {
 			
@@ -254,10 +271,37 @@ public class DBCursor implements Iterable<DBObject>,
 
 	// If the iterator is null, create 
 	// a new iterator to all documents
-	public void _check() {
-		if (_it == null){ 
-			_it = _collection.__find(_filters, _sorts, _numToSkip, _max, _fetchSize, _options); 
-		}
+//	public void _check() {
+//		if (_it == null){ 
+//			_it = _collection.__find(Mapper.createDBObjectQueryFrom(_filters), 
+//					Mapper.createDBObjectOrderByFrom(_sorts), _numToSkip, _max, _fetchSize, _options);		
+//		}
+//	}
+	
+	private void _check() {
+        if ( _it != null )
+            return;
+        
+        LOG.info("Raw Query="+_query);
+        LOG.info("Raw OrderBy="+_orderBy);
+        
+        QueryOpBuilder builder = new QueryOpBuilder()
+        	.addQuery(_query == null ? Mapper.createDBObjectQueryFrom(_filters) : _query)
+        	.addOrderBy(_orderBy == null ? Mapper.createDBObjectOrderByFrom(_sorts) : _orderBy);
+ 
+        LOG.info("Built Query="+builder.get().get("$query"));
+        LOG.info("Built OrderBy="+builder.get().get("$orderby"));
+        
+        _it = _collection.__find(builder.get(), _keysWanted, _numToSkip, _fetchSize, _max, _options);
+   		if (_it == null){
+   			LOG.error("Iterator returned is null");
+   		}
+   		Preconditions.checkNotNull(_it, "__find returned a null iterator");
+	}
+	
+	public List<DBObject> asList() {
+		_check();
+		return Lists.newArrayList(_it);
 	}
 
 }

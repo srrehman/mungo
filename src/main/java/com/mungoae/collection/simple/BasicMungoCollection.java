@@ -59,7 +59,7 @@ public class BasicMungoCollection extends DBCollection {
 			Iterator<DBObject> it = find();
 			return it.next(); 
 		} catch (Exception e) {
-			// TODO: handle exception
+			e.printStackTrace();
 		}
 		return null;
 	}
@@ -67,10 +67,12 @@ public class BasicMungoCollection extends DBCollection {
 	@Override
 	public DBObject findOne(String query) {
 		try {
-			DBCursor curr = find(query);
-			if (curr.hasNext()){
-				return curr.next();
-			}
+			Iterable<DBObject> curr = find(query);
+			List<DBObject> asList = Lists.newArrayList(curr);
+			return asList.get(0);
+//			if (curr.hasNext()){
+//				return curr.next();
+//			}
 		} catch (Exception e) {
 			// TODO: handle exception
 			e.printStackTrace();
@@ -180,93 +182,38 @@ public class BasicMungoCollection extends DBCollection {
 		return null;
 	}
 	
-	@Override
-	protected Iterator<DBObject> __find(
-			Map<String, Tuple<FilterOperator, Object>> filters,
-			Map<String, SortDirection> sorts, Integer numToSkip, Integer limit,
-			Integer batchSize, Integer options) {
-		LOG.debug("Applying filters to query="+filters);
-		if (filters.size() == 1 && filters.get("id") != null){
-			return Lists.newArrayList(_store.queryObjectById(filters.get("id").getSecond())).iterator();
-		}
-		return _store.queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
-		//_store.queryAllObjectsLike(query, orderby); <-- update queryObjects from this one
-	}
+//	@Override
+//	protected Iterator<DBObject> __find(
+//			Map<String, Tuple<FilterOperator, Object>> filters,
+//			Map<String, SortDirection> sorts, Integer numToSkip, Integer limit,
+//			Integer batchSize, Integer options) {
+//		LOG.debug("Applying filters to query="+filters);
+//		if (filters.size() == 1 && filters.get("id") != null){
+//			return Lists.newArrayList(_store.queryObjectById(filters.get("id").getSecond())).iterator();
+//		}
+//		return _store.queryObjects(filters, sorts, numToSkip, limit, batchSize, options);
+//	}
 	
 	@Override
 	public Iterator<DBObject> __find(final DBObject ref, final DBObject fields,
-			int numToSkip, int batchSize, int limit, int options) {
-		if (ref == null){
-			final Iterator<DBObject> _it = _store.queryObjects();
-			if (fields != null){
-				// Copy iterator to filter fields
-				Iterator<DBObject> copy = new Iterator<DBObject>() {
-					@Override
-					public void remove() {
-						_it.remove();
-					}
-					@Override
-					public DBObject next() {
-						return copyFields(_it.next(), fields); 
-					}
-					@Override
-					public boolean hasNext() {
-						return _it.hasNext();
-					}
-				};
-				return copy;
-			}
-			return _it; 	
-		} else {
-			// TODO - Right now this only process the ID and ignores
-			// other fields, fix this!
-			Object id = ref.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
-			if (id != null){
-				return Lists.newArrayList(_store.queryObjectById(id)).iterator();					
-			}
-		}
-
-		//---------------------------------------------------------------------
-		// Migrated from old DBCollection
+			Integer numToSkip, Integer limit, Integer batchSize, Integer options) {
 		
+		// The $query and $orderby keys will be available
+		// when the query was built with order by intention
+		// otherwise these objects will be null, and the whole 
+		// 'ref' will be the filter query
 		DBObject query = (DBObject) ref.get("$query"); // filter w/c docs to get
 		DBObject orderby = (DBObject) ref.get("$orderby"); // order 
 		
-		// Remove special fields
-		dataCleansing(ref);
-
-		if (query == null){ // no query? return an iterator to all documents
-			return _store.queryObjects();
+		if (query == null){ // the whole ref is the query
+			query = ref;
 		}
 		
-		Iterator<DBObject> it = null;
-		if (query != null && query.toMap().size() != 0){
-			LOG.info("Query object=" + query);
-			if (orderby != null && orderby.toMap().size() != 0){
-				LOG.info("Sort object=" + orderby);
-				it = _store.queryAllObjectsLike(query, orderby);
-			} else {
-				it = _store.queryObjectsLike(query);
-			}		
-		} else {
-			if (orderby != null && orderby.toMap().size() != 0){
-				LOG.info("Sort object=" + orderby);
-				it = _store.queryObjectsOrderBy(orderby);
-			} else { // query and orderby are both null
-				if (ref.get(MUNGO_DOCUMENT_ID_NAME) != null){ 
-					DBObject obj = _store.queryObjectById(ref.get(MUNGO_DOCUMENT_ID_NAME));
-				}
-				it = _store.queryObjects();
-			}	
-		}
-		if (limit > 0 && numToSkip > 0){
-			return new BoundedIterator<DBObject>(numToSkip, limit, it);	
-		} else if (limit > 0 && numToSkip == 0){
-			return new BoundedIterator<DBObject>(0, limit, it);	
-		} else if (limit == 0 && numToSkip > 0){
-			return new BoundedIterator<DBObject>(numToSkip, 0, it);	
-		}
-		return it;		
+		// Remove special fields
+		dataCleansing(ref);
+		Iterator<DBObject> it = _store.queryObjects(query, orderby, fields, numToSkip, limit, null, null);
+		return it;
+		
 	}
 
 	// Helper method to filter fields to be returned
@@ -279,7 +226,8 @@ public class BasicMungoCollection extends DBCollection {
 			if (fieldToCopy != null && fieldToCopy == Integer.valueOf(1)){ 
 				// retain the field
 			} else {
-				ref.removeField(field);
+				// ConcurrentModificationException !!!
+				//ref.removeField(field);
 			}
 		}
 		return ref;
@@ -335,6 +283,13 @@ public class BasicMungoCollection extends DBCollection {
 			}
 		}
 		return dbObjects;
+	}
+
+	@Override
+	public WriteResult update(DBObject q, DBObject o, boolean upsert,
+			boolean multi, WriteConcern concern) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

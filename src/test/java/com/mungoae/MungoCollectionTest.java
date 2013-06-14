@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import com.google.appengine.api.datastore.Query.SortDirection;
 import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
@@ -44,11 +45,19 @@ public class MungoCollectionTest {
 	@Test
 	public void testSetup() {		
 		// Setup
+		Iterable<DBObject> allObject = friends.find("{name: 'Joe'}").sort("name", com.mungoae.DBCursor.SortDirection.ASCENDING); 
+		assertNotNull(allObject); 
+		List<DBObject> oneList = Lists.newArrayList(allObject);
+		l(oneList);
+		assertEquals(1, oneList.size());
+		
+		
 		Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
 		assertNotNull(all);
 		List<Friend> list = Lists.newArrayList(all);
-		assertTrue(list.size() == 1);
 		l(list);
+		assertEquals(1, list.size());
+		
 		
 		Iterable<DBObject> _all = friends.find();
 		List<DBObject> _list = Lists.newArrayList(_all);

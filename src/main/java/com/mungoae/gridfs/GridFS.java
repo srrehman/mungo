@@ -16,7 +16,6 @@ import com.mungoae.BasicDBObject;
 import com.mungoae.DB;
 import com.mungoae.DBCollection;
 import com.mungoae.DBCursor;
-import com.mungoae.XDBCursor;
 import com.mungoae.DBObject;
 
 public class GridFS {

@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
@@ -49,35 +50,35 @@ public class DBCursorTest {
 		
 		assertNotNull(coll);
 
-		DBCursor cursor = new DBCursor(coll, 
+		Iterable<DBObject> cursor = new DBCursor(coll, 
 				null, // Reference object
 				null);// Keys to include 
-		
-		List<DBObject> list = copyIterator(cursor);
-		printList(list);
-		assertEquals(11, list.size());
+		 
+		List asList = Lists.newArrayList(cursor);
+		printList(asList);
+		assertEquals(11, asList.size());
 		
 		
 		BasicDBObject query = new BasicDBObject("number", new BasicDBObject("$gte", 1));
 		cursor = new DBCursor(coll, 
 				query, null).sort(new BasicDBObject("number", 1));  
-		list = copyIterator(cursor);
-		printList(list);
-		assertEquals(11, list.size());
+		asList = Lists.newArrayList(cursor);
+		printList(asList);
+		assertEquals(11, asList.size());
 		
 		query = new BasicDBObject("number", new BasicDBObject("$gte", 5));
 		cursor = new DBCursor(coll, 
 				query, null).sort(new BasicDBObject("number", -1));  
-		list = copyIterator(cursor);
-		printList(list);
-		assertEquals(7, list.size());
+		asList = Lists.newArrayList(cursor);
+		printList(asList);
+		assertEquals(7, asList.size());
 
 		query = new BasicDBObject("hi", new BasicDBObject("$e", "dont exist"));
 		cursor = new DBCursor(coll, 
 				query, null).sort(new BasicDBObject("hi", -1));  
-		list = copyIterator(cursor);
-		printList(list);
-		assertEquals(0, list.size());
+		asList = Lists.newArrayList(cursor);
+		printList(asList);
+		assertEquals(0, asList.size());
 		
 		
 		/**
@@ -88,29 +89,29 @@ public class DBCursorTest {
 				new BasicDBObject("number", new BasicDBObject("$gte", 1)), 
 				null).sort(new BasicDBObject("number", -1)).limit(5).skip(1);  
 		
-		list = copyIterator(cursor);
-		printList(list);
+		asList = Lists.newArrayList(cursor);
+		printList(asList);
 		//assertEquals(11, list.size());
 		
 		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", 1)).limit(5).skip(1);
-		list = copyIterator(cursor);
-		printList(list);
+		asList = Lists.newArrayList(cursor);
+		printList(asList);
 		
 		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
-		list = copyIterator(cursor);
-		printList(list);
+		asList = Lists.newArrayList(cursor);
+		printList(asList);
 		
 		coll.insert(new BasicDBObject("hi", "there").append("number", 12)); 
 		
 		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
-		list = copyIterator(cursor);
-		printList(list);
+		asList = Lists.newArrayList(cursor);
+		printList(asList);
 		
 		// Query by string
 		
 		cursor = new DBCursor(coll, null, null).sort(new BasicDBObject("number", -1)).limit(3); 
-		list = copyIterator(cursor);
-		printList(list);
+		asList = Lists.newArrayList(cursor);
+		printList(asList);
 	}
 	
 	public void persistTestData(){
@@ -129,14 +130,6 @@ public class DBCursorTest {
 		coll.insert(new BasicDBObject("username", "jibby").append("number", 9));
 		coll.insert(new BasicDBObject("username", "kibby").append("number", 10));
 		coll.insert(new BasicDBObject("username", "libby").append("number", 11));
-	}
-	
-	List<DBObject> copyIterator(Iterator<DBObject> it){
-		List<DBObject> copy = new ArrayList<DBObject>();
-		while (it.hasNext()){
-		    copy.add(it.next());
-		}
-		return copy;
 	}
 	
 	private void printList(List<DBObject> list){

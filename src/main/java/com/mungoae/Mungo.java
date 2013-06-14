@@ -90,7 +90,7 @@ public class Mungo implements ParameterNames {
 	 * Creates new instance to access remote datastore through
 	 * Mungo-style rest API
 	 * <code>
-	 * 		Mungo joongo = new Mungo("app-id.appspot.com/api");
+	 * 		Mungo mungo = new Mungo("app-id.appspot.com/api");
 	 * </code> 
 	 * @param serverName
 	 */
@@ -167,7 +167,7 @@ public class Mungo implements ParameterNames {
 	
 	
 	public DB getDB() {
-		return getDB("");
+		return getDB("mungo");
 	}
 	
 	public Collection<DB> getUsedDatabases(){
@@ -242,9 +242,5 @@ public class Mungo implements ParameterNames {
 	protected Key createKey(Key parent, String kind, String key) {
 		return KeyFactory.createKey(parent, kind, key);
 	}	
-	
-	public String getServerIP() {
-		return "localhost";
-	}
 	
 }

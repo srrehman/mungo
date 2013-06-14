@@ -88,7 +88,6 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	public BasicDBObject(String doc){
 		doc = doc.replaceAll("'", "\"");
 		try {
-//			Object obj = JSON.parse(doc);
 			Object obj = JSON.parse(doc);
 			if (obj != null){
 				if (obj instanceof DBObject){
