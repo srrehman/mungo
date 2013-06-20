@@ -357,8 +357,10 @@ public class Mapper {
 				} else if (val instanceof EmbeddedEntity) { // List and Map are stored as EmbeddedEntity internally
 					// TODO Must identify if the EmbeddedEntity is a List or Map
 					LOG.debug( "Embedded entity found.");
-					Map<String,Object> ee = getMapFromEmbeddedEntity((EmbeddedEntity) val);
-					map.put(key, ee);
+					//Map<String,Object> ee = getMapFromEmbeddedEntity((EmbeddedEntity) val);
+					// Fix for Github Issue #17
+					Object mapOrList = Mapper.getMapOrList((EmbeddedEntity) val);
+					map.put(key, mapOrList);
 				} 
 			}
 			map.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, e.getKey().getName());

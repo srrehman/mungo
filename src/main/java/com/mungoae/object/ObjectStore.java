@@ -867,7 +867,7 @@ public class ObjectStore extends AbstractDBCollection implements ParameterNames 
 	 * @param k
 	 * @return
 	 */
-	// FIXME - not returning null for non existing entity
+	// FIXME: Not returning null for non existing entity
 	private Map<String,Object> queryEntityBy(Key k){
 		Preconditions.checkNotNull(k, "Entity key cannot be null");
 		

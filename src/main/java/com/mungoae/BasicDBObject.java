@@ -84,29 +84,15 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	 * 
 	 * @param doc
 	 */
-	@SuppressWarnings("unchecked")
 	public BasicDBObject(String doc){
 		doc = doc.replaceAll("'", "\"");
 		try {
-//			Object obj = JSON.parse(doc);
 			Object obj = JSON.parse(doc);
 			if (obj != null){
 				if (obj instanceof DBObject){
 					putAll(((BasicDBObject)obj).toMap());
 				}
 			}
-//			if (obj != null){
-//				if (obj instanceof JSONObject){ 
-//					// TODO - JSONObject is being stored
-//					putAll((Map<String,Object>) obj);
-//				} else if(obj instanceof JSONArray){
-//					throw new RuntimeException("Contructing from JSON array not yet supported");
-//				} else if(obj instanceof JSONValue){
-//					throw new RuntimeException("Contructing from JSON value not yet supported");
-//				}
-//			} else {
-//				throw new RuntimeException("Cannot parse document: " + doc);
-//			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
