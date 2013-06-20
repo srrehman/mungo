@@ -18,9 +18,6 @@
 package com.mungoae.object;
 
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,23 +29,14 @@ import org.apache.log4j.Logger;
 import org.bson.types.ObjectId;
 
 import com.google.appengine.api.NamespaceManager;
-import com.google.appengine.api.datastore.Blob;
 import com.google.appengine.api.datastore.DataTypeUtils;
-import com.google.appengine.api.datastore.EmbeddedEntity;
 import com.google.appengine.api.datastore.Entity;
-import com.google.appengine.api.datastore.EntityNotFoundException;
-import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.PreparedQuery;
 import com.google.appengine.api.datastore.Query;
-import com.google.appengine.api.datastore.Query.SortDirection;
-import com.google.appengine.api.datastore.Query.SortPredicate;
-import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.datastore.Transaction;
-import com.google.appengine.api.datastore.Query.Filter;
 import com.google.appengine.api.datastore.Query.FilterOperator;
-import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
@@ -57,7 +45,6 @@ import com.mungoae.query.Logical;
 import com.mungoae.query.Update.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
 import com.mungoae.serializer.XStreamSerializer;
-import com.mungoae.util.BoundedIterator;
 import com.mungoae.util.Tuple;
 
 /**

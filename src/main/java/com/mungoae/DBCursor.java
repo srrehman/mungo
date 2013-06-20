@@ -10,10 +10,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.appengine.api.datastore.Query.FilterOperator;
-import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.mungoae.object.Mapper;
-import com.mungoae.object.ObjectStore;
 import com.mungoae.query.DBFilter;
 import com.mungoae.util.Tuple;
 /**
