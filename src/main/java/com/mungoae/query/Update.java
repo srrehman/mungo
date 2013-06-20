@@ -7,6 +7,7 @@ import java.util.Map;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
+import com.mungoae.collection.WriteConcern;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.util.Tuple;
@@ -21,6 +22,7 @@ public class Update {
 	
 	private boolean _multi = false;
 	private boolean _upsert = false;
+	private WriteConcern _concern = null;
 	
 	private Integer _by = 0;
 	private String _field = null;
@@ -59,8 +61,11 @@ public class Update {
 	public void now() {
 		if (_filters == null || _updates == null)
 			return;
-		ObjectStore.get(_collection.getDB().getName(), _collection.getName()).updateObjects(_filters, _updates, true, true); 
-	}
+		//ObjectStore.get(_collection.getDB().getName(), _collection.getName()).updateObjects(_filters, _updates, true, true); 
+		_collection.update(
+				Mapper.createDBObjectQueryFrom(_filters),
+				Mapper.createDBObjectUpdateFrom(_updates), _upsert, _multi, _concern);
+	} 
 	
 	public Update increment(String field, Object byValue) {
 		_field = field;

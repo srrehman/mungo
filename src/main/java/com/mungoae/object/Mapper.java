@@ -38,17 +38,20 @@ import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Text;
+import com.google.appengine.api.datastore.Query.Filter;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.users.User;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.mungoae.BasicDBList;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
 import com.mungoae.common.SerializationException;
 import com.mungoae.operators.OpDecode;
 import com.mungoae.operators.Operator;
+import com.mungoae.query.Logical;
 import com.mungoae.query.Update;
 import com.mungoae.query.Update.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
@@ -457,7 +460,9 @@ public class Mapper {
 	 * @return
 	 */
 	public static Map<String, Tuple<FilterOperator, Object>> createFilterOperatorObjectFrom(DBObject query){ 
-		Preconditions.checkNotNull(query, "Cannot convert null query object to filter object");
+		if (query == null){
+			return null;
+		}
 		Map<String, Tuple<FilterOperator, Object>> _ops = new HashMap<String, Tuple<FilterOperator, Object>>();
 		// Iterate over all the fields
 		for (String field : query.keySet()){
@@ -508,6 +513,7 @@ public class Mapper {
 	 * @param query
 	 * @return
 	 */
+	/*
 	@SuppressWarnings("unused")
 	public static Map<String, Tuple<UpdateOperator, Object>> createUpdateOperatorFrom(DBObject query) {
 		LOG.debug("Creating update operator from query: " + query);
@@ -528,6 +534,95 @@ public class Mapper {
 			
 			//System.out.println(fieldValue.getClass().getName());
 			if (fieldValue != null && fieldValue instanceof DBObject){
+				Map<String, Tuple<FilterOperator, Object>> filters = new HashMap<String, Tuple<FilterOperator, Object>>();
+				BasicDBList dbo = (BasicDBList) fieldValue;
+				Iterator<String> _it = dbo.keySet().iterator();
+				while (_it.hasNext()){ // Get the field and value for this current operation
+					//DBObject item = _it.next();
+					//String field = _it.next();
+					//Object value = dbo.get(field);
+					//result.put(field, new Tuple<Update.UpdateOperator, Object>(OpDecode.parseUpdateFilterFrom(operatorField), value));
+					String key = _it.next();
+					Object value = dbo.get(key);
+					if (value instanceof DBObject){
+						Mapper.createFilterOperatorObjectFrom((DBObject)value);
+						Iterator<String> __it = ((DBObject)value).keySet().iterator();
+						if (__it.hasNext()){
+							String _key = __it.next();
+							Object innerValue = ((DBObject)value).get(_key);
+							if (innerValue instanceof DBObject){
+								// get keys $lt, $lte, etc...
+								String opKey = "";
+								Iterator<String> ____it = ((DBObject)innerValue).keySet().iterator();
+								while(____it.hasNext()){
+									Object __value = ((DBObject)innerValue).get(opKey);  // e.g. 20
+								}
+							} else {
+								// perhaps a String or Long type
+//								result.put(_key, new Tuple<Update.UpdateOperator, Object>(
+//										OpDecode.parseUpdateFilterFrom(opKey), innerValue));
+							}
+//							result.put(_key, new Tuple<Update.UpdateOperator, Object>(
+//									OpDecode.parseUpdateFilterFrom(opKey), innerValue));
+						}
+					}
+					value = 1;
+				}
+			}
+		}
+		return result;
+	}
+	*/
+	/**
+	* Transform a update query like:
+	*
+	* {name: 'Joe'}").with("{$inc: {age: 1}}
+	*
+	* into Map update query
+	*
+	* @param query
+	* @return
+	*/
+	@SuppressWarnings("unused")
+	public static Map<String, Tuple<UpdateOperator, Object>> createUpdateOperatorFrom(DBObject query) {
+		LOG.debug("Creating update operator from query: " + query);
+		Map<String, Tuple<UpdateOperator, Object>> result = null;
+		Iterator<String> it = query.keySet().iterator();
+		while(it.hasNext()){
+			if (result == null){
+				result = new HashMap<String, Tuple<UpdateOperator, Object>>();
+			}
+			String operatorField = it.next();
+			Object fieldValue = query.get(operatorField);
+		
+			// Skip fields that are not query fields, i.e
+			// starts with '$'
+			if (!operatorField.startsWith("$")){
+				continue;
+			}
+		
+			//System.out.println(fieldValue.getClass().getName());
+			if (fieldValue != null && fieldValue instanceof DBObject){
+//				if (fieldValue instanceof BasicDBList){
+//					BasicDBList dbo = (BasicDBList) fieldValue;
+//					Iterator<String> _it = dbo.keySet().iterator();
+//					while (_it.hasNext()){
+//						String key = _it.next();
+//						Object value = dbo.get(key);
+//						if (value instanceof DBObject){
+//							Map<String, Tuple<FilterOperator, Object>>  fitler = Mapper.createFilterOperatorObjectFrom((DBObject)value);
+//							Iterator<String> __it = fitler.keySet().iterator();
+//						}
+//					}
+//				} else {
+//					BasicDBObject dbo = (BasicDBObject) fieldValue;
+//					Iterator<String> _it = dbo.keySet().iterator();
+//					while (_it.hasNext()){ // Get the field and value for this current operation
+//						String field = _it.next();
+//						Object value = dbo.get(field);
+//						result.put(field, new Tuple<Update.UpdateOperator, Object>(OpDecode.parseUpdateFilterFrom(operatorField), value));
+//					}	
+//				}
 				BasicDBObject dbo = (BasicDBObject) fieldValue;
 				Iterator<String> _it = dbo.keySet().iterator();
 				while (_it.hasNext()){ // Get the field and value for this current operation
@@ -538,6 +633,110 @@ public class Mapper {
 			}
 		}
 		return result;
+	}	
+	
+	/*
+	 * Build an object of of a Logical query string
+	 * 
+	 * <code>
+	 * { price:1.99, $or: [ { qty: { $lt: 20 } }, { sale: true } ] }
+	 * </code>
+	 */
+	@SuppressWarnings("unused")
+	public static List<Tuple<Logical,List<Tuple<String,Tuple<FilterOperator,Object>>>>> createLogicalQueryObjectFrom(DBObject logic){
+		List<Tuple<Logical,List<Tuple<String,Tuple<FilterOperator,Object>>>>> logicList
+			= new ArrayList<Tuple<Logical,List<Tuple<String,Tuple<FilterOperator,Object>>>>>();
+		if (logic == null){
+			return logicList; // or null?
+		}
+		for (String key : logic.keySet()){
+			Object fieldValue = logic.get(key); 
+			if (key.equals("$or")){	
+				if (fieldValue instanceof BasicDBList){
+					BasicDBList dbo = (BasicDBList) fieldValue;
+					Iterator<String> it = dbo.keySet().iterator();
+					while (it.hasNext()){
+						String _key = it.next();
+						Object value = dbo.get(_key);
+						if (value instanceof DBObject){
+							Map<String, Tuple<FilterOperator, Object>>  filter = Mapper.createFilterOperatorObjectFrom((DBObject)value);
+							Iterator<String> filterIterator = filter.keySet().iterator();
+							// for each filter bound to this $or
+							// add and entry to the result
+							List<Tuple<String,Tuple<FilterOperator,Object>>> list 
+								= new ArrayList<Tuple<String,Tuple<FilterOperator,Object>>>();
+							while(filterIterator.hasNext()){
+								String filterKey = filterIterator.next();
+								list.add(new Tuple<String, Tuple<FilterOperator,Object>>(filterKey, filter.get(filterKey)));
+								LOG.debug("Filter operator in logical query=" + filterKey);
+							}
+							logicList.add(new Tuple<Logical, List<Tuple<String,Tuple<FilterOperator,Object>>>>(Logical.OR, list));
+						} 
+					}
+				}
+//				List<Tuple<FilterOperator,Object>> conditions = new ArrayList<Tuple<FilterOperator,Object>>();
+//				for (Object pair : values) {
+//					LOG.debug("Pair object type="+((BasicDBObject)pair).getClass().getName());
+//					for (String filterKey : ((BasicDBObject)pair).keySet()){ // $lt, $lte, etc...
+//						if (!filterKey.startsWith("$")){
+//							// Then this must be value
+//							conditions.add(new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, ((BasicDBObject)pair).get(filterKey))); 
+//						} else {
+//							conditions.add(new Tuple<Query.FilterOperator, Object>(OpDecode.parseFilterFrom(filterKey), 
+//									((BasicDBObject)pair).get(filterKey))); 
+//						}
+//						
+//					}
+//				}
+//				logicList.add(new Tuple<Logical, List<Tuple<FilterOperator,Object>>>(Logical.OR, conditions));
+			} else if (key.equals("$and")){
+//				List<Tuple<FilterOperator,Object>> conditions = new ArrayList<Tuple<FilterOperator,Object>>();
+//				for (Object pair : values) {
+//					for (String filterKey : ((BasicDBObject)pair).keySet()){ // $lt, $lte, etc...
+//						if (!filterKey.startsWith("$")){
+//							// Then this must be value
+//							conditions.add(new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, ((BasicDBObject)pair).get(filterKey))); 
+//						} else {
+//							conditions.add(new Tuple<Query.FilterOperator, Object>(OpDecode.parseFilterFrom(filterKey), 
+//									((BasicDBObject)pair).get(filterKey))); 
+//						}
+//						
+//					}
+//				}
+//				logicList.add(new Tuple<Logical, List<Tuple<FilterOperator,Object>>>(Logical.AND, conditions));				
+			} else if (key.equals("$not")){
+//				List<Tuple<FilterOperator,Object>> conditions = new ArrayList<Tuple<FilterOperator,Object>>();
+//				for (Object pair : values) {
+//					for (String filterKey : ((BasicDBObject)pair).keySet()){ // $lt, $lte, etc...
+//						if (!filterKey.startsWith("$")){
+//							// Then this must be value
+//							conditions.add(new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, ((BasicDBObject)pair).get(filterKey))); 
+//						} else {
+//							conditions.add(new Tuple<Query.FilterOperator, Object>(OpDecode.parseFilterFrom(filterKey), 
+//									((BasicDBObject)pair).get(filterKey))); 
+//						}
+//						
+//					}
+//				}
+//				logicList.add(new Tuple<Logical, List<Tuple<FilterOperator,Object>>>(Logical.NOT, conditions));				
+			} else if (key.equals("$nor")){
+//				List<Tuple<FilterOperator,Object>> conditions = new ArrayList<Tuple<FilterOperator,Object>>();
+//				for (Object pair : values) {
+//					for (String filterKey : ((BasicDBObject)pair).keySet()){ // $lt, $lte, etc...
+//						if (!filterKey.startsWith("$")){
+//							// Then this must be value
+//							conditions.add(new Tuple<Query.FilterOperator, Object>(FilterOperator.EQUAL, ((BasicDBObject)pair).get(filterKey))); 
+//						} else {
+//							conditions.add(new Tuple<Query.FilterOperator, Object>(OpDecode.parseFilterFrom(filterKey), 
+//									((BasicDBObject)pair).get(filterKey))); 
+//						}
+//						
+//					}
+//				}
+//				logicList.add(new Tuple<Logical, List<Tuple<FilterOperator,Object>>>(Logical.NOR, conditions));				
+			}
+		}
+		return logicList;
 	}
 	
 	/**
@@ -549,6 +748,9 @@ public class Mapper {
 	 * @return
 	 */
 	public static Map<String, Query.SortDirection> createSortObjectFrom(DBObject orderby){
+		if (orderby == null){
+			return null;
+		}
 		Map<String, Query.SortDirection> sorts = new LinkedHashMap<String,Query.SortDirection>();
 		Iterator<String> kit = orderby.keySet().iterator();
 		while (kit.hasNext()){
@@ -639,4 +841,73 @@ public class Mapper {
 		}
 		return list;
 	}
+	
+	public static DBObject createDBObjectQueryFrom(Map<String, Tuple<FilterOperator, Object>> filter){
+		BasicDBObject query = new BasicDBObject();
+		for (String key : filter.keySet()){
+			Tuple<FilterOperator, Object> f = filter.get(key);
+			FilterOperator operator = f.getFirst();
+			Object value = f.getSecond();
+			if (operator == FilterOperator.EQUAL){
+				query.append(key, new BasicDBObject("$e", value));
+			} else if (operator == FilterOperator.NOT_EQUAL){
+				query.append(key, new BasicDBObject("$ne", value));
+			} else if (operator == FilterOperator.GREATER_THAN) {
+				query.append(key, new BasicDBObject("$gt", value));
+			} else if (operator == FilterOperator.GREATER_THAN_OR_EQUAL) {
+				query.append(key, new BasicDBObject("$gte", value));
+			} else if (operator == FilterOperator.LESS_THAN) {
+				query.append(key, new BasicDBObject("$le", value)); 
+			} else if (operator == FilterOperator.LESS_THAN_OR_EQUAL) {
+				query.append(key, new BasicDBObject("$lte", value));
+			}else if (operator == FilterOperator.IN) {
+				query.append(key, new BasicDBObject("$in", value));
+			}
+		}
+		return query;
+	}
+	
+	public static DBObject createDBObjectOrderByFrom(Map<String, com.google.appengine.api.datastore.Query.SortDirection> sort){
+		if (sort == null){
+			return new BasicDBObject();
+		}
+		BasicDBObject dbQuery = new BasicDBObject();
+		for (String key : sort.keySet()){
+			com.google.appengine.api.datastore.Query.SortDirection direction = sort.get(key);
+			if (direction == com.google.appengine.api.datastore.Query.SortDirection.ASCENDING){
+				dbQuery.append(key, 1);
+			} else if (direction == com.google.appengine.api.datastore.Query.SortDirection.DESCENDING){
+				dbQuery.append(key, -1);
+			} 
+		}
+		return dbQuery;
+	}
+	
+	/**
+	 * { $inc: { field1: amount } } 
+	 * 
+	 * @param update
+	 * @return
+	 */
+	public static DBObject createDBObjectUpdateFrom(Map<String, Tuple<UpdateOperator, Object>> update){
+		BasicDBObject dbUpdate = new BasicDBObject();
+		for (String key : update.keySet()){
+			Tuple<UpdateOperator, Object> value = update.get(key);
+			if (value.getFirst() == UpdateOperator.INCREMENT){
+				dbUpdate.append("$inc", new BasicDBObject(key, value.getSecond()));
+			} else if (value.getFirst() == UpdateOperator.DECREMENT){
+				dbUpdate.append("$dec", new BasicDBObject(key, value.getSecond()));
+			} else if (value.getFirst() == UpdateOperator.RENAME){
+				dbUpdate.append("$rename", new BasicDBObject(key, value.getSecond()));
+			} else if (value.getFirst() == UpdateOperator.SET){
+				dbUpdate.append("$set", new BasicDBObject(key, value.getSecond()));
+			} else if (value.getFirst() == UpdateOperator.SET_ON_INSERT){
+				dbUpdate.append("$setOnInsert", new BasicDBObject(key, value.getSecond()));
+			} else if (value.getFirst() == UpdateOperator.UNSET){
+				dbUpdate.append("$uset", new BasicDBObject(key, value.getSecond()));
+			}
+		}
+		return dbUpdate;
+	}
+	
 }

@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.bson.types.ObjectId;
 
-import com.google.appengine.api.datastore.Query.FilterOperator;
+//import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.collection.WriteConcern;
 import com.mungoae.collection.WriteResult;
 import com.mungoae.query.Update;
@@ -48,13 +48,24 @@ public abstract class DBCollection {
 	public abstract WriteResult remove(Object id);
 	public abstract WriteResult remove(String query);
 	
-	public abstract Iterator<DBObject> __find(DBObject ref, DBObject fields, 
-			int numToSkip , int batchSize , int limit, int options);
+	public abstract Iterator<DBObject> __find(DBObject ref, DBObject keysWanted, 
+			Integer numToSkip, Integer limit, Integer batchSize, Integer options);
 
-	protected abstract Iterator<DBObject> __find(
-			Map<String, Tuple<FilterOperator, Object>> filters, 
-			Map<String, com.google.appengine.api.datastore.Query.SortDirection> sorts,
-			Integer numToSkip , Integer limit , Integer batchSize, Integer options);
+//	protected abstract Iterator<DBObject> __find(
+//			Map<String, Tuple<FilterOperator, Object>> filters, 
+//			Map<String, com.google.appengine.api.datastore.Query.SortDirection> sorts,
+//			Integer numToSkip , Integer limit , Integer batchSize, Integer options);
+	
+	/**
+	 * 
+	 * @param q search query for old object to update
+	 * @param o object to which to update q
+	 * @param upsert
+	 * @param multi 
+	 * @param concern
+	 * @return
+	 */
+	public abstract WriteResult update(DBObject q ,DBObject o ,boolean upsert, boolean multi, WriteConcern concern);
 	
 	protected abstract <T> WriteResult __insert(List<T> list, boolean shouldApply , WriteConcern concern);
 	

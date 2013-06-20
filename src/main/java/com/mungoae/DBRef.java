@@ -3,7 +3,8 @@ package com.mungoae;
 import org.bson.BSONObject;
 
 /**
- * overrides DBRefBase to understand a BSONObject representation of a reference.
+ * Overrides DBRefBase to understand a BSONObject representation of a reference.
+ * 
  * @dochub dbrefs
  */
 public class DBRef extends DBRefBase {

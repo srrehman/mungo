@@ -16,7 +16,6 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
 import com.mungoae.BasicDBObjectBuilder;
-import com.mungoae.XDBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.util.Tuple;
@@ -123,8 +122,10 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow"));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").queryObjectsLike(new BasicDBObject("hi", 
-					new BasicDBObject("$gte", "there")));
+			= ObjectStore.get("db", "coll").queryObjects(new BasicDBObject("hi", new BasicDBObject("$gte", "there")), 
+				null, // order by 
+				null, // fields
+				null, null, null, null);
 		
 		assertNotNull(it);
 		while(it.hasNext()){
@@ -148,8 +149,11 @@ public class ObjectStoreTest {
 		
 		DBObject query = new BasicDBObject("title", new BasicDBObject("$e", "sample1"))
 				.append("count", new BasicDBObject("$e", 1)); 
-		
-		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjectsLike(query);
+				
+		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjects(query, 
+			null, // order by 
+			null, // fields
+			null, null, null, null);
 		
 		assertNotNull(it);
 		while(it.hasNext()){
@@ -171,9 +175,9 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("will not be", "fetched"));
 		
 		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").queryAllObjectsLike(
-					new BasicDBObject("count", new BasicDBObject("$gte", 2)),  
-					new BasicDBObject("count", -1));
+			= ObjectStore.get("db", "coll").queryObjects(
+					new BasicDBObject("count", new BasicDBObject("$gte", 2)), 
+					new BasicDBObject("count", -1), null, null, null, null, null);
 		
 		assertNotNull(it);
 		while(it.hasNext()){
@@ -199,13 +203,13 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("a", "b").append("number", 1)
 				.append("count", 2)); 
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("c", "d").append("number", 2)
-				.append("count", 1)); 
+				.append("count", 1));  
 		
-		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").queryAllObjectsLike(
-					new BasicDBObject("count", new BasicDBObject("$gte", 2))
-						.append("number", new BasicDBObject("$gte", 1)),  
-					new BasicDBObject("count", -1).append("number", -1)); 
+		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjects(
+				new BasicDBObject("count", new BasicDBObject("$gte", 2)).append("number", new BasicDBObject("$gte", 1)), 
+				new BasicDBObject("count", -1).append("number", -1), // order by 
+				null, // fields
+				null, null, null, null);
 		
 		assertNotNull(it);
 		while(it.hasNext()){
@@ -240,7 +244,13 @@ public class ObjectStoreTest {
 		Map<String, Tuple<FilterOperator, Object>> filters = new HashMap<String, Tuple<FilterOperator,Object>>();
 		Map<String, SortDirection> sorts = new HashMap<String, SortDirection>();
 		sorts.put("count", SortDirection.DESCENDING);
-		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjects(filters, sorts, null, null, null, null);
+		
+		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjects(
+				Mapper.createDBObjectQueryFrom(filters),   
+				Mapper.createDBObjectOrderByFrom(sorts), // order by 
+				null, // fields
+				null, null, null, null);
+		
 		assertNotNull(it);
 		while(it.hasNext()){
 			DBObject obj = it.next();
@@ -249,7 +259,13 @@ public class ObjectStoreTest {
 		}
 		l("-----");
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 5));
-		it = ObjectStore.get("db", "coll").queryObjects(filters, sorts, null, null, null, null);
+		
+		it = ObjectStore.get("db", "coll").queryObjects(
+				Mapper.createDBObjectQueryFrom(filters),   
+				Mapper.createDBObjectOrderByFrom(sorts), // order by 
+				null, // fields
+				null, null, null, null);
+		
 		assertNotNull(it);
 		while(it.hasNext()){
 			DBObject obj = it.next();
@@ -269,8 +285,12 @@ public class ObjectStoreTest {
 				new BasicDBObject("hi", "there").append("how", "are you").append("good", "morning").append("count", 3)); 
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
 		
-		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").queryObjects();
+		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjects(
+				null,   
+				null, // order by 
+				null, // fields
+				null, null, null, null);
+		
 		
 		assertNotNull(it);
 		while(it.hasNext()){
@@ -290,9 +310,13 @@ public class ObjectStoreTest {
 			.append("how", "are you") 
 			.append("good", "morning").append("count", 3)); 
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
+
+		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjects(
+				null,   
+				new BasicDBObject("count", -1), // order by 
+				null, // fields
+				null, null, null, null);
 		
-		Iterator<DBObject> it 
-			= ObjectStore.get("db", "coll").queryObjectsOrderBy(new BasicDBObject("count", -1));
 		assertNotNull(it);
 		while(it.hasNext()){
 			DBObject obj = it.next();
