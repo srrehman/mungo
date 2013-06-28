@@ -37,6 +37,7 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 
 import org.bson.*;
+import org.codehaus.jackson.map.ObjectMapper;
 
 /**
  * 
@@ -94,6 +95,7 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 				}
 			}
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		}
 	}
@@ -166,42 +168,19 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	// For use as in:
 	// Iterable<Friend> all = friends.find("{name: 'Joe'}").as(Friend.class);
 	// Friend one = friends.findOne("{name: 'Joe'}").as(Friend.class);
+	@SuppressWarnings("unchecked")
 	@Override
 	public <T> T as(Class<T> clazz){
 		try {
-			T obj = (T) Mapper.createTObject(clazz, this.toMap());
+			// FIXME: toMap methods add a "non-serializable" key value, the 'class' key
+	 		T obj = (T) Mapper.createTObject(clazz, toMap());
 			return obj;
 		} catch (Exception e) {
 			LOG.error("Exception in transform of DBObject as type=" + clazz.getName() + " : " + e.getMessage());
 			throw new RuntimeException(e);
 		}
 	}
-	
-	private <T> T createTObject(Class<T> clazz){
-		T obj = null;
-		Gson gson = new Gson();
-		try {
-			obj = gson.fromJson(gson.toJson(this), clazz);
-		} catch (JsonSyntaxException e) {
-			LOG.error("Cannot create object because JSON string is malformed");
-		} catch(Exception e) {
-			LOG.error("Some other error occurred when trying to deserialize JSON string");
-		}
-		return obj;		
-	}		
-	
-	private <T> T createTObjectWithXStream(Class<T> clazz){
-		XStream xstream = new XStreamGae(new JettisonMappedXmlDriver());
-		T obj = null;
-//		try {
-//			String json = this.toJSONString();
-//			obj = (T) xstream.fromXML(json);
-//		} catch (Exception e) {
-//			LOG.log(Level.SEVERE, "XStraem cannot deserialize this object: " + e.getMessage());
-//		}
-		return obj;
-	}
-	
+
 	private boolean isValidType(Object val){
 		if (val instanceof ObjectId){
 			return true;
