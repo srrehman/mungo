@@ -1,5 +1,6 @@
 package com.mungoae.collection.simple;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -19,8 +20,11 @@ import com.mungoae.DB;
 import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.DBCollection;
+import com.mungoae.annotations.Entity;
+import com.mungoae.annotations.Id;
 import com.mungoae.collection.WriteConcern;
 import com.mungoae.collection.WriteResult;
+import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
 import com.mungoae.query.Update;
 import com.mungoae.util.BoundedIterator;
@@ -59,6 +63,7 @@ public class BasicMungoCollection extends DBCollection {
 			Iterator<DBObject> it = find();
 			return it.next(); 
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		}
 		return null;
@@ -70,9 +75,6 @@ public class BasicMungoCollection extends DBCollection {
 			Iterable<DBObject> curr = find(query);
 			List<DBObject> asList = Lists.newArrayList(curr);
 			return asList.get(0);
-//			if (curr.hasNext()){
-//				return curr.next();
-//			}
 		} catch (Exception e) {
 			// TODO: handle exception
 			e.printStackTrace();
@@ -142,9 +144,15 @@ public class BasicMungoCollection extends DBCollection {
 			}
 			return new Update(this, filters);
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	@Override
+	public Update update(DBObject query) {
+		return update(JSON.serialize(query));  
 	}
 
 	@Override
@@ -169,18 +177,7 @@ public class BasicMungoCollection extends DBCollection {
 		return null;
 	}
 	
-	/**
-	 * Construct a DBObject from a given POJO
-	 * 
-	 * @param obj
-	 * @return
-	 */
-	private <T> DBObject createFromObject(T obj){
-		// Process annotations
-		// Get the id
-		// Get the fields
-		return null;
-	}
+
 	
 //	@Override
 //	protected Iterator<DBObject> __find(
@@ -234,10 +231,7 @@ public class BasicMungoCollection extends DBCollection {
 	}
 
 	
-	// TODO
-	// Must implement size check to validate if 
-	// object exceed maximum datastore entity 
-	// byte size
+	// TODO: Must implement size check to validate if object exceed maximum datastore entity byte size
 	public void putSizeCheck(Object obj) {
 		
 	}
@@ -277,7 +271,7 @@ public class BasicMungoCollection extends DBCollection {
 				_checkObject((DBObject)doc, false, false);
 				dbObjects.add((DBObject)doc); // nothing to do
 			} else {
-				DBObject newObj = createFromObject(doc);
+				DBObject newObj = Mapper.createFromObject(doc);
 				_checkObject(newObj, false, false);
 				dbObjects.add(newObj);
 			}
@@ -291,5 +285,7 @@ public class BasicMungoCollection extends DBCollection {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
 
 }
