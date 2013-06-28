@@ -38,6 +38,7 @@ import com.mungoae.DBCollection;
 import com.mungoae.DBCursor;
 import com.mungoae.DBObject;
 import com.mungoae.Mungo;
+import com.mungoae.models.Greeting;
 import com.mungoae.models.Person;
 import com.mungoae.util.JSON;
 
@@ -49,27 +50,7 @@ public class MungoTest {
     
     private Mungo mungo;
     
-    public class Greeting {
-    	
-    	private String _id;
-    	private String greeting;
 
-		public String getGreeting() {
-			return greeting;
-		}
-
-		public void setGreeting(String greeting) {
-			this.greeting = greeting;
-		}
-
-		public String getId() {
-			return _id;
-		}
-
-		public void setId(String id) {
-			this._id = id;
-		}
-    }
     
     
     @Before
@@ -196,7 +177,7 @@ public class MungoTest {
     	greetings.insert(fromString);
     	Greeting greeting = greetings.findOne(id).as(Greeting.class);
     	assertNotNull(greeting);
-    	assertEquals("good morning", greeting.greeting);
+    	assertEquals("good morning", greeting.getGreeting());
     	assertEquals(id.toStringMongod(), greeting.getId());
     	l("Greeting greeting=" + greeting.getGreeting());
     }   

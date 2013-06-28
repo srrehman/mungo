@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+import com.mungoae.models.User;
 import com.mungoae.util.JSON;
 
 public class BasicDBObjectTest {
@@ -17,6 +18,7 @@ public class BasicDBObjectTest {
             new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()
                 .setDefaultHighRepJobPolicyUnappliedJobPercentage(0)); 	   	
 
+    
     @Before
     public void setUp() {
         helper.setUp();
@@ -29,9 +31,13 @@ public class BasicDBObjectTest {
 	
 	@Test
 	public void testCreateFromString() {
-		BasicDBObject obj = new BasicDBObject("{'username' : 'kirbymart'}");
+		DBObject obj = new BasicDBObject("{'username' : 'kirbymart'}");
 		assertNotNull(obj.get("username")); 
-	}
+		assertNotNull(obj.as(User.class));
+		User user = obj.as(User.class);
+		assertEquals("kirbymart", user.getUsername());
+		
+	}	
 	
 	@Test
 	public void testCreateQueryFromString() {

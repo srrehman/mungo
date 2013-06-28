@@ -36,6 +36,24 @@ public class DBCollectionTest {
     Mungo mungo;
     DBCollection coll;
     
+    private class Greeting {
+    	private String hi;
+    	private int number;
+    	public Greeting() {}
+		public String getHi() {
+			return hi;
+		}
+		public void setHi(String hi) {
+			this.hi = hi;
+		}
+		public int getNumber() {
+			return number;
+		}
+		public void setNumber(int number) {
+			this.number = number;
+		}
+    }
+    
     @Before
     public void setUp() {
         helper.setUp();
@@ -53,6 +71,10 @@ public class DBCollectionTest {
     public void testFindOne(){
     	DBObject findOne = coll.findOne();
     	assertNotNull(findOne);
+    	
+    	Greeting greeting = coll.findOne().as(Greeting.class);
+    	assertNotNull(greeting);
+    	assertEquals("there", greeting.getHi());
     }
 	
 	@Test

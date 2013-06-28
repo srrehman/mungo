@@ -312,7 +312,7 @@ public class ObjectStoreTest {
 		ObjectStore.get("db", "coll").persistObject(new BasicDBObject("yey", "yow").append("count", 4));
 
 		Iterator<DBObject> it = ObjectStore.get("db", "coll").queryObjects(
-				null,   
+				null, // query  
 				new BasicDBObject("count", -1), // order by 
 				null, // fields
 				null, null, null, null);

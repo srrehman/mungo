@@ -20,6 +20,7 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBObject;
+import com.mungoae.models.Greeting;
 import com.mungoae.query.Logical;
 import com.mungoae.query.Update;
 import com.mungoae.query.Update.UpdateOperator;
@@ -74,6 +75,16 @@ public class MapperTest {
 		Map<String, Tuple<UpdateOperator, Object>> update = new HashMap<String, Tuple<UpdateOperator, Object>>();
 		update.put("field1", new Tuple<Update.UpdateOperator, Object>(UpdateOperator.INCREMENT, 1));
 		assertEquals("{\"$inc\":{\"field1\":1}}", Mapper.createDBObjectUpdateFrom(update).toString()); 
+	}
+	
+	@Test
+	public void testMapDBObjectToPOJO(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		map.put("greeting", "Hello world!");
+		map.put("_id", "51cc93ad23187afa8e0a4433");
+		Greeting greeting = Mapper.createTObject(Greeting.class, map);
+		assertNotNull(greeting);
+		assertEquals("Hello world!", greeting.getGreeting());
 	}
 
 	private void l(Object log){
