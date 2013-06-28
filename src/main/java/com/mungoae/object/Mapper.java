@@ -17,6 +17,8 @@
  */
 package com.mungoae.object;
 
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -28,10 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.bson.types.ObjectId;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.appengine.api.datastore.EmbeddedEntity;
 import com.google.appengine.api.datastore.Entity;
@@ -48,6 +52,8 @@ import com.mungoae.BasicDBList;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
+import com.mungoae.annotations.Id;
+import com.mungoae.common.MungoException;
 import com.mungoae.common.SerializationException;
 import com.mungoae.operators.OpDecode;
 import com.mungoae.operators.Operator;
@@ -55,9 +61,12 @@ import com.mungoae.query.Logical;
 import com.mungoae.query.Update;
 import com.mungoae.query.Update.UpdateOperator;
 import com.mungoae.serializer.ObjectSerializer;
+import com.mungoae.serializer.XStreamGae;
 import com.mungoae.serializer.XStreamSerializer;
 import com.mungoae.util.JSON;
 import com.mungoae.util.Tuple;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 /**
  * Mapper class to construct DBObject from GAE Entities and vice versa
  * 
@@ -95,6 +104,7 @@ public class Mapper {
 			}
 			map.putAll(newMap);
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 			LOG.error("Error when processing EmbeddedEntity to Map");
 		}
@@ -151,6 +161,7 @@ public class Mapper {
 					throw new RuntimeException("Invalid JSON field type in embedded list entity");
 				}
 			} catch (Exception e) {
+				// TODO Handle exception
 				e.printStackTrace();
 			}
 		}
@@ -174,16 +185,13 @@ public class Mapper {
 	
 	/**
 	 * Create <code>EmbeddedEntity</code> from List
-	 * 
-	 * TODO: This method is quite the most problematic part, since
-	 * there is no list implementation in the datastore, unlike with 
-	 * a <code>Map</code>.
-	 * 
+
 	 * @param parent
 	 * @param jsonKey
 	 * @param entity
 	 * @return
 	 */
+	//TODO: This method is quite the most problematic part, since there is no list implementation in the datastore, unlike with a <code>Map</code>.
 	public static EmbeddedEntity createEmbeddedEntityFromList(Key parent, List entity){
 		EmbeddedEntity ee = null;
 		try {
@@ -212,6 +220,7 @@ public class Mapper {
 				index++;
 			}
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		}
 		return ee;
@@ -494,6 +503,7 @@ public class Mapper {
 					}	
 				} 
 			} catch (Exception e) {
+				// TODO Handle exception
 				e.printStackTrace();
 				throw new IllegalArgumentException("Invalid query: " + query.get(field));
 			}
@@ -793,23 +803,68 @@ public class Mapper {
 	}
 	
 	/**
-	 * Construct a new object of type T from a given <code>Map</code> 
+	 * Construct a new object of type T from a given {@code Map} object 
 	 * 
 	 * @param clazz
 	 * @param toConvert
 	 * @return
 	 */
 	public static <T> T createTObject(Class<T> clazz, Map<String,Object> toConvert){
+		LOG.info("Create object class type=" + clazz.getName() + " for Map=" + toConvert);
+		final ObjectMapper mapper = new ObjectMapper();
 		T obj = null;
-		Gson gson = new Gson();
 		try {
-			obj = gson.fromJson(gson.toJson(toConvert), clazz);
+			obj = new Gson().fromJson(JSON.serialize(toConvert), clazz);
+			// Get the field that is annotated with @Id
+			// FIXME: This code is the one throwing exceptions
+			for (Field field : obj.getClass().getDeclaredFields()) {
+				if (field.isAnnotationPresent(Id.class)) {
+					field.setAccessible(true);
+					String type = field.getType().getName();
+			        field.set(field.getName(), toConvert.get(DBCollection.MUNGO_DOCUMENT_ID_NAME));
+					field.setAccessible(false);
+				}
+			}
+			//obj = mapper.convertValue(toConvert, clazz);
 		} catch (JsonSyntaxException e) {
-			LOG.error("Cannot create object because JSON string is malformed");
+			throw new MungoException("Cannot create object because JSON string is malformed");
 		} catch(Exception e) {
-			LOG.error("Some other error occurred when trying to deserialize JSON string");
+			throw new MungoException("Error check if POJO field names match with the Map keys.");
 		}
 		return obj;		
+	}
+	
+	/**
+	 * Construct a DBObject from a given POJO
+	 * 
+	 * @param obj
+	 * @return
+	 */
+	public static <T> DBObject createFromObject(T obj){
+		Map<String,Object> map = Mapper.getPropertyMap(obj);
+		for (Field field : obj.getClass().getDeclaredFields()) {
+		    if (field.isAnnotationPresent(Id.class)) {
+		        field.setAccessible(true);
+		        String fieldName = field.getName();
+		        Object fieldValue = null;
+		        try {
+					fieldValue = field.get(obj);
+				} catch (IllegalArgumentException e) {
+					// TODO Handle exception
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					// TODO Handle exception
+					e.printStackTrace();
+				} 
+		        field.setAccessible(false);
+		        Object value = map.get(fieldName);
+		        // Remove the converted map property name which
+		        // is annotated with @Id
+		        map.remove(fieldName); 
+		        map.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, fieldValue);
+		    }
+		}
+		return new BasicDBObject(map);
 	}
 	
 	// TODO - Check if obj has "_id" as it is required
@@ -910,4 +965,40 @@ public class Mapper {
 		return dbUpdate;
 	}
 	
+    public static Map<String, Object> getPropertyMap(Object object) {
+	    Map<String, Object> propertyMap = new HashMap<String,Object>();
+	
+	    // retrieve descriptors for all properties
+	    PropertyDescriptor[] descriptors = PropertyUtils.getPropertyDescriptors(object);
+	
+	    for (PropertyDescriptor descriptor : descriptors) {
+	        // check if there is a reader method for this property i.e. if it can be accessed
+	        if (descriptor.getReadMethod() != null) {
+	            String name = descriptor.getName();
+	            // TODO: Identify the possible side effects of this code block, could that POJO have a class field name, w/c could get stripped off
+	            if (name.equals("class")){
+	            	continue; // don't include this
+	            }
+	            try {
+	                propertyMap.put(name, PropertyUtils.getProperty(object, name));
+	            } catch (Exception e) {
+	            	// TODO Handle exception
+	                e.printStackTrace();
+	            }
+	        }
+	    }
+	    return propertyMap;
+    }
+	
+	public static <T> T createTObjectWithXStream(Class<T> clazz){
+		XStream xstream = new XStreamGae(new JettisonMappedXmlDriver());
+		T obj = null;
+//		try {
+//			String json = this.toJSONString();
+//			obj = (T) xstream.fromXML(json);
+//		} catch (Exception e) {
+//			LOG.log(Level.SEVERE, "XStraem cannot deserialize this object: " + e.getMessage());
+//		}
+		return obj;
+	}
 }
