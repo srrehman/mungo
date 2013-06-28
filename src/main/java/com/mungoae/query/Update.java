@@ -7,9 +7,11 @@ import java.util.Map;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
+import com.mungoae.DBObject;
 import com.mungoae.collection.WriteConcern;
 import com.mungoae.object.Mapper;
 import com.mungoae.object.ObjectStore;
+import com.mungoae.util.JSON;
 import com.mungoae.util.Tuple;
 
 public class Update {
@@ -56,6 +58,10 @@ public class Update {
 	public Update with(String query){ 
 		_updates = Mapper.createUpdateOperatorFrom(new BasicDBObject(query));
 		return this;
+	}
+	
+	public Update with(DBObject query){
+		return with(JSON.serialize(query));
 	}
 	
 	public void now() {
