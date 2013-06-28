@@ -46,7 +46,6 @@ import com.google.appengine.api.datastore.TransactionOptions;
 import com.google.appengine.api.utils.SystemProperty.Environment;
 import com.google.apphosting.api.ApiProxy;
 import com.google.common.base.Preconditions;
-import com.google.inject.Singleton;
 import com.mungoae.collection.simple.DBApiLayer;
 /**
  * 
@@ -56,7 +55,6 @@ import com.mungoae.collection.simple.DBApiLayer;
  * @since 0.0.1
  * @version 0.0.1
  */
-@Singleton
 public class Mungo implements ParameterNames {
 
 	private static Logger LOG = LogManager.getLogger(Mungo.class.getName());
@@ -152,8 +150,6 @@ public class Mungo implements ParameterNames {
 			db = new DBApiLayer(this, dbName, _ds);
 			tx.commit();
 		} catch (Exception e) {
-			// TODO: Rollback
-			e.printStackTrace();
 			tx.rollback();
 		} finally {
 			if (oldNamespace != null)

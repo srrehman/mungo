@@ -210,6 +210,7 @@ public abstract class DB extends AbstractDBCollection implements ParameterNames 
 			List<Entity> result = pq.asList(FetchOptions.Builder.withDefaults());
 			return result.size();
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)

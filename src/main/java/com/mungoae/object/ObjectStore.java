@@ -113,7 +113,6 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 			tx.commit();
 		} catch (Exception e) {
 			tx.rollback();
-			e.printStackTrace();
 		} finally {
 			if (tx.isActive())
 				tx.rollback();
@@ -165,6 +164,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 				id = createIdObjectFromString(key.getName());
 			}
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)
@@ -208,8 +208,10 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 		Map<String, Tuple<FilterOperator, Object>> filters = Mapper.createFilterOperatorObjectFrom(query); 
 		List<Tuple<Logical,List<Tuple<FilterOperator,Object>>>> logicalQuery = null; //Mapper.createLogicalQueryObjectFrom(query);
 		Map<String, Query.SortDirection> sorts = Mapper.createSortObjectFrom(orderby); 
-		if (filters.size() == 1 && filters.get("id") != null){ 
-			return Lists.newArrayList(queryObjectById(filters.get("id") )).iterator();
+		if (filters != null){
+			if (filters.size() == 1 && filters.get("id") != null){ 
+				return Lists.newArrayList(queryObjectById(filters.get("id") )).iterator();
+			}
 		}
 		return __queryObjects(filters, logicalQuery, sorts, numToSkip, limit, batchSize, options);
 	}
@@ -243,7 +245,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 				obj = new BasicDBObject(map);
 			}
 		} catch (Exception e) {
-			LOG.error("Error: " + e.getMessage());
+			// TODO Handle exception
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)
@@ -272,7 +274,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 				obj = new BasicDBObject(map);
 			}
 		} catch (Exception e) {
-			LOG.error("Error: " + e.getMessage());
+			// TODO Handle exception
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)
@@ -314,7 +316,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 						createStringIdFromObject(id))); // Safe?
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			// TODO Handle exception
 		} finally {
 			if (oldNamespace != null)
 				NamespaceManager.set(oldNamespace);
@@ -368,6 +370,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 				}
 			};	
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 			it = null;
 		} finally {
@@ -422,6 +425,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 				}
 			};	
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 			it = null;
 		} finally {
@@ -472,6 +476,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 				}
 			};	
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 			it = null;
 		} finally {
@@ -496,6 +501,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 			LOG.debug("Object deleted: " + key.getName());
 			return containsEntityKey(key); 
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)
@@ -529,6 +535,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 				}
 			};	
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 			it = null;
 		} finally {
@@ -597,6 +604,7 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 
 			}
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		} finally {
 			if (oldNamespace != null)

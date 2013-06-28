@@ -44,6 +44,7 @@ public abstract class DBCollection {
 	public abstract <T> WriteResult insert(T... docs); 
 	public abstract <T> WriteResult insert(List<T> docs); 
 	public abstract Update update(String query);
+	public abstract Update update(DBObject query);
 	public abstract <T> T save(T doc);
 	public abstract WriteResult remove(Object id);
 	public abstract WriteResult remove(String query);

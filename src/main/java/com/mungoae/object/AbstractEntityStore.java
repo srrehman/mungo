@@ -236,6 +236,7 @@ public abstract class AbstractEntityStore  {
 				}
 			};	
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 			it = null;
 		} finally {
@@ -314,6 +315,7 @@ public abstract class AbstractEntityStore  {
 				}
 			};	
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 			it = null;
 		} finally {
@@ -694,12 +696,12 @@ public abstract class AbstractEntityStore  {
 	 * there is only two type of String id that is stored using Mungo
 	 * which is a ObjectId string and a XStream serialized Object.
 	 * 
-	 * FIXME - Bug, when a String docId is a number string
 	 * it is interpreted as Long
 	 * 
 	 * @param docId
 	 * @return
 	 */
+    //FIXME - Bug, when a String docId is a number string
 	protected Object createIdObjectFromString(String docId){
 		Object id = docId;
 		try {
@@ -789,6 +791,7 @@ public abstract class AbstractEntityStore  {
 		} catch (ConcurrentModificationException e){
 			e.printStackTrace();
 		} catch (Exception e) {
+			// TODO Handle exception
 			e.printStackTrace();
 		}
 		return entityKey;
