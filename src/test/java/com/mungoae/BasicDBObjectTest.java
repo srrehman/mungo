@@ -35,8 +35,8 @@ public class BasicDBObjectTest {
 		assertNotNull(obj.get("username")); 
 		assertNotNull(obj.as(User.class));
 		User user = obj.as(User.class);
+		assertNotNull(user.getId());
 		assertEquals("kirbymart", user.getUsername());
-		
 	}	
 	
 	@Test

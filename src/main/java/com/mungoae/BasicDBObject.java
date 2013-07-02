@@ -172,7 +172,6 @@ public class BasicDBObject extends BasicBSONObject implements DBObject, Paramete
 	@Override
 	public <T> T as(Class<T> clazz){
 		try {
-			// FIXME: toMap methods add a "non-serializable" key value, the 'class' key
 	 		T obj = (T) Mapper.createTObject(clazz, toMap());
 			return obj;
 		} catch (Exception e) {

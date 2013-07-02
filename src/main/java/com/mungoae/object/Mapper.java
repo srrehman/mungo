@@ -52,6 +52,7 @@ import com.mungoae.BasicDBList;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBCollection;
 import com.mungoae.DBObject;
+import com.mungoae.annotations.Attribute;
 import com.mungoae.annotations.Id;
 import com.mungoae.common.MungoException;
 import com.mungoae.common.SerializationException;
@@ -819,19 +820,97 @@ public class Mapper {
 			// FIXME: This code is the one throwing exceptions
 			for (Field field : obj.getClass().getDeclaredFields()) {
 				if (field.isAnnotationPresent(Id.class)) {
-					field.setAccessible(true);
-					String type = field.getType().getName();
-			        field.set(field.getName(), toConvert.get(DBCollection.MUNGO_DOCUMENT_ID_NAME));
-					field.setAccessible(false);
+					boolean isAccessible = field.isAccessible();
+					if (!isAccessible){
+						field.setAccessible(true);
+					}
+					Class<?> fieldType = field.getType();
+					Object value = toConvert.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
+					if (fieldType.equals(int.class) || fieldType.equals(Integer.class)) {
+				        if (field.getInt(obj) == 0) { 
+				            // not initialized
+				        }
+				        field.setInt(obj, getAs(obj, Integer.class).intValue()); 
+				    } else if (fieldType.equals(long.class) || fieldType.equals(Long.class)) {
+				        if (field.getLong(obj) == 0) { 
+				            // not initialized
+				        }
+				        field.setLong(obj, getAs(obj, Long.class).longValue());
+				    } else if (field.get(obj) == null) {
+				        // not initialized
+				    	field.set(obj, null);
+				    } else { // For String id 
+				    	field.set(obj, value);
+				    }
+					field.setAccessible(isAccessible); 
+				} else if (field.isAnnotationPresent(Attribute.class)){
+					boolean isAccessible = field.isAccessible();
+					if (!isAccessible){
+						field.setAccessible(true);
+					}
+					Class<?> fieldType = field.getType();
+					Object value = toConvert.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
+					if (fieldType.equals(int.class)) {
+				        if (field.getInt(obj) == 0) {
+				            // not initialized
+				        }
+				        field.setInt(obj, getAs(obj, Integer.class).intValue()); 
+				    } else if (fieldType.equals(double.class)) {
+				        if (field.getDouble(obj) == 0) {
+				            // not initialized
+				        }
+				        field.setDouble(obj, getAs(obj, Double.class).doubleValue());  
+				    } else if (fieldType.equals(boolean.class)) {
+				        if (field.getBoolean(obj) == false) {
+				            // not initialized
+				        }
+				        field.setBoolean(obj, getAs(obj, Boolean.class).booleanValue());
+				    } else if (fieldType.equals(float.class)) {
+				        if (field.getFloat(obj) == 0) {
+				            // not initialized
+				        }
+				    } else if (fieldType.equals(char.class)) {
+				        if (field.getChar(obj) == 0) {
+				            // not initialized
+				        }
+				    } else if (fieldType.equals(byte.class)) {
+				        if (field.getByte(obj) == 0) {
+				            // not initialized
+				        }
+				    } else if (fieldType.equals(long.class)) {
+				        if (field.getLong(obj) == 0) {
+				            // not initialized
+				        }
+				        field.setLong(obj, getAs(obj, Long.class).longValue());
+				    } else if (field.get(obj) == null) {
+				        // not initialized
+				    	field.set(obj, null);
+				    }
+					field.setAccessible(isAccessible); 
 				}
 			}
-			//obj = mapper.convertValue(toConvert, clazz);
 		} catch (JsonSyntaxException e) {
 			throw new MungoException("Cannot create object because JSON string is malformed");
 		} catch(Exception e) {
-			throw new MungoException("Error check if POJO field names match with the Map keys.");
+			e.printStackTrace();
+			throw new MungoException("Error check if POJO field names match with the Map keys or put @Attribute annotation if it does not match");
 		}
 		return obj;		
+	}
+	
+	private static <T> T getAs(Object obj, Class<T> clazz){ 
+		if (obj == null) {
+			return null;
+		} if (obj.getClass().equals(clazz)){
+			return (T) obj;
+		}
+        T newObj = null; 
+		try {
+			newObj = (T) obj;
+		} catch (ClassCastException e) {
+			throw new RuntimeException("Invalid object value type is being assigned to Object");
+		}
+		return newObj;
 	}
 	
 	/**
