@@ -85,6 +85,8 @@ public class ObjectStore extends AbstractEntityStore implements ParameterNames {
 		List<Object> ids = null;
 		String oldNamespace = NamespaceManager.get();
 		NamespaceManager.set(_dbName);
+		// FIXME - Cannot run with options during JUnit test
+		//Transaction tx = _ds.beginTransaction(options);
 		Transaction tx = _ds.beginTransaction();
 		try {
 			for (DBObject o : objects){

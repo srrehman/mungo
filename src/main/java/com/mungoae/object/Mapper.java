@@ -803,6 +803,22 @@ public class Mapper {
 		return dbo;
 	}
 	
+	private static Map<String,Object> dateToString(Map<String,Object> map){
+		Iterator<Entry<String,Object>> it = map.entrySet().iterator();
+		Map<String,Object> dateMap = new HashMap<String,Object>();
+		while(it.hasNext()){
+			Entry<String,Object> entry = it.next();
+			String key = entry.getKey();
+			Object value = entry.getValue();
+			if (value instanceof Date){
+				Date date = (Date) value;
+				dateMap.put(key, String.valueOf(date.getTime()));
+			}
+		}
+		map.putAll(dateMap);
+		return map;
+	}
+	
 	/**
 	 * Construct a new object of type T from a given {@code Map} object 
 	 * 
@@ -815,7 +831,35 @@ public class Mapper {
 		final ObjectMapper mapper = new ObjectMapper();
 		T obj = null;
 		try {
+			// Added for fix for document having: 
+			// "_id" : { "$oid" : "51b6125923185d39fe416f94"
+			Object oid = toConvert.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
+			if (oid instanceof ObjectId){
+				String id = ((ObjectId) oid).toStringMongod();
+				toConvert.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, id);
+			} else if (oid instanceof String){
+
+			}
+			
+			// Fix for Gson issue not being able to parse the stored date in the map
+			toConvert = dateToString(toConvert);
+			
+			// Get the field name annotated with @Id
+			for (Field field : clazz.getDeclaredFields()) {
+				if (field.isAnnotationPresent(Id.class)) {
+					String idField = field.getName();
+					Object idValue = toConvert.get(DBCollection.MUNGO_DOCUMENT_ID_NAME);
+					toConvert.remove(DBCollection.MUNGO_DOCUMENT_ID_NAME);
+					toConvert.put(idField, idValue);
+				} else if (field.isAnnotationPresent(Attribute.class)){
+					
+				}
+			}
+			
+			
 			obj = new Gson().fromJson(JSON.serialize(toConvert), clazz);
+			
+			/*
 			// Get the field that is annotated with @Id
 			// FIXME: This code is the one throwing exceptions
 			for (Field field : obj.getClass().getDeclaredFields()) {
@@ -889,6 +933,7 @@ public class Mapper {
 					field.setAccessible(isAccessible); 
 				}
 			}
+			*/
 		} catch (JsonSyntaxException e) {
 			throw new MungoException("Cannot create object because JSON string is malformed");
 		} catch(Exception e) {
@@ -921,11 +966,12 @@ public class Mapper {
 	 */
 	public static <T> DBObject createFromObject(T obj){
 		Map<String,Object> map = Mapper.getPropertyMap(obj);
+		
 		for (Field field : obj.getClass().getDeclaredFields()) {
+			Object fieldValue = null;
 		    if (field.isAnnotationPresent(Id.class)) {
 		        field.setAccessible(true);
 		        String fieldName = field.getName();
-		        Object fieldValue = null;
 		        try {
 					fieldValue = field.get(obj);
 				} catch (IllegalArgumentException e) {
@@ -941,6 +987,20 @@ public class Mapper {
 		        // is annotated with @Id
 		        map.remove(fieldName); 
 		        map.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, fieldValue);
+		    } else if (field.getName().equals("_id")){
+		    	boolean accessible = field.isAccessible();
+		    	try {
+		    		field.setAccessible(true);
+		    		fieldValue = field.get(obj);
+		    		field.setAccessible(accessible);
+		    	} catch (IllegalArgumentException e) {
+		    		// TODO Handle exception
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					// TODO Handle exception
+					e.printStackTrace();
+				} 
+		    	map.put(DBCollection.MUNGO_DOCUMENT_ID_NAME, fieldValue);
 		    }
 		}
 		return new BasicDBObject(map);
