@@ -21,6 +21,7 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.mungoae.BasicDBObject;
 import com.mungoae.DBObject;
 import com.mungoae.models.Greeting;
+import com.mungoae.models.User;
 import com.mungoae.query.Logical;
 import com.mungoae.query.Update;
 import com.mungoae.query.Update.UpdateOperator;
@@ -40,6 +41,17 @@ public class MapperTest {
     public void tearDown() {
         helper.tearDown();
     }	
+    
+    @Test
+    public void testCreateFromObject() {
+    	User user = new User();
+    	user.setId("123");
+    	user.setUsername("demo");
+    	DBObject obj = Mapper.createFromObject(user);
+    	assertNotNull(obj);
+    	assertEquals("123", obj.get("_id"));
+    	assertEquals("demo", obj.get("username"));
+    }
 	
 	@Test
 	public void testCreateDBObjectFromEntity() {

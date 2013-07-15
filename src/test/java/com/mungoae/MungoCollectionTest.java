@@ -16,8 +16,10 @@ import com.google.appengine.api.datastore.Query.SortDirection;
 import com.google.appengine.labs.repackaged.com.google.common.collect.Lists;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+import com.mungoae.collection.WriteResult;
 import com.mungoae.collection.simple.BasicMungoCollection;
 import com.mungoae.models.Friend;
+import com.mungoae.models.User;
 import com.mungoae.util.JSON;
 
 public class MungoCollectionTest {
@@ -99,6 +101,36 @@ public class MungoCollectionTest {
 //		friends.insert("{name: 'Joe', age: 18}");
 //		friends.insert(new Friend("Joe", 27));
 //		friends.insert(new Friend("Joe", 27), new Friend("Jack", 26));
+		User user = new User();
+		user.setId("123");
+		user.setUsername("demo");
+		
+		Mungo mungo = new Mungo();
+		DB db = mungo.getDB("db");
+        DBCollection users = db.getCollection("users");
+		WriteResult result = users.insert(user);
+		assertNull(result.getError());
+		
+		User found = users.findOne("{'username' : 'demo'}").as(User.class);  
+		assertNotNull(found);
+		assertEquals("123", found.getId());
+		assertEquals("demo", user.getUsername());
+	}
+	
+	@Test
+	public void testInsertMany() {
+		Mungo mungo = new Mungo();
+		DB db = mungo.getDB("db");
+        DBCollection users = db.getCollection("users");
+        
+        //users.insert(new User("demo1"), new User("demo2"), new User("demo2"));
+        users.insert(new User("demo1"));
+        users.insert(new User("demo2"));
+        users.insert(new User("demo3"));
+        Iterable<User> found = users.find().as(User.class);
+        List<User> list = Lists.newArrayList(found);
+        assertNotNull(list);
+        assertEquals(3, list.size());
 	}
 	
 	@Test
