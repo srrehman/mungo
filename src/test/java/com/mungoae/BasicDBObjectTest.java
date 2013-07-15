@@ -32,9 +32,10 @@ public class BasicDBObjectTest {
 	@Test
 	public void testCreateFromString() {
 		DBObject obj = new BasicDBObject("{'username' : 'kirbymart'}");
+		obj.put("_id", new ObjectId());
 		assertNotNull(obj.get("username")); 
-		assertNotNull(obj.as(User.class));
 		User user = obj.as(User.class);
+		assertNotNull(user);
 		assertNotNull(user.getId());
 		assertEquals("kirbymart", user.getUsername());
 	}	
