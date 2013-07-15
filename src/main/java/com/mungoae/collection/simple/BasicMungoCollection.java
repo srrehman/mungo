@@ -74,7 +74,11 @@ public class BasicMungoCollection extends DBCollection {
 		try {
 			Iterable<DBObject> curr = find(query);
 			List<DBObject> asList = Lists.newArrayList(curr);
-			return asList.get(0);
+			if (!asList.isEmpty()){
+				return asList.get(0);
+			} else {
+				return null;
+			}
 		} catch (Exception e) {
 			// TODO: handle exception
 			e.printStackTrace();
