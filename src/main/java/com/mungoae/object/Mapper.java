@@ -19,6 +19,7 @@ package com.mungoae.object;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -47,6 +48,7 @@ import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.users.User;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.mungoae.BasicDBList;
 import com.mungoae.BasicDBObject;
@@ -803,7 +805,14 @@ public class Mapper {
 		return dbo;
 	}
 	
-	private static Map<String,Object> dateToString(Map<String,Object> map){
+	/**
+	 * Helper method to convert a retrieved Date object from the GAE datastore
+	 * to a string format that Google Gson library can map to a Date field on a POJO
+	 * 
+	 * @param map
+	 * @return
+	 */
+	private static Map<String,Object> formatDates(Map<String,Object> map){ 
 		Iterator<Entry<String,Object>> it = map.entrySet().iterator();
 		Map<String,Object> dateMap = new HashMap<String,Object>();
 		while(it.hasNext()){
@@ -812,7 +821,9 @@ public class Mapper {
 			Object value = entry.getValue();
 			if (value instanceof Date){
 				Date date = (Date) value;
-				dateMap.put(key, String.valueOf(date.getTime()));
+				String dateString = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssz").format(date); 
+				// Causes, Caused by: java.text.ParseException: Unparseable date: "Mon Jul 15 17:17:32 UTC 2013"
+				dateMap.put(key, dateString);
 			}
 		}
 		map.putAll(dateMap);
@@ -842,7 +853,7 @@ public class Mapper {
 			}
 			
 			// Fix for Gson issue not being able to parse the stored date in the map
-			toConvert = dateToString(toConvert);
+			toConvert = formatDates(toConvert);
 			
 			// Get the field name annotated with @Id
 			for (Field field : clazz.getDeclaredFields()) {
@@ -856,8 +867,8 @@ public class Mapper {
 				}
 			}
 			
-			
-			obj = new Gson().fromJson(JSON.serialize(toConvert), clazz);
+			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ssz").create();
+			obj = gson.fromJson(JSON.serialize(toConvert), clazz);
 			
 			/*
 			// Get the field that is annotated with @Id
@@ -935,6 +946,7 @@ public class Mapper {
 			}
 			*/
 		} catch (JsonSyntaxException e) {
+			e.printStackTrace();
 			throw new MungoException("Cannot create object because JSON string is malformed");
 		} catch(Exception e) {
 			e.printStackTrace();
